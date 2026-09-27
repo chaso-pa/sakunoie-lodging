@@ -13,7 +13,6 @@
       --muted: #6f655d;
       --accent: #b5603c; /* テラコッタ */
       --line: #e6ddd4;
-      --todo-bg: #fff1c2;
     }
     * { box-sizing: border-box; }
     body {
@@ -50,15 +49,7 @@
     ol.iroha { list-style: none; padding-left: 1.8em; }
     p.clause { margin: .4em 0; }
     .num { font-weight: 700; margin-right: .3em; }
-    mark.todo { background: var(--todo-bg); padding: 0 .2em; border-radius: 3px; }
     .note { color: var(--muted); font-size: .88rem; }
-    .draft {
-      background: var(--todo-bg);
-      border-radius: 6px;
-      padding: 10px 14px;
-      font-size: .9rem;
-      margin: 0 0 1.5em;
-    }
     table { border-collapse: collapse; width: 100%; margin: .6em 0; font-size: .92rem; }
     th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
     th { background: #f4ede6; font-weight: 600; }
@@ -80,7 +71,6 @@
   </header>
 
   <main>
-    <p class="draft">【仮版】本ページは作成中の草案です。<mark class="todo">黄色の箇所</mark>は内容確定前の項目です。</p>
 
     <h2>第1条（適用範囲）</h2>
     <p class="clause"><span class="num">1</span>佐久の家（以下「当施設」といいます。）が宿泊客との間で締結する宿泊契約及びこれに関連する契約は、この約款の定めるところによるものとし、この約款に定めのない事項については、法令等（法令又は法令に基づくものをいいます。以下同じ。）又は一般に確立された慣習によるものとします。</p>

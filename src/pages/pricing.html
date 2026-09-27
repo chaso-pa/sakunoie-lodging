@@ -13,7 +13,6 @@
       --muted: #6f655d;
       --accent: #b5603c; /* テラコッタ */
       --line: #e6ddd4;
-      --todo-bg: #fff1c2;
     }
     * { box-sizing: border-box; }
     body {
@@ -43,15 +42,7 @@
       border-left: 4px solid var(--accent);
     }
     ul { padding-left: 1.4em; }
-    mark.todo { background: var(--todo-bg); padding: 0 .2em; border-radius: 3px; }
     .note { color: var(--muted); font-size: .88rem; }
-    .draft {
-      background: var(--todo-bg);
-      border-radius: 6px;
-      padding: 10px 14px;
-      font-size: .9rem;
-      margin: 0 0 1.5em;
-    }
     .price {
       text-align: center;
       border: 1px solid var(--line);
@@ -84,7 +75,6 @@
   </header>
 
   <main>
-    <p class="draft">【仮版】本ページは作成中の草案です。<mark class="todo">黄色の箇所</mark>は内容確定前の項目です。</p>
 
     <h2>基本宿泊料</h2>
     <div class="price">
