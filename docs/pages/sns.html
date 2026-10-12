@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e6a58">
+<title>TABINOTE 開発版 | TABINOTE｜佐久の家 宿泊者コミュニティ</title>
+<style>
+:root{--green:#1e6a58;--mint:#e9f4ef;--ink:#20312c;--muted:#718079;--line:#e3eae6;--paper:#fbfcfa;--orange:#f0a15b}
+*{box-sizing:border-box}body{margin:0;background:#eef2ef;color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{max-width:480px;min-height:100dvh;margin:auto;background:var(--paper);position:relative;padding-bottom:82px;box-shadow:0 0 30px #152b2010}.top{padding:18px 18px 12px;background:var(--paper);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;justify-content:space-between}.logo{font-size:24px;font-weight:900;letter-spacing:1px;color:var(--green)}.logo small{display:block;font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:600}.avatar{width:38px;height:38px;border-radius:50%;background:var(--mint);display:grid;place-items:center;border:1px solid #c9e0d5}.search{margin-top:12px;width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:white;outline-color:var(--green)}main{padding:14px 14px 22px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:1.3px;color:var(--green)}h1{font-size:24px;line-height:1.35;margin:5px 0 8px}h2{font-size:19px;margin:0 0 12px}h3{font-size:15px;margin:0 0 5px}.muted{color:var(--muted);font-size:12px}.chips{display:flex;gap:7px;overflow:auto;padding:4px 0 12px;scrollbar-width:none}.chip{border:1px solid var(--line);border-radius:99px;background:white;padding:8px 13px;white-space:nowrap;font-size:12px;color:var(--ink)}.chip.active{background:var(--green);color:white;border-color:var(--green)}.card{background:white;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:14px}.photo{height:220px;position:relative;background:linear-gradient(160deg,#d6e9dd,#729d88);overflow:hidden}.photo svg{width:100%;height:100%;display:block}.photo .realphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}.photo:after{content:'';position:absolute;inset:35% 0 0;background:linear-gradient(transparent,#102b20a8);pointer-events:none}.photo .label,.photo .phototext{z-index:1}.photo .label{position:absolute;left:12px;top:12px;background:#ffffffed;padding:6px 10px;border-radius:99px;font-size:11px;font-weight:700}.photo .phototext{position:absolute;bottom:12px;left:14px;color:white;text-shadow:0 2px 10px #173c2c;font-size:23px;font-weight:900}.postbody{padding:14px}.postmeta{display:flex;align-items:center;gap:9px;margin-bottom:10px}.miniavatar{width:31px;height:31px;border-radius:50%;background:var(--mint);display:grid;place-items:center;font-size:15px}.postmeta .grow{flex:1}.weather{display:inline-flex;align-items:center;gap:6px;background:#f5f8f6;border-radius:9px;padding:7px 9px;font-size:11px;color:#53665d}.actions{display:flex;gap:9px;margin-top:13px}.action{border:1px solid var(--line);border-radius:11px;background:white;padding:8px 12px;font-size:12px}.action.on{background:#fff0f0;border-color:#f3caca;color:#bd4444}.action.save.on{background:var(--mint);border-color:#b9d8ca;color:var(--green)}.bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(480px,100%);display:grid;grid-template-columns:repeat(6,1fr);padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:#fffffff2;backdrop-filter:blur(14px);border-top:1px solid var(--line);z-index:10}.navbtn{border:0;background:transparent;color:#78857f;font-size:10px;padding:5px 0;display:grid;gap:3px;justify-items:center}.navbtn span{font-size:21px;line-height:1.1}.navbtn.active{color:var(--green);font-weight:800}.hero{padding:20px;border-radius:20px;background:linear-gradient(135deg,#e4f2e9,#f6f0dc);margin-bottom:16px}.hero p{font-size:13px;line-height:1.8;margin:8px 0 0}.btn{border:0;border-radius:12px;background:var(--green);color:white;padding:12px 15px;font-weight:750}.btn.secondary{background:var(--mint);color:var(--green)}.btn.full{width:100%;margin-top:10px}.field{display:grid;gap:6px;margin:12px 0;font-size:12px;font-weight:750}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:11px;background:white;padding:11px 12px;width:100%;outline-color:var(--green);font-weight:400;color:var(--ink)}.field textarea{min-height:95px;resize:vertical}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.spotgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.spot{background:white;border:1px solid var(--line);border-radius:15px;overflow:hidden;text-align:left;padding:0;color:var(--ink)}.spotart{height:100px;display:grid;place-items:center;font-size:40px;background:linear-gradient(145deg,#e2f1e8,#c7dfd0);position:relative;overflow:hidden}.spotart img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.spotart span{position:relative;z-index:1;background:#ffffffc9;border-radius:50%;width:48px;height:48px;display:grid;place-items:center}.spottext{padding:10px}.spottext small{color:var(--muted);font-size:10px}.mapbox{height:300px;position:relative;overflow:hidden;border-radius:18px;background:#e5eee1;border:1px solid #d5e1d5;margin-bottom:14px;background-image:linear-gradient(28deg,transparent 46%,#fff 47%,#fff 50%,transparent 51%),linear-gradient(110deg,transparent 44%,#fff 45%,#fff 48%,transparent 49%),linear-gradient(0deg,transparent 78%,#d5e4cf 79%);background-size:160px 130px,180px 170px,100% 100%}.river{position:absolute;left:-20%;top:45%;width:145%;height:32px;background:#b7d9e8;transform:rotate(-19deg);border-radius:50%;opacity:.8}.pin{position:absolute;border:0;border-radius:99px;background:white;padding:7px 10px;box-shadow:0 3px 10px #23402a22;font-size:11px;font-weight:800;color:var(--green)}.pin.selected{background:var(--green);color:white;transform:scale(1.05)}.pin.p1{left:9%;top:18%}.pin.p2{left:48%;top:31%}.pin.p3{left:58%;top:62%}.pin.p4{left:14%;top:70%}.pin.p5{left:36%;top:48%}.spotrow{display:flex;gap:11px;align-items:center;padding:12px;border-bottom:1px solid var(--line);background:white}.spotemoji{width:55px;height:55px;border-radius:13px;background:var(--mint);display:grid;place-items:center;font-size:27px}.spotrow .grow{flex:1}.statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.stat{padding:13px 7px;background:white;border:1px solid var(--line);border-radius:14px;text-align:center}.stat strong{display:block;font-size:20px;color:var(--green)}.stat small{font-size:10px;color:var(--muted)}.review{padding:13px 0;border-bottom:1px solid var(--line)}.review:last-child{border:0}.pill{font-size:10px;padding:4px 7px;border-radius:7px;background:var(--mint);color:var(--green);font-weight:800}.empty{text-align:center;padding:34px 18px;background:white;border:1px dashed #cbd9d1;border-radius:16px;color:var(--muted);font-size:13px}.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#20312c;color:white;padding:11px 16px;border-radius:99px;font-size:12px;z-index:20;display:none;max-width:90%;text-align:center}.back{border:0;background:transparent;color:var(--green);padding:0 0 12px;font-weight:750}.tagrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.tag{font-size:11px;color:var(--green);background:var(--mint);padding:5px 8px;border-radius:8px}.filter-panel{background:#f7faf7;border:1px solid var(--line);border-radius:15px;padding:12px;margin:0 0 16px}.filter-heading{font-size:13px;font-weight:850;margin-bottom:4px;color:var(--green)}.filter-select{border:1px solid var(--line);border-radius:11px;background:white;padding:11px 9px;width:100%;font-size:12px;color:var(--ink)}.hidden{display:none!important}.feed-switch{display:flex;gap:6px}.view-btn{border:1px solid var(--line);background:white;border-radius:10px;padding:7px 11px;color:var(--muted)}.view-btn.active{background:var(--green);border-color:var(--green);color:white}.feed-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.grid-post{position:relative;aspect-ratio:1/1;overflow:hidden;border:0;padding:0;background:#dce9df;color:white}.grid-post .photo,.grid-post .media-box{height:100%;width:100%;border-radius:0;margin:0}.grid-post .photo svg{height:100%}.grid-post .photo .label{display:none}.grid-post .photo .phototext{font-size:13px;left:7px;bottom:7px}.grid-post .grid-stats{position:absolute;inset:auto 0 0;padding:18px 5px 5px;background:linear-gradient(transparent,#0008);font-size:11px;text-align:left}.media-box{position:relative;height:260px;background:linear-gradient(145deg,#d8e9df,#6b927e);overflow:hidden}.media-box video,.media-box img{width:100%;height:100%;display:block;object-fit:cover}.media-box.short-video{height:auto;aspect-ratio:9/12;max-height:480px}.video-placeholder{height:100%;min-height:220px;display:grid;place-items:center;background:radial-gradient(circle at 70% 25%,#f5dca5,#719d87 55%,#234c3c);color:white;text-align:center}.video-placeholder strong{font-size:18px;text-shadow:0 2px 12px #20312c}.play-icon{font-size:42px;line-height:1;text-shadow:0 2px 12px #20312c}.media-badge{position:absolute;top:9px;right:9px;background:#10251ccc;color:white;border-radius:7px;padding:5px 7px;font-size:10px;font-weight:800}.feed-modebar{display:flex;justify-content:space-between;align-items:center;margin:2px 0 12px}.upload-preview{border:1px dashed #cbd9d1;border-radius:12px;min-height:70px;display:grid;place-items:center;padding:8px;color:var(--muted);font-size:12px}.upload-preview video,.upload-preview img{max-width:100%;max-height:200px;border-radius:8px}
+
+.auth-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:22px;background:linear-gradient(145deg,#e6f2e9,#f7f2e5)}.auth-card{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:24px;padding:25px 22px;box-shadow:0 18px 50px #183d2b12}.auth-logo{font-size:27px;font-weight:900;letter-spacing:1px;color:var(--green)}.auth-logo small{display:block;font-size:10px;letter-spacing:1.6px;color:var(--muted);font-weight:700}.auth-icon{font-size:42px;margin:18px 0 8px}.auth-note{font-size:12px;line-height:1.8;color:var(--muted);background:#f5f8f6;border-radius:12px;padding:11px 12px;margin-top:14px}.auth-step{display:flex;gap:6px;margin:15px 0 20px}.auth-step span{height:4px;flex:1;background:#e3eae6;border-radius:99px}.auth-step span.on{background:var(--green)}.demo-code{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--green);background:var(--mint);padding:8px 10px;border-radius:8px;display:inline-block;margin-top:7px}.auth-error{color:#b34242;font-size:12px;margin-top:8px;min-height:16px}
+.rank-list{display:grid;gap:8px;margin:10px 0 18px}.rank-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:1px solid var(--line);border-radius:14px;background:#fff;text-align:left;color:var(--ink)}.rank-no{width:30px;height:30px;flex:0 0 30px;border-radius:10px;display:grid;place-items:center;background:var(--mint);color:var(--green);font-weight:900}.rank-item:nth-child(1) .rank-no{background:#f8e8b8;color:#8b6417}.rank-item:nth-child(2) .rank-no{background:#e9edf0;color:#52616b}.rank-item:nth-child(3) .rank-no{background:#f1dfd0;color:#8c5839}.rank-main{flex:1;min-width:0}.rank-main strong{display:block;font-size:13px}.rank-main small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.rank-score{font-size:11px;color:var(--green);font-weight:800;white-space:nowrap}.rank-tabs{display:flex;gap:6px;margin:8px 0 10px}.rank-tabs button{border:1px solid var(--line);border-radius:99px;background:white;padding:7px 11px;font-size:11px;color:var(--muted)}.rank-tabs button.active{background:var(--green);border-color:var(--green);color:white}
+
+/* TABINOTE welcome landing */
+.welcome-wrap{min-height:100dvh;display:flex;flex-direction:column;justify-content:space-between;padding:26px 22px 28px;background:linear-gradient(180deg,#dcece2 0%,#f5f1df 52%,#fbfcfa 100%);overflow:hidden;position:relative}
+.welcome-brand{font-size:25px;font-weight:950;letter-spacing:1.4px;color:var(--green);position:relative;z-index:2}
+.welcome-brand small{display:block;font-size:9px;letter-spacing:2px;color:#63786e;font-weight:750;margin-top:2px}
+.welcome-art{height:39vh;min-height:235px;max-height:360px;position:relative;margin:12px -22px 0;overflow:hidden}
+.welcome-art svg{width:100%;height:100%;display:block}
+.welcome-copy{position:relative;z-index:2;margin-top:8px}
+.welcome-kicker{font-size:11px;font-weight:850;letter-spacing:1.8px;color:var(--green);margin-bottom:12px}
+.welcome-title{font-size:31px;line-height:1.48;font-weight:900;letter-spacing:.02em;margin:0 0 13px;color:#203b30}
+.welcome-title em{font-style:normal;color:var(--green);text-decoration:underline;text-decoration-color:#e8b76d;text-decoration-thickness:5px;text-underline-offset:5px}
+.welcome-desc{font-size:13px;line-height:2;color:#5c7066;margin:0 0 22px;max-width:360px}
+.welcome-cta{width:100%;border:0;border-radius:15px;background:var(--green);color:#fff;font-size:15px;font-weight:850;padding:16px 18px;box-shadow:0 8px 20px #1e6a5828}
+.welcome-foot{font-size:10px;color:#718079;text-align:center;margin-top:13px;letter-spacing:.04em}
+@media(min-width:481px){.welcome-wrap{min-height:100dvh}}
+
+
+/* TABINOTE AI demo UI */
+.ai-hero{border-radius:20px;padding:18px;background:linear-gradient(135deg,#e7f4ec,#f3edff);border:1px solid #dbe7df;margin-bottom:15px}
+.ai-orb{width:42px;height:42px;border-radius:14px;background:#fff;display:grid;place-items:center;font-size:23px;box-shadow:0 4px 16px #244b3512;flex-shrink:0}
+.ai-card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;margin-bottom:13px}
+.ai-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ai-head h2{margin:0;font-size:16px}
+.ai-textarea,.ai-select,.ai-textinput{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#fff;color:var(--ink);margin:5px 0 10px;outline-color:var(--green)}
+.ai-textarea{min-height:90px;resize:vertical;line-height:1.6}
+.ai-output{margin-top:11px;padding:13px;border-radius:13px;background:#f5f8f5;border:1px solid #e2eae4;font-size:13px;line-height:1.85;white-space:pre-wrap}
+.ai-disclaimer{font-size:10px;line-height:1.6;color:var(--muted);margin-top:8px}
+.ai-chiprow{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 10px}
+.ai-chip{border:1px solid #dce6df;background:#f7faf8;border-radius:99px;padding:7px 10px;font-size:11px;color:#345a48}
+.ai-chatlog{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.ai-msg{max-width:92%;padding:10px 12px;border-radius:13px;font-size:13px;line-height:1.7;white-space:pre-wrap}
+.ai-msg.bot{align-self:flex-start;background:#f0f5f1;border:1px solid #e1e9e3}
+.ai-msg.user{align-self:flex-end;background:var(--green);color:white}
+
+
+.ai-feature{background:linear-gradient(135deg,#edf5ee,#fbf3e7);border:1px solid #dfe9dc;border-radius:18px;padding:15px;margin:12px 0 16px}
+.ai-feature-head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.ai-feature-icon{width:34px;height:34px;border-radius:12px;background:#477d68;color:white;display:grid;place-items:center;font-size:18px}
+.ai-feature h3{margin:0;font-size:15px;color:#294b3b}
+.ai-feature p{font-size:11px;line-height:1.7;color:#64756a;margin:4px 0 12px}
+.ai-purpose button{font-size:11px;padding:8px 10px;line-height:1.25}.ai-purpose{gap:6px;margin-bottom:10px}.ai-quick{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px}
+.ai-quick button{border:1px solid #d7e3d7;background:#fff;color:#4c6e59;border-radius:999px;padding:8px 10px;font-size:11px;cursor:pointer}
+.ai-quick button.selected{background:#477d68;color:white;border-color:#477d68}
+.ai-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.ai-options select{width:100%;min-width:0;border:1px solid #dce5dc;background:#fff;border-radius:10px;padding:9px;font-size:11px;color:#344b3c}
+.ai-go{width:100%;background:#477d68;color:#fff;border:0;border-radius:11px;padding:12px;font-weight:800;font-size:12px;cursor:pointer}
+.ai-results{margin-top:12px;display:grid;gap:10px}
+.ai-result{background:#fff;border:1px solid #e0e8df;border-radius:13px;padding:12px}
+.ai-result strong{display:block;font-size:13px;margin-bottom:5px}
+.ai-result p{font-size:11px;margin:0 0 7px;line-height:1.7}
+.ai-meta{font-size:10px;color:#718177;margin-bottom:8px}
+.ai-links{display:flex;gap:7px}
+.ai-links a{flex:1;text-align:center;text-decoration:none;border:1px solid #dfe8df;background:#f4f8f3;color:#416a53;border-radius:8px;padding:8px 4px;font-size:10px;font-weight:700}
+.community-tag{display:inline-block;font-size:10px;color:#8a704d;background:#f8f0e3;padding:4px 7px;border-radius:6px;margin-bottom:6px}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand"><div class="logo">TABINOTE<small>佐久の家から、旅のつながりを。</small></div><select id="languageSelect" aria-label="Language / 言語" style="max-width:112px;border:1px solid var(--line);border-radius:12px;padding:7px 8px;background:white;color:var(--ink);font-size:12px">
+<option value="ja">🇯🇵 日本語</option><option value="en">🇺🇸 English</option><option value="ko">🇰🇷 한국어</option><option value="zh">🇨🇳 简体中文</option>
+</select><div class="avatar">🌿</div></div><input id="globalSearch" class="search" placeholder="🔎 スポット・地域・旅のキーワード" aria-label="検索"></header>
+<main id="screen"></main>
+<nav class="bottom" aria-label="メインナビ">
+<button class="navbtn active" data-tab="feed"><span>▦</span>フィード</button>
+<button class="navbtn" data-tab="map"><span>⌖</span>地図</button>
+<button class="navbtn" data-tab="post"><span>＋</span>投稿する</button>
+<button class="navbtn" data-tab="trips"><span>▤</span>旅の記録</button>
+<button class="navbtn" data-tab="profile"><span>☻</span>マイページ</button>
+<button class="navbtn" data-tab="ai"><span>✦</span>AIスポット</button>
+</nav><div class="toast" id="toast"></div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const places=[
+{id:'shirakoma',name:'白駒の池',area:'東信',kind:'自然',emoji:'🌲',desc:'苔の森に囲まれた、静かな湖。朝の散策がおすすめ。',weather:'晴れ',temp:13,visits:128},
+{id:'karuizawa',name:'軽井沢・雲場池',area:'東信',kind:'自然',emoji:'🍁',desc:'水面に映る木々が美しい散策スポット。',weather:'くもり',temp:16,visits:245},
+{id:'saku',name:'佐久の家',area:'東信',kind:'宿泊',emoji:'🏡',desc:'長野県佐久市にある、旅の拠点になる家主居住型の宿。',weather:'晴れ',temp:18,visits:42},
+{id:'matsumoto',name:'松本城',area:'中信',kind:'歴史',emoji:'🏯',desc:'黒い天守が印象的な国宝。城下町さんぽも楽しめます。',weather:'晴れ',temp:17,visits:360},
+{id:'suwa',name:'諏訪湖',area:'南信',kind:'自然',emoji:'🌅',desc:'湖畔の散歩や夕景を楽しめるスポット。',weather:'晴れ',temp:19,visits:198},
+{id:'zenkoji',name:'善光寺',area:'北信',kind:'歴史',emoji:'⛩️',desc:'門前町の食べ歩きと合わせて訪れたい名所。',weather:'小雨',temp:14,visits:410}
+];
+let posts=[
+{id:1,user:'Mika',avatar:'📷',title:'朝の苔の森を歩く',place:'白駒の池',area:'東信',date:'2026-10-08',weather:'晴れ',temp:13,body:'静かな森の空気が気持ちよかった。足元の苔まできれいで、ゆっくり歩きたくなる場所。',tags:['自然','朝さんぽ'],emoji:'🌲',likes:24,saved:false,liked:false},
+{id:2,user:'旅するKen',avatar:'🚶',title:'軽井沢で深呼吸',place:'軽井沢・雲場池',area:'東信',date:'2026-10-05',weather:'くもり',temp:16,body:'水面に映る秋の色。駅周辺でカフェに寄るのもおすすめ。',tags:['軽井沢','秋旅'],emoji:'🍁',likes:18,saved:false,liked:false},
+{id:3,user:'Yui',avatar:'☕',title:'城下町とコーヒー',place:'松本城',area:'中信',date:'2026-09-29',weather:'晴れ',temp:21,body:'お城を見てから、近くの路地を散策。歩いているだけで楽しい一日でした。',tags:['歴史','カフェ'],emoji:'🏯',likes:31,saved:false,liked:false},
+{id:4,user:'TABINOTE編集部',avatar:'🌿',title:'湖畔で夕焼けを待つ',place:'諏訪湖',area:'南信',date:'2026-09-22',weather:'晴れ',temp:22,body:'空の色がゆっくり変わる時間。湖のそばでのんびり過ごしました。',tags:['夕景','湖'],emoji:'🌅',likes:42,saved:false,liked:false},
+{id:5,user:'Emily · UK',avatar:'🌷',title:'A peaceful morning by the pond',place:'軽井沢・雲場池',area:'東信',date:'2026-10-10',weather:'晴れ',temp:14,body:'Such a peaceful place in the morning! The reflections on the water were beautiful, and the little cafés nearby were perfect for a warm coffee.',tags:['Karuizawa','cafe','autumn'],emoji:'🍂',likes:16,saved:false,liked:false}
+];
+let isMember=false, inviteValidated=false, memberName='', memberAvatar='', pendingAvatar='', authError='', introSeen=false;
+const demoInviteCodes=['SAKU-26-ABCD','SAKU-26-EFGH','SAKU-26-JKLM'];
+let tab='feed', filter='すべて', weatherFilter='すべて', monthFilter='すべて', selectedPlace=null, detailFrom='map', activeProfile='佐久の家', gpsPosition=null, gpsStatus='', gpsFormOpen=false, gpsVisits=[], feedMode='list', rankingMode='spots', selectedMediaUrl='', selectedMediaType='photo', reviews=[
+{user:'Ava · UK',stars:5,text:'The room was clean and cozy. The local recommendations were really helpful!'},
+{user:'Kenta',stars:5,text:'家のようにくつろげて、観光の拠点にぴったり。'},
+{user:'Mina · Korea',stars:5,text:'佐久のカフェ巡りが楽しかったです。次は紅葉の季節に来たい！'}
+];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// TABINOTE prototype v1: persist this browser's demo data between visits.
+// Production multi-device sharing will require a real backend and authentication.
+const TABINOTE_STORE='tabinote_prototype_v1';
+function persistState(){
+ try{
+  const state={posts,isMember,inviteValidated,memberName,memberAvatar,introSeen,gpsVisits,reviews};
+  localStorage.setItem(TABINOTE_STORE,JSON.stringify(state));
+ }catch(err){ console.warn('TABINOTE: 保存できませんでした',err); }
+}
+function restoreState(){
+ try{
+  const raw=localStorage.getItem(TABINOTE_STORE); if(!raw)return;
+  const state=JSON.parse(raw);
+  if(Array.isArray(state.posts)) posts=state.posts;
+  if(typeof state.isMember==='boolean') isMember=state.isMember;
+  if(typeof state.inviteValidated==='boolean') inviteValidated=state.inviteValidated;
+  if(typeof state.memberName==='string') memberName=state.memberName;
+  if(typeof state.memberAvatar==='string') memberAvatar=state.memberAvatar;
+  if(typeof state.introSeen==='boolean') introSeen=state.introSeen;
+  if(Array.isArray(state.gpsVisits)) gpsVisits=state.gpsVisits;
+  if(Array.isArray(state.reviews)) reviews=state.reviews;
+ }catch(err){ console.warn('TABINOTE: 保存データを読み込めませんでした',err); }
+}
+function resetDemoData(){
+ if(!confirm('このブラウザに保存したTABINOTEの試用データを削除しますか？'))return;
+ localStorage.removeItem(TABINOTE_STORE); location.reload();
+}
+
+function toast(msg){let t=$('#toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2200)}
+
+let autoWeatherData={weather:'取得中',temp:18,icon:'🌤️',source:'取得中'};
+function weatherLabel(code){
+ if(code===0)return ['晴れ','☀️'];
+ if([1,2].includes(code))return ['晴れ時々くもり','🌤️'];
+ if(code===3)return ['くもり','☁️'];
+ if([45,48].includes(code))return ['霧','🌫️'];
+ if([51,53,55,56,57].includes(code))return ['小雨','🌦️'];
+ if([61,63,65,66,67,80,81,82].includes(code))return ['雨','🌧️'];
+ if([71,73,75,77,85,86].includes(code))return ['雪','❄️'];
+ if([95,96,99].includes(code))return ['雷雨','⛈️'];
+ return ['くもり','☁️'];
+}
+function setAutoWeather(weather,temp,icon,source){
+ autoWeatherData={weather,temp,icon,source};
+ const card=document.getElementById('autoWeatherCard');
+ if(!card)return;
+ const t=document.getElementById('autoWeatherText'),i=document.getElementById('autoWeatherIcon'),s=document.getElementById('autoWeatherSource');
+ if(t)t.textContent=`${weather}・${temp}℃`;
+ if(i)i.textContent=icon;
+ if(s)s.textContent=source;
+ const form=document.getElementById('postForm');
+ if(form){const w=form.querySelector('[name="weather"]'),c=form.querySelector('[name="temp"]');if(w)w.value=weather;if(c)c.value=String(temp)}
+}
+async function refreshAutoWeather(showMessage=false){
+ const card=document.getElementById('autoWeatherCard');
+ if(!card)return;
+ const text=document.getElementById('autoWeatherText');
+ if(text)text.textContent='天気・気温を取得しています…';
+ // This prototype uses Saku City as the default area; no precise GPS location is requested.
+ const lat=36.2488,lon=138.4769;
+ try{
+   const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia%2FTokyo`;
+   const response=await fetch(url);
+   if(!response.ok)throw new Error('weather request failed');
+   const data=await response.json();
+   const current=data.current;
+   if(!current)throw new Error('missing current weather');
+   const [weather,icon]=weatherLabel(Number(current.weather_code));
+   setAutoWeather(weather,Math.round(Number(current.temperature_2m)),icon,'佐久市周辺の現在の天気（自動取得）');
+   if(showMessage)toast('天気・気温を更新しました');
+ }catch(err){
+   setAutoWeather('未取得',18,'🌤️','天気を取得できませんでした。ネット接続後に「更新」を押してね');
+   if(showMessage)toast('天気を取得できませんでした');
+ }
+}
+
+function photoFor(title){
+ const t=String(title||'');
+ if(/カフェ|コーヒー|パン|喫茶|cafe|coffee|bakery/i.test(t)) return 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=82';
+ if(/池|湖|軽井沢|雲場|水辺|pond|lake/i.test(t)) return 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=82';
+ if(/山|高原|景色|絶景|mountain|view/i.test(t)) return 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=82';
+ if(/森|林|散歩|自然|forest|walk/i.test(t)) return 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=82';
+ if(/ごはん|ランチ|料理|食事|restaurant|food/i.test(t)) return 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1200&q=82';
+ return 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=82';
+}
+function art(emoji,title){return `<div class="photo"><svg viewBox="0 0 500 250" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b8d9d1"/><stop offset="1" stop-color="#edf0d9"/></linearGradient></defs><rect width="500" height="250" fill="url(#sky)"/><circle cx="390" cy="45" r="26" fill="#fff4cc"/><path d="M0 170 L100 65 205 175 300 75 500 180 V250 H0Z" fill="#789e86"/><path d="M0 195 L150 115 260 210 370 125 500 195 V250 H0Z" fill="#477b63"/><path d="M0 220 Q130 180 250 220 T500 215 V250 H0Z" fill="#a8c6a1"/><path d="M80 250 Q160 190 240 250" stroke="#e4e6c9" stroke-width="18" fill="none"/></svg><img class="realphoto" src="${photoFor(title)}" alt="${esc(title)}の風景写真" loading="lazy" onerror="this.style.display='none'"><div class="label">長野県 · TABINOTE</div><div class="phototext">${emoji} ${esc(title)}</div></div>`}
+function postMedia(p){if(p.mediaUrl&&p.mediaType==='video')return `<div class="media-box short-video"><video src="${p.mediaUrl}" controls playsinline preload="metadata"></video><span class="media-badge">▶ SHORT</span></div>`;if(p.mediaUrl&&p.mediaType==='photo')return `<div class="media-box"><img src="${p.mediaUrl}" alt="${esc(p.title)}"></div>`;if(p.mediaType==='video')return `<div class="media-box short-video"><div class="video-placeholder"><div><div class="play-icon">▶</div><strong>${esc(p.place)}のショート動画</strong><div style="font-size:11px;margin-top:6px">動画サンプル · 再生には動画ファイルが必要</div></div></div><span class="media-badge">▶ SHORT</span></div>`;return art(p.emoji,p.place)}
+function postCard(p){return `<article class="card">${postMedia(p)}<div class="postbody"><div class="postmeta"><div class="miniavatar">${p.avatar}</div><div class="grow"><strong>${esc(p.user)}</strong><div class="muted">${esc(p.area)} · ${esc(p.date)}</div></div><button class="action save ${p.saved?'on':''}" onclick="toggleSave(${p.id})">${p.saved?'▣ 保存済':'▢ 保存'}</button></div><h3>${esc(p.title)}</h3><p id="post-text-${p.id}" style="font-size:13px;line-height:1.75;margin:7px 0 6px">${esc(p.body)}</p><button class="action translate-btn" type="button" onclick="translateUserText('post-text-${p.id}', this)" data-original="${esc(p.body)}">🌐 翻訳する</button><div class="weather">☀️ ${esc(p.weather)}　${p.temp}℃ <span style="color:#aab5af">|</span> 📅 ${esc(p.date)}</div><div class="tagrow">${p.tags.map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div><div class="actions"><button class="action ${p.liked?'on':''}" onclick="toggleLike(${p.id})">${p.liked?'♥':'♡'} いいね ${p.likes}</button><button class="action" onclick="openPlaceByName('${esc(p.place)}')">⌖ スポットを見る</button></div></div></article>`}
+function demoGoSignup(){inviteValidated=true;authError='';render();window.scrollTo(0,0)}
+function avatarMarkup(value, size=38){if(value && value.startsWith('data:image/'))return `<img src="${value}" alt="プロフィール画像" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;display:block">`;return `<span>${esc(value||'🙂')}</span>`;}
+
+function aiView(){ return aiSpotPanel(); }
+function makeAiDiary(){
+ const place=(document.getElementById('aiDiaryPlace')?.value||'旅先').trim();
+ const memo=(document.getElementById('aiDiaryMemo')?.value||'').trim();
+ const tone=document.getElementById('aiDiaryTone')?.value||'warm';
+ if(!memo){toast('旅のメモを入力してね');return}
+ let opening=tone==='casual'?'📍 '+place+' に行ってきた！':tone==='guide'?'【'+place+'を訪れて】':'今日は'+place+'へ。';
+ let close=tone==='casual'?'またお気に入りの場所が増えた。次の旅も楽しみ！':tone==='guide'?'訪問時は天候や混雑状況を確認し、時間に余裕を持って散策するのがおすすめです。':'心に残る、ゆったりとした時間になった。また季節を変えて訪れてみたい。';
+ let result=opening+'\n\n'+memo.replace(/[。！!？?]+$/,'')+'。\n\n'+close+'\n\n#TABINOTE #長野旅行 #'+place.replace(/[\s　]/g,'');
+ window.__tabinoteAiDiary=result;
+ const out=document.getElementById('aiDiaryOutput');out.textContent=result;out.style.display='block';
+ document.getElementById('aiDiaryActions').style.display='flex';
+}
+function copyAiDiary(){const text=window.__tabinoteAiDiary||'';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>toast('旅日記をコピーしたよ')).catch(()=>fallbackCopyAi(text))}else fallbackCopyAi(text)}
+function fallbackCopyAi(text){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('旅日記をコピーしたよ')}catch(e){toast('コピーできませんでした')}ta.remove()}
+function useAiDiaryAsPost(){const text=window.__tabinoteAiDiary||'';if(!text)return;go('post');setTimeout(()=>{const fields=[...document.querySelectorAll('#screen textarea')];const body=fields.find(x=>/本文|キャプション|感想|投稿内容/.test(x.placeholder+' '+x.name+' '+x.id))||fields[0];if(body)body.value=text;else toast('旅日記を作成したよ。投稿画面で文章を貼り付けてね')},100)}
+function askConcierge(question){
+ const q=String(question||'').trim();if(!q)return;
+ const log=document.getElementById('aiChatLog');if(!log)return;
+ const user=document.createElement('div');user.className='ai-msg user';user.textContent=q;log.appendChild(user);
+ let answer='';
+ if(/雨|天気|室内|屋内/.test(q)) answer='雨の日なら、カフェでゆっくり過ごしたり、屋内の展示施設や地元のお店を組み合わせるのがおすすめ。佐久・軽井沢は施設ごとに営業日が異なるので、出発前に公式情報を確認してね。';
+ else if(/カフェ|コーヒー|喫茶/.test(q)) answer='カフェ巡りなら、まず佐久市内で朝のコーヒーやベーカリーを楽しみ、そのあと軽井沢方面へ足を伸ばすプランがよさそう。気になるお店を2〜3軒選び、移動時間もゆったり確保すると楽しめるよ。';
+ else if(/自然|散歩|景色|湖|池|紅葉/.test(q)) answer='自然を感じたいなら、軽井沢の雲場池の散策や、佐久周辺の高原エリアがおすすめ候補。季節や天候で景色が変わるので、歩きやすい靴と羽織りを用意してね。';
+ else if(/半日|プラン|モデルコース|何する/.test(q)) answer='半日プランの例：①午前はカフェで朝食 ②雲場池など自然スポットを散策 ③地元のお店でランチやお土産探し。車移動なら混雑や駐車場も考えて、予定を詰め込みすぎないのがコツだよ。';
+ else answer='いいね！旅の好みをもう少し教えてくれると、プランを絞り込めるよ。自然・カフェ・グルメ・歴史・買い物のどれが好き？ 車移動か徒歩・公共交通かも分かると考えやすいよ。';
+ const bot=document.createElement('div');bot.className='ai-msg bot';bot.textContent=answer;log.appendChild(bot);
+ const input=document.getElementById('aiConciergeInput');if(input)input.value='';
+ log.scrollTop=log.scrollHeight;
+}
+async function runAiTranslation(){
+ const text=document.getElementById('aiTranslateInput')?.value||'';
+ const lang=document.getElementById('aiTranslateLang')?.value||'ja';
+ const out=document.getElementById('aiTranslateOutput');if(!text.trim()){toast('翻訳したい文章を入力してね');return}
+ out.style.display='block';out.textContent='翻訳中…';
+ try{
+   const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text.slice(0,450))+'&langpair='+encodeURIComponent((/[\u3040-\u30ff\u4e00-\u9fff]/.test(text)?'ja':/[가-힣]/.test(text)?'ko':'en')+'|'+lang);
+   const res=await fetch(url);if(!res.ok)throw new Error('translation failed');
+   const data=await res.json();const translated=data?.responseData?.translatedText;
+   if(!translated)throw new Error('empty translation');
+   out.textContent=translated;
+ }catch(e){out.textContent='翻訳を取得できませんでした。インターネット接続を確認して、もう一度試してね。';}
+}
+
+function render(){const top=document.querySelector('.top'),nav=document.querySelector('.bottom'),app=document.querySelector('.app');if(!introSeen){top.style.display='none';nav.style.display='none';$('#globalSearch').style.display='none';$('#screen').style.padding='0';$('#screen').innerHTML=welcomeView();window.scrollTo(0,0);return}if(!isMember){top.style.display='none';nav.style.display='none';$('#globalSearch').style.display='none';$('#screen').style.padding='0';$('#screen').innerHTML=authView();window.scrollTo(0,0);return}top.style.display='';nav.style.display='';$('#globalSearch').style.display='';$('#screen').style.padding='';document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));let s=$('#screen');if(tab==='feed')s.innerHTML=feedView();if(tab==='map')s.innerHTML=mapView();if(tab==='post'){s.innerHTML=postView();refreshAutoWeather(false)}if(tab==='trips')s.innerHTML=tripsView();if(tab==='profile')s.innerHTML=profileView();if(tab==='ai')s.innerHTML=aiView();persistState();window.scrollTo({top:0,behavior:'smooth'})}
+function welcomeView(){return `<div class="welcome-wrap"><div class="welcome-brand">TABINOTE<small>SAKU NO IE GUEST COMMUNITY</small></div><div class="welcome-art"><svg viewBox="0 0 420 320" role="img" aria-label="山と湖の旅の風景" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6e1d1"/><stop offset="1" stop-color="#f5edce"/></linearGradient><linearGradient id="lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#91c4c1"/><stop offset="1" stop-color="#d4e7d8"/></linearGradient></defs><rect width="420" height="320" fill="url(#sky)"/><circle cx="318" cy="65" r="29" fill="#f4c979" opacity=".92"/><path d="M0 190 L80 85 L145 167 L222 55 L330 183 L376 120 L420 174 L420 320 L0 320Z" fill="#8cae96"/><path d="M0 220 L90 140 L152 204 L242 116 L337 224 L386 174 L420 207 L420 320 L0 320Z" fill="#527e68"/><path d="M0 230 Q100 208 210 230 T420 222 L420 320 L0 320Z" fill="url(#lake)"/><path d="M0 256 Q90 240 175 257 T420 250" stroke="#f5f3dc" stroke-width="3" opacity=".65" fill="none"/><path d="M0 278 Q90 266 170 280 T420 272" stroke="#f5f3dc" stroke-width="2" opacity=".5" fill="none"/><g transform="translate(52 170)"><path d="M0 48 L38 5 L76 48Z" fill="#f6f2df"/><path d="M12 34 L38 5 L64 34Z" fill="#fffdf4"/><rect x="9" y="48" width="58" height="39" rx="2" fill="#f4e4c6"/><path d="M2 49 L38 27 L75 49Z" fill="#a45f43"/><rect x="31" y="62" width="13" height="25" fill="#9b7554"/><rect x="16" y="58" width="10" height="10" fill="#91b8ae"/><rect x="50" y="58" width="10" height="10" fill="#91b8ae"/></g><g fill="#365d48"><path d="M350 224 L372 151 L394 224Z"/><path d="M368 248 L390 174 L412 248Z"/><path d="M325 248 L346 178 L367 248Z"/></g><g transform="translate(238 202) rotate(-8)"><rect x="0" y="0" width="58" height="78" rx="5" fill="#fffdf5" stroke="#e0d8c4" stroke-width="2"/><rect x="7" y="7" width="44" height="35" rx="2" fill="#a8cbb8"/><path d="M7 35 L20 20 L29 30 L38 15 L51 35Z" fill="#4d7d63"/><path d="M9 51 H48 M9 59 H41 M9 67 H34" stroke="#b7c5ba" stroke-width="2" stroke-linecap="round"/></g><g transform="translate(310 234) rotate(9)"><rect x="0" y="0" width="55" height="73" rx="5" fill="#fffdf5" stroke="#e0d8c4" stroke-width="2"/><rect x="6" y="6" width="43" height="36" rx="2" fill="#e8c6a4"/><circle cx="31" cy="19" r="8" fill="#f7e5b2"/><path d="M6 38 L18 25 L28 33 L38 22 L49 38Z" fill="#648b6b"/><path d="M8 51 H46 M8 59 H38" stroke="#b7c5ba" stroke-width="2" stroke-linecap="round"/></g></svg></div><div class="welcome-copy"><div class="welcome-kicker">YOUR TRIP, CONNECTED</div><h1 class="welcome-title">旅の記録を、<br><em>つないでいこう。</em></h1><p class="welcome-desc">佐久の家に泊まった人たちの「ここ、よかった！」が、次の旅のヒントになる。あなたの発見も、次の誰かへ。</p><button class="welcome-cta" onclick="startWelcome()">旅の記録をつなげる　→</button><div class="welcome-foot">佐久の家 宿泊者限定コミュニティ</div></div></div>`}
+function startWelcome(){introSeen=true;render();window.scrollTo(0,0)}
+function authView(){if(!inviteValidated)return `<div class="auth-wrap"><section class="auth-card"><div class="auth-logo">TABINOTE<small>SAKU NO IE GUEST COMMUNITY</small></div><div class="auth-icon">🏡</div><div class="eyebrow">GUESTS ONLY</div><h1>佐久の家に泊まった人だけの、旅のSNS。</h1><p style="font-size:13px;line-height:1.8">宿泊者が見つけた穴場や、おいしかったお店。次に泊まる人へ、旅の発見をつないでいこう。</p><div class="auth-step"><span class="on"></span><span></span></div><form id="inviteForm"><label class="field">宿泊者招待コード<input name="code" required autocomplete="one-time-code" placeholder="例：SAKU-26-ABCD" style="text-transform:uppercase"></label><div class="auth-error">${esc(authError)}</div><button class="btn full" type="submit">招待コードを確認する</button></form><div class="auth-note"><strong>招待コードをお持ちですか？</strong><br>チェックイン時にホストから案内されたコードを入力してください。宿泊経験者だけが登録できます。</div><div style="margin-top:14px;padding:12px;border:1px dashed #cbd9d1;border-radius:12px;background:#fbfdfb"><strong style="font-size:12px">試作品を操作する（デモ用）</strong><p style="font-size:12px;line-height:1.7;margin:7px 0">コード入力がうまく進まない場合はこちら。登録画面へ直接進めます。</p><button class="btn secondary full" type="button" onclick="demoGoSignup()">デモで登録画面へ進む</button><p style="font-size:11px;color:var(--muted);margin:9px 0 0">通常の招待コード：<span class="demo-code">SAKU-26-ABCD</span></p></div></section></div>`;return `<div class="auth-wrap"><section class="auth-card"><div class="auth-logo">TABINOTE<small>SAKU NO IE GUEST COMMUNITY</small></div><div class="auth-icon">🌿</div><div class="eyebrow">YOUR PROFILE</div><h1>ニックネームを決めよう。</h1><p class="muted">メールアドレスやパスワードは不要。ニックネームとプロフィール画像だけで参加できるよ。</p><div class="auth-step"><span class="on"></span><span class="on"></span></div><form id="signupForm"><div style="display:grid;justify-items:center;gap:8px;margin:10px 0 18px"><div id="avatarPreview" style="width:88px;height:88px;border-radius:50%;background:var(--mint);border:2px solid #c9e0d5;display:grid;place-items:center;overflow:hidden;font-size:35px">${avatarMarkup(pendingAvatar||'🙂',88)}</div><label class="btn secondary" for="profileImageInput" style="cursor:pointer">📷 プロフィール画像を選ぶ</label><input id="profileImageInput" name="profileImage" type="file" accept="image/*" style="display:none"><span class="muted">画像なしでも登録できます</span></div><label class="field">ニックネーム<input name="displayName" required maxlength="30" placeholder="例：旅するMika"></label><div class="auth-error">${esc(authError)}</div><button class="btn full" type="submit">TABINOTEをはじめる</button></form><div class="auth-note">宿泊者招待コードで確認済み。プロフィール設定後は、チェックアウト後もずっと利用できます。</div></section></div>`}
+function rankingView(){
+ if(rankingMode==='posts'){
+  const top=posts.slice().sort((a,b)=>b.likes-a.likes).slice(0,3);
+  return top.length?`<div class="rank-list">${top.map((p,i)=>`<button class="rank-item" onclick="openPlaceByName('${esc(p.place)}')"><span class="rank-no">${i+1}</span><span class="rank-main"><strong>${esc(p.title)}</strong><small>${esc(p.place)} · ${esc(p.user)}</small></span><span class="rank-score">♡ ${p.likes}</span></button>`).join('')}</div>`:'<div class="empty">まだ投稿がありません。</div>';
+ }
+ const top=places.filter(p=>p.kind!=='宿泊').map(p=>{const related=posts.filter(x=>x.place===p.name);const likes=related.reduce((n,x)=>n+x.likes,0);const saves=related.filter(x=>x.saved).length;return {...p,score:p.visits+likes+saves*3,relatedCount:related.length,likes}}).sort((a,b)=>b.score-a.score).slice(0,3);
+ return `<div class="rank-list">${top.map((p,i)=>`<button class="rank-item" onclick="openSpot('${p.id}')"><span class="rank-no">${i+1}</span><span class="spotemoji" style="width:42px;height:42px;font-size:22px;flex:0 0 42px">${p.emoji}</span><span class="rank-main"><strong>${esc(p.name)}</strong><small>${esc(p.area)} · ${esc(p.kind)} · 関連投稿 ${p.relatedCount}件</small></span><span class="rank-score">人気</span></button>`).join('')}</div>`;
+}
+function feedView(){
+ let q=$('#globalSearch').value.toLowerCase();
+ const months=[...new Set(posts.map(p=>String(p.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+ let list=posts.filter(p=>(filter==='すべて'||p.area===filter)&&(weatherFilter==='すべて'||p.weather===weatherFilter)&&(monthFilter==='すべて'||String(p.date||'').startsWith(monthFilter))&&(!q||[p.title,p.place,p.body,p.area,p.tags.join(' '),p.weather,p.date].join(' ').toLowerCase().includes(q)));
+ let content=list.length?(feedMode==='grid'?`<div class="feed-grid">${list.map(p=>`<button class="grid-post" onclick="openPlaceByName('${esc(p.place)}')">${postMedia(p)}<div class="grid-stats">${p.mediaType==='video'?'▶ ':' '}${esc(p.place)}　♡ ${p.likes}</div></button>`).join('')}</div>`:list.map(postCard).join('')):'<div class="empty">投稿が見つかりませんでした。<br>天気・月・地域や検索ワードを変えてみてね。</div>';
+ return `<div class="hero"><div class="eyebrow">DISCOVER NAGANO</div><h1>次の旅のヒントを、<br>みんなの記録から。</h1><p>佐久の家に泊まった人たちの、おすすめが集まる旅のSNS。</p><button class="btn" onclick="go('map')">⌖ スポットを探す</button></div><section style="margin:0 0 18px"><div class="feed-modebar"><div><h2 style="margin:0 0 3px">🏆 人気ランキング</h2><span class="muted">宿泊者のおすすめをチェック</span></div></div><div class="rank-tabs"><button class="${rankingMode==='spots'?'active':''}" onclick="rankingMode='spots';render()">人気スポット</button><button class="${rankingMode==='posts'?'active':''}" onclick="rankingMode='posts';render()">人気の投稿</button></div>${rankingView()}<p class="muted" style="margin:0">※順位は試作品用のサンプルデータです。</p></section><div class="chips">${['すべて','東信','北信','中信','南信'].map(x=>`<button class="chip ${filter===x?'active':''}" onclick="filter='${x}';render()">${x}</button>`).join('')}</div><div class="filter-panel"><div class="filter-heading">🔎 条件で絞り込む</div><div class="grid2"><label class="field">天気<select class="filter-select" onchange="weatherFilter=this.value;render()">${['すべて','晴れ','くもり','小雨','雨','雪'].map(x=>`<option value="${x}" ${weatherFilter===x?'selected':''}>${x==='すべて'?'すべての天気':x}</option>`).join('')}</select></label><label class="field">訪問した月<select class="filter-select" onchange="monthFilter=this.value;render()"><option value="すべて" ${monthFilter==='すべて'?'selected':''}>すべての月</option>${months.map(m=>`<option value="${m}" ${monthFilter===m?'selected':''}>${m.replace('-','年')}月</option>`).join('')}</select></label></div><div class="muted">天気と月は組み合わせて検索できるよ。</div><button class="action" style="margin-top:9px" onclick="filter='すべて';weatherFilter='すべて';monthFilter='すべて';$('#globalSearch').value='';render()">条件をリセット</button></div><div class="feed-modebar"><div><h2 style="margin:0 0 3px">みんなの旅ノート</h2><span class="muted">${list.length}件 · 天気・月で絞り込み</span></div><div class="feed-switch"><button class="view-btn ${feedMode==='grid'?'active':''}" aria-label="グリッド表示" onclick="feedMode='grid';render()">▦</button><button class="view-btn ${feedMode==='list'?'active':''}" aria-label="一覧表示" onclick="feedMode='list';render()">☰</button></div></div>${content}`
+}
+function mapView(){let shown=places.filter(p=>(filter==='すべて'||p.area===filter)&&(!$('#globalSearch').value||[p.name,p.area,p.kind,p.desc].join(' ').toLowerCase().includes($('#globalSearch').value.toLowerCase())));return `<div class="eyebrow">EXPLORE BY MAP</div><h1>長野を、地図から探す。</h1><p class="muted">地域を選んで、気になるスポットをタップしてね。</p><div class="card"><div class="postbody"><span class="pill">📍 旅の足あと</span><h2 style="margin-top:10px">訪れた場所を記録しよう</h2><p class="muted" style="line-height:1.7">常時追跡はしません。ボタンを押したときだけ現在地を取得し、訪問スポットとして記録できます。</p><button class="btn full" onclick="getCurrentLocation()">📍 現在地を取得して記録する</button><button class="btn secondary full" onclick="gpsFormOpen=!gpsFormOpen;render()">スポットを手動で記録</button>${gpsStatus?`<p class="muted" style="margin-top:10px">${esc(gpsStatus)}</p>`:''}${gpsPosition?`<p class="weather" style="margin-top:8px">位置情報を取得済み · 精度 約${Math.round(gpsPosition.accuracy||0)}m</p>`:''}${gpsFormOpen?gpsRecordForm():''}</div></div><div class="chips">${['すべて','東信','北信','中信','南信'].map(x=>`<button class="chip ${filter===x?'active':''}" onclick="filter='${x}';render()">${x}</button>`).join('')}</div><div class="mapbox"><div class="river"></div>${places.map((p,i)=>`<button class="pin p${i+1} ${selectedPlace===p.id?'selected':''}" onclick="selectSpot('${p.id}')">${p.emoji} ${p.name}</button>`).join('')}</div>${selectedPlace?spotDetailInline(places.find(p=>p.id===selectedPlace)):''}<h2>スポット一覧 <span class="muted">(${shown.length})</span></h2>${shown.map(p=>`<button class="spotrow" style="width:100%;text-align:left;border-left:0;border-right:0;border-top:0" onclick="selectSpot('${p.id}')"><div class="spotemoji">${p.emoji}</div><div class="grow"><strong>${p.name}</strong><div class="muted">${p.area} · ${p.kind}</div><div class="muted">${p.desc}</div></div><span>›</span></button>`).join('')}`}
+function gpsRecordForm(){return `<form id="gpsVisitForm"><h3 style="margin-top:12px">スポット記録</h3><label class="field">スポット名<select name="place">${places.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}<option value="custom">その他（自由入力）</option></select></label><label class="field">その他の場所（任意）<input name="customPlace" placeholder="スポット名"></label><div class="grid2"><label class="field">訪問日<input name="date" type="date" required value="${new Date().toISOString().slice(0,10)}"></label><label class="field">天気<select name="weather"><option>未設定</option><option>晴れ</option><option>くもり</option><option>小雨</option><option>雨</option><option>雪</option></select></label></div><label class="field">気温（℃・任意）<input name="temp" type="number" min="-30" max="50" placeholder="例：18"></label><label class="field">写真・感想<textarea name="note" placeholder="ここで見た景色、旅の思い出"></textarea></label><label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.6;margin:12px 0"><input type="checkbox" name="public" checked style="margin-top:3px"> <span><strong>全体に公開する</strong><br>初期設定は公開です。公開後も非公開に変更できます。</span></label><label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.6;margin:12px 0"><input type="checkbox" name="exactPublic" style="margin-top:3px"> <span>GPSの正確な座標も公開する<br><span class="muted">初期設定はオフ。通常はスポット名のみ公開し、自宅などの位置が漏れないようにします。</span></span></label><button class="btn full" type="submit">この訪問を保存する</button></form>`}
+function getCurrentLocation(){if(!navigator.geolocation){gpsStatus='この環境では位置情報に対応していません。スポットを手動で選んで記録できます。';gpsFormOpen=true;render();return}gpsStatus='現在地を取得中…';render();navigator.geolocation.getCurrentPosition(pos=>{gpsPosition={latitude:pos.coords.latitude,longitude:pos.coords.longitude,accuracy:pos.coords.accuracy};gpsStatus='現在地を取得しました。記録するスポットを選んでください。';gpsFormOpen=true;render()},err=>{gpsStatus=err.code===1?'位置情報が許可されませんでした。ブラウザ設定を確認するか、手動で記録してください。':err.code===2?'現在地を取得できませんでした。GPSや位置情報設定を確認してください。':'位置情報の取得がタイムアウトしました。もう一度お試しください。';gpsFormOpen=true;render()},{enableHighAccuracy:true,timeout:10000,maximumAge:60000})}
+function gpsRouteMap(){const pts=gpsVisits.filter(v=>v.latitude!=null&&v.longitude!=null).slice().sort((a,b)=>a.id-b.id);if(!pts.length)return `<div class="empty">GPS座標つきの足あとを保存すると、ここに自分の訪問マップが表示されます。</div>`;if(pts.length===1)return `<div class="mapbox" style="height:170px;display:grid;place-items:center"><div style="text-align:center;background:#ffffffdd;border-radius:12px;padding:12px"><div style="font-size:25px">📍</div><strong>${esc(pts[0].place)}</strong><div class="muted">GPS記録 1件 · ルートは次の訪問から表示</div></div></div>`;const lats=pts.map(p=>p.latitude),lons=pts.map(p=>p.longitude),minLat=Math.min(...lats),maxLat=Math.max(...lats),minLon=Math.min(...lons),maxLon=Math.max(...lons);const xy=pts.map(p=>({x:22+(maxLon===minLon?0.5:(p.longitude-minLon)/(maxLon-minLon))*256,y:18+(maxLat===minLat?0.5:(maxLat-p.latitude)/(maxLat-minLat))*124,p}));return `<div class="mapbox" style="height:190px;position:relative;overflow:hidden"><svg viewBox="0 0 300 160" style="width:100%;height:100%"><rect width="300" height="160" fill="#e8f0e5"/>${[30,70,110].map(y=>`<path d="M0 ${y} Q120 ${y-12} 300 ${y+5}" stroke="#d0dfcf" stroke-width="2" fill="none"/>`).join('')}${[55,115,175,235].map(x=>`<path d="M${x} 0 L${x-15} 160" stroke="#d0dfcf" stroke-width="2"/>`).join('')}<polyline points="${xy.map(q=>q.x+','+q.y).join(' ')}" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${xy.map(q=>q.x+','+q.y).join(' ')}" fill="none" stroke="#1e6a58" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${xy.map((q,i)=>`<circle cx="${q.x}" cy="${q.y}" r="7" fill="#fff" stroke="#1e6a58" stroke-width="3"/><text x="${Math.min(255,q.x+9)}" y="${Math.max(12,q.y-9)}" font-size="9" fill="#20312c">${i+1}</text>`).join('')}</svg></div><p class="muted">GPS座標のある記録を訪問順につないだイメージ図。地図タイルや道路情報は未接続です。</p>`}
+function gpsVisitsView(){return `<h2 style="margin-top:22px">📍 記録した足あと <span class="muted">(${gpsVisits.length})</span></h2>${gpsVisits.length?gpsVisits.slice().reverse().map(v=>`<div class="card"><div class="postbody"><div class="postmeta"><div class="spotemoji">${v.emoji||'📍'}</div><div class="grow"><strong>${esc(v.place)}</strong><div class="muted">${esc(v.date)} · ${v.public?'全体公開':'自分のみ'}</div></div><button class="action" onclick="toggleVisitVisibility(${v.id})">${v.public?'非公開にする':'公開する'}</button></div>${v.note?`<p style="font-size:13px">${esc(v.note)}</p>`:''}<div class="muted">${v.weather&&v.weather!=='未設定'?`🌤️ ${esc(v.weather)} `:''}${v.temp!==''&&v.temp!=null?`${esc(v.temp)}℃`:''}${v.exactPublic&&v.latitude!=null?` · 座標 ${v.latitude.toFixed(4)}, ${v.longitude.toFixed(4)}`:''}</div><button class="action" onclick="deleteVisit(${v.id})">記録を削除</button></div></div>`).join(''):'<div class="empty">まだ足あとがありません。地図タブから最初のスポットを記録してみてね。</div>'}`}
+function toggleVisitVisibility(id){const v=gpsVisits.find(x=>x.id===id);if(v){v.public=!v.public;render()}}
+function deleteVisit(id){gpsVisits=gpsVisits.filter(x=>x.id!==id);toast('足あとを削除しました（デモ）');render()}
+function spotDetailInline(p){if(!p)return '';return `<div class="card"><div class="postbody"><span class="pill">${p.area} · ${p.kind}</span><h2 style="margin-top:10px">${p.emoji} ${p.name}</h2><p style="font-size:13px;line-height:1.7">${p.desc}</p><div class="weather">🌤️ サンプル天気：${p.weather} ${p.temp}℃</div><button class="btn full" onclick="openSpot('${p.id}')">スポット詳細・口コミを見る</button><button class="btn secondary full" onclick="startPost('${p.name}')">この場所を投稿する</button></div></div>`}
+function postView(){return `<div class="eyebrow">SHARE YOUR FIND</div><h1>見つけた景色をシェア 📸</h1><p class="muted">写真を選んで、ひとこと添えるだけ。</p><div id="autoWeatherCard" style="display:flex;align-items:center;gap:12px;padding:13px 14px;margin:14px 0;background:#eef5ef;border:1px solid #d7e5d9;border-radius:14px"><div id="autoWeatherIcon" style="font-size:26px">🌤️</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:800;color:#315b46">今日の天気を自動記録</div><div id="autoWeatherText" style="font-size:13px;color:#456454;margin-top:3px">天気・気温を取得しています…</div><div id="autoWeatherSource" style="font-size:10px;color:#718477;margin-top:3px">位置情報は使わず、まず佐久市周辺の天気を取得します</div></div><button type="button" class="btn secondary" onclick="refreshAutoWeather(true)" style="padding:8px 10px;font-size:11px;white-space:nowrap">更新</button></div><form id="postForm"><label class="field" style="margin-top:16px">写真を追加<input id="mediaFile" type="file" accept="image/*" style="padding:14px;background:#f7faf7;border:1px dashed #b8cfc2"><span class="muted">お気に入りの1枚を選んでね</span></label><div id="mediaPreview" class="upload-preview" style="min-height:150px;background:#f7faf7">＋<br>写真を選択</div><label class="field">キャプション<textarea name="body" placeholder="ここ、すごくよかった！穴場かも…🌿" style="min-height:110px"></textarea></label><label class="field">📍 場所を追加（任意）<input name="place" id="postPlace" placeholder="スポット名を入力" list="placeOptions"><datalist id="placeOptions">${places.map(p=>`<option value="${p.name}">`).join('')}</datalist></label><details style="margin:12px 0 16px;background:#f7faf7;border:1px solid var(--line);border-radius:13px;padding:12px"><summary style="font-size:12px;font-weight:800;color:var(--green);cursor:pointer">＋ 訪問日・天気・タグなどを追加（任意）</summary><div class="grid2"><label class="field">訪問日<input name="date" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label class="field">地域<select name="area"><option>東信</option><option>北信</option><option>中信</option><option>南信</option></select></label></div><input type="hidden" name="weather" value="取得中"><input type="hidden" name="temp" value="18"><p class="muted" style="font-size:11px">天気・気温は画面を開くと自動取得して投稿に記録します。</p><label class="field">タグ（任意・カンマ区切り）<input name="tags" placeholder="自然, カフェ, 秋旅"></label></details><input type="hidden" name="title" value=""><button class="btn full" type="submit" style="padding:15px;font-size:15px">シェアする</button></form><p class="muted" style="line-height:1.7;margin-top:12px">気軽なひとことだけでもOK。詳しい情報は、必要なときだけ追加してね。</p>`}
+function tripsView(){let saved=posts.filter(p=>p.saved);return `<div class="eyebrow">MY TRAVEL JOURNAL</div><h1>旅の記録</h1><p class="muted">訪れた場所と、あとで見返したい景色。</p><div class="statrow"><div class="stat"><strong>${posts.length}</strong><small>投稿</small></div><div class="stat"><strong>${new Set(posts.map(p=>p.place)).size}</strong><small>訪問スポット</small></div><div class="stat"><strong>${saved.length}</strong><small>お気に入り</small></div></div><h2>自分の旅ノート</h2>${posts.filter(p=>p.user==='あなた').length?posts.filter(p=>p.user==='あなた').map(postCard).join(''):'<div class="empty">まだ自分の投稿はありません。<br><button class="btn" style="margin-top:12px" onclick="go(\'post\')">最初の旅ノートを書く</button></div>'}<h2 style="margin-top:22px">保存した投稿</h2>${saved.length?saved.map(postCard).join(''):'<div class="empty">気になる投稿の「保存」を押すと、ここに集まるよ。♡</div>'}<h2 style="margin-top:22px">🗺️ 旅の足あとマップ</h2>${gpsRouteMap()}${gpsVisitsView()}<h2 style="margin-top:22px">行きたいスポット</h2><div class="spotgrid">${places.slice(0,4).map(p=>`<button class="spot" onclick="openSpot('${p.id}')"><div class="spotart"><img src="${photoFor(p.name)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><span>${p.emoji}</span></div><div class="spottext"><strong>${p.name}</strong><br><small>${p.area} · ${p.kind}</small></div></button>`).join('')}</div>`}
+function profileView(){return `<div class="hero" style="text-align:center"><div style="font-size:45px">🏡</div><div class="eyebrow">HOST & LOCAL GUIDE</div><h1>佐久の家</h1><p>長野県佐久市｜旅の拠点に、ほっとする時間を。</p><button class="btn" onclick="openBusiness()">宿・店舗ページを見る</button></div><div class="statrow"><div class="stat"><strong>${posts.length}</strong><small>公開投稿</small></div><div class="stat"><strong>${posts.reduce((a,p)=>a+p.likes,0)}</strong><small>いいね</small></div><div class="stat"><strong>4.9</strong><small>サンプル評価</small></div></div><div class="card"><div class="postbody"><h2>マイプロフィール</h2><div style="display:flex;align-items:center;gap:12px;margin:8px 0 14px"><div style="width:64px;height:64px;border-radius:50%;overflow:hidden;background:var(--mint);display:grid;place-items:center;font-size:28px">${avatarMarkup(memberAvatar||'🙂',64)}</div><div><strong>${esc(memberName||'旅するゲスト')}</strong><div class="muted">ニックネームで参加中</div></div></div><div class="auth-note" style="margin-bottom:14px"><strong>宿泊者メンバー</strong><br>佐久の家の宿泊経験者として認証済み · チェックアウト後も利用可能</div><label class="field">表示名<input id="profileName" value="${esc(memberName||'旅するゲスト')}"></label><label class="field">ひとこと<textarea id="profileBio">佐久市を拠点に、長野の素敵な場所を紹介しています。</textarea></label><button class="btn full" onclick="memberName=document.getElementById('profileName').value.trim()||'旅するゲスト';persistState();toast('プロフィールを更新しました（デモ）');render()">プロフィールを保存</button></div></div><div class="card"><div class="postbody"><h2>ホスト・店舗向け</h2><p class="muted">宿の紹介や営業時間、おすすめスポットを編集できます。</p><button class="btn secondary full" onclick="openBusiness()">🏡 民泊・店舗ページを編集</button><button class="btn full" style="background:#fff;color:#8a4a4a;border:1px solid #ead8d8" onclick="logoutDemo()">デモからログアウト</button><button class="action" style="width:100%;margin-top:9px" onclick="resetDemoData()">この端末の試用データを削除</button><p class="muted" style="line-height:1.7;margin-top:10px">試作品の保存先はこのブラウザ内です。別のスマホとの共有や本番の会員認証には、公開用バックエンドの設定が必要です。</p></div></div><h2>最近の投稿</h2>${posts.slice(0,2).map(postCard).join('')}`}
+function openSpot(id){let p=places.find(x=>x.id===id);if(!p)return;detailFrom=tab;tab='detail';renderDetail(p)}
+function renderDetail(p){document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));$('#screen').innerHTML=`<button class="back" onclick="go('${detailFrom}')">← 戻る</button>${art(p.emoji,p.name)}<div style="padding:15px 2px"><span class="pill">${p.area} · ${p.kind}</span><h1 style="margin-top:10px">${p.emoji} ${p.name}</h1><p style="font-size:14px;line-height:1.8">${p.desc}</p><div class="weather">🌤️ サンプル天気：${p.weather}　${p.temp}℃</div><div class="statrow"><div class="stat"><strong>${p.visits}</strong><small>訪問記録</small></div><div class="stat"><strong>4.8</strong><small>サンプル評価</small></div><div class="stat"><strong>${posts.filter(x=>x.place===p.name).length}</strong><small>関連投稿</small></div></div><button class="btn full" onclick="startPost('${p.name}')">＋ このスポットを投稿</button><h2 style="margin-top:24px">みんなの口コミ</h2>${reviews.map((r,i)=>`<div class="review"><strong>${r.user}</strong> <span style="color:#d79538">${'★'.repeat(r.stars)}</span><p id="review-text-${i}" style="font-size:13px;line-height:1.7;margin-bottom:5px">${esc(r.text)}</p><button class="action translate-btn" type="button" onclick="translateUserText('review-text-${i}', this)" data-original="${esc(r.text)}">🌐 翻訳する</button></div>`).join('')}<h3 style="margin-top:20px">口コミを書く</h3><label class="field">口コミ<textarea id="reviewText" placeholder="訪れてみた感想をシェア"></textarea></label><button class="btn full" onclick="addReview()">口コミを投稿する</button><h2 style="margin-top:24px">この場所の投稿</h2>${posts.filter(x=>x.place===p.name).map(postCard).join('')||'<div class="empty">まだ投稿がありません。</div>'}</div>`;window.scrollTo(0,0)}
+function addReview(){let text=$('#reviewText')?.value.trim();if(!text)return toast('口コミを入力してね');reviews.unshift({user:'あなた',stars:5,text});persistState();toast('口コミを追加しました（デモ）');openSpot(selectedPlace||places[0].id)}
+function openBusiness(){tab='business';document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));$('#screen').innerHTML=`<button class="back" onclick="go('profile')">← マイページへ戻る</button><div class="eyebrow">HOST / BUSINESS PAGE</div><h1>佐久の家</h1>${art('🏡','佐久の家')}<p style="font-size:13px;line-height:1.8">長野県佐久市にある、旅の拠点になる家主居住型の宿。ゲストが安心して地域を楽しめるよう、地元のおすすめも紹介しています。</p><div class="card"><div class="postbody"><h2>ページ情報を編集</h2><label class="field">施設・店舗名<input id="bizName" value="佐久の家"></label><label class="field">カテゴリ<select id="bizType"><option>民泊・宿泊</option><option>飲食店・カフェ</option><option>観光スポット</option><option>ショップ</option></select></label><label class="field">住所・エリア<input id="bizAddress" value="長野県佐久市"></label><label class="field">紹介文<textarea id="bizDesc">長野県佐久市にある、旅の拠点になる家主居住型の宿。地元のおすすめも紹介しています。</textarea></label><label class="field">営業時間・案内<input id="bizHours" value="チェックイン情報は予約後にご案内"></label><button class="btn full" onclick="toast('施設情報を保存しました（デモ）')">変更を保存</button></div></div><h2>ホストのおすすめ</h2>${places.filter(p=>p.id!=='saku').slice(0,3).map(p=>`<button class="spotrow" style="width:100%;text-align:left" onclick="openSpot('${p.id}')"><div class="spotemoji">${p.emoji}</div><div class="grow"><strong>${p.name}</strong><div class="muted">${p.desc}</div></div>›</button>`).join('')}`}
+function startPost(name){tab='post';render();$('#postPlace').value=name;let p=places.find(p=>p.name===name);if(p){document.querySelector('[name=area]').value=p.area;document.querySelector('[name=weather]').value=p.weather;document.querySelector('[name=temp]').value=p.temp}window.scrollTo(0,0)}
+function selectSpot(id){selectedPlace=id;render()}
+function openPlaceByName(name){let p=places.find(p=>p.name===name)||places[0];selectedPlace=p.id;openSpot(p.id)}
+function toggleLike(id){let p=posts.find(p=>p.id===id);if(!p)return;p.liked=!p.liked;p.likes+=p.liked?1:-1;render()}
+function toggleSave(id){let p=posts.find(p=>p.id===id);if(!p)return;p.saved=!p.saved;toast(p.saved?'お気に入りに保存したよ':'保存を解除したよ');render()}
+function go(t){tab=t;render()}
+function logoutDemo(){isMember=false;inviteValidated=false;authError='';toast('デモからログアウトしました');render()}
+$('#globalSearch').addEventListener('input',()=>{if(tab==='feed'||tab==='map')render()});
+document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.tab;filter='すべて';render()}));
+$('#screen').addEventListener('change',e=>{if(e.target.id==='profileImageInput'){const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){toast('画像ファイルを選んでね');return}const reader=new FileReader();reader.onload=()=>{pendingAvatar=String(reader.result||'');const preview=$('#avatarPreview');if(preview)preview.innerHTML=avatarMarkup(pendingAvatar,88)};reader.readAsDataURL(file);return}if(e.target.id!=='mediaFile')return;const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){toast('画像ファイルを選んでね');return}const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const max=1400,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);selectedMediaUrl=canvas.toDataURL('image/jpeg',0.78);selectedMediaType='photo';const preview=$('#mediaPreview');if(preview)preview.innerHTML=`<img src="${selectedMediaUrl}" alt="選択した写真"><span>写真プレビュー（端末内に保存）</span>`};img.onerror=()=>toast('この画像を読み込めませんでした');img.src=String(reader.result||'')};reader.readAsDataURL(file);});
+$('#screen').addEventListener('submit',e=>{if(e.target.id==='inviteForm'){e.preventDefault();const code=String(new FormData(e.target).get('code')||'').trim().toUpperCase();if(demoInviteCodes.includes(code)){inviteValidated=true;authError='';render()}else{authError='コードを確認できませんでした。ホストから案内されたコードを入力してください。';render()}return}if(e.target.id==='signupForm'){e.preventDefault();const d=new FormData(e.target);memberName=String(d.get('displayName')||'旅するゲスト').trim();memberAvatar=pendingAvatar||'🙂';isMember=true;authError='';tab='feed';render();toast('TABINOTEへようこそ！（デモ）');return}if(e.target.id==='gpsVisitForm'){e.preventDefault();let d=new FormData(e.target),p=places.find(p=>p.id===d.get('place')),name=d.get('place')==='custom'?(String(d.get('customPlace')||'').trim()||'未設定のスポット'):(p?.name||'未設定のスポット');gpsVisits.push({id:Date.now(),place:name,emoji:p?.emoji||'📍',area:p?.area||'未設定',date:d.get('date'),weather:d.get('weather'),temp:d.get('temp'),note:d.get('note'),public:d.has('public'),exactPublic:d.has('exactPublic'),latitude:gpsPosition?.latitude??null,longitude:gpsPosition?.longitude??null});gpsFormOpen=false;gpsStatus='訪問スポットを保存しました。';tab='trips';render();toast('旅の足あとを保存しました（デモ）');return}if(e.target.id!=='postForm')return;e.preventDefault();let d=new FormData(e.target),body=String(d.get('body')||'').trim(),name=String(d.get('place')||'').trim()||'スポット未設定',p=places.find(p=>p.name===name),date=String(d.get('date')||new Date().toISOString().slice(0,10));if(!selectedMediaUrl&&!body){toast('写真かキャプションを追加してね');return}let post={id:Math.max(0,...posts.map(p=>p.id))+1,user:memberName||'あなた',avatar:memberAvatar||'🙂',title:String(d.get('title')||'').trim()||body.slice(0,28)||(name!=='スポット未設定'?name:'旅のひとコマ'),place:name,area:String(d.get('area')||p?.area||'東信'),date,weather:String(d.get('weather')||autoWeatherData.weather||'未取得'),temp:Number(d.get('temp')||autoWeatherData.temp||18),body,tags:String(d.get('tags')||'').split(/[,、]/).map(x=>x.trim()).filter(Boolean),emoji:p?.emoji||'📍',mediaType:selectedMediaUrl?selectedMediaType:'photo',mediaUrl:selectedMediaUrl,likes:0,saved:false,liked:false};posts.unshift(post);selectedMediaUrl='';selectedMediaType='photo';filter='すべて';feedMode='list';tab='feed';render();toast('シェアしました！（デモ）')});
+function feedViewSafe(){return feedView()}
+restoreState();
+render();
+
+const aiSpotData=[
+ {name:"龍岡城五稜郭",purposes:['japan', 'scenic', 'family'],area:"佐久市田口",kind:"歴史・穴場",drive:25,transit:55,stay:45,genres:["穴場スポット","歴史・文化"],weather:["any","sunny","rainy"],desc:"函館だけじゃない、佐久にある星形の城郭。静かな町並みを歩きながら、珍しい五角形の歴史に触れられます。",map:"龍岡城五稜郭 佐久市",url:"https://www.google.com/search?q=龍岡城五稜郭+佐久市+公式"},
+ {name:"新海三社神社",purposes:['japan', 'scenic'],area:"佐久市田口",kind:"森・歴史",drive:30,transit:65,stay:35,genres:["穴場スポット","自然・絶景","歴史・文化"],weather:["any","sunny","rainy"],desc:"木々に包まれた境内と歴史ある社殿が魅力。観光地のにぎわいから少し離れて、森の静けさを味わいたい人に。",map:"新海三社神社 佐久市",url:"https://www.google.com/search?q=新海三社神社+公式"},
+ {name:"五稜郭展望台（田口城跡）",purposes:['hiking', 'scenic'],area:"佐久市田口",kind:"絶景・穴場",drive:27,transit:60,stay:50,genres:["穴場スポット","自然・絶景","歴史・文化"],weather:["any","sunny"],desc:"高台から田園風景を見渡すスポット。遊歩道を歩くため、歩きやすい靴で。晴れの日の寄り道にぴったり。",map:"五稜郭展望台 田口城跡 佐久市",url:"https://www.google.com/search?q=五稜郭展望台+田口城跡"},
+ {name:"YUSHI CAFE",purposes:['karuizawa', 'rainyday'],area:"佐久市協和",kind:"古民家カフェ",drive:25,transit:60,stay:60,genres:["穴場スポット","カフェ・グルメ"],weather:["any","sunny","rainy"],desc:"落ち着いた雰囲気でひと休みできるカフェ。自然や町歩きの合間に、地元の時間をゆっくり楽しみたい人に。",map:"YUSHI CAFE 佐久市",url:"https://www.google.com/search?q=YUSHI+CAFE+佐久市"},
+ {name:"稲荷山公園",purposes:['hiking', 'scenic', 'family'],area:"佐久市臼田",kind:"景色・散策",drive:25,transit:50,stay:40,genres:["穴場スポット","自然・絶景"],weather:["any","sunny"],desc:"高台の景色と散策を楽しめる公園。天気のいい日に、地元の空気を感じながらゆっくり歩きたいときに。",map:"稲荷山公園 佐久市",url:"https://www.google.com/search?q=稲荷山公園+佐久市"},
+ {name:"Uchide CAFE",purposes:['rainyday', 'family'],area:"佐久市野沢",kind:"ローカルカフェ",drive:15,transit:30,stay:45,genres:["穴場スポット","カフェ・グルメ"],weather:["any","sunny","rainy"],desc:"野沢エリアでカフェタイムを楽しむなら候補に。近くのお店や町並みと合わせて、気軽な寄り道に。",map:"Uchide CAFE 佐久市",url:"https://www.google.com/search?q=Uchide+CAFE+佐久市"},
+ {name:"旧軽井沢銀座通り",purposes:["karuizawa","japan","family"],area:"軽井沢町",kind:"街歩き・ショッピング",drive:40,transit:65,stay:120,genres:["カフェ・グルメ","歴史・文化","穴場スポット"],weather:["any","sunny","rainy"],desc:"お店やカフェを巡りながら、軽井沢らしい街歩きを楽しめる定番エリア。混雑しやすい時期は時間に余裕を持って。",map:"旧軽井沢銀座通り 軽井沢",url:"https://www.google.com/search?q=旧軽井沢銀座通り+公式"},
+ {name:"星野温泉 トンボの湯",purposes:["onsen","karuizawa"],area:"軽井沢町・星野",kind:"日帰り温泉",drive:40,transit:70,stay:100,genres:["自然・絶景","穴場スポット"],weather:["any","sunny","rainy"],desc:"森に囲まれた温泉でゆっくり過ごしたい日に。営業時間・料金・休館日は訪問前に公式情報を確認してね。",map:"星野温泉 トンボの湯 軽井沢",url:"https://www.google.com/search?q=星野温泉+トンボの湯+公式"},
+ {name:"布引観音 釈尊寺",purposes:["hiking","japan","scenic"],area:"小諸市",kind:"歴史・ハイキング",drive:25,transit:55,stay:75,genres:["自然・絶景","歴史・文化","穴場スポット"],weather:["sunny"],desc:"山あいの景色と歴史を楽しめるスポット。坂道や歩きにくい場所があるため、歩きやすい靴で、天候を確認して訪れてね。",map:"布引観音 釈尊寺 小諸市",url:"https://www.google.com/search?q=布引観音+釈尊寺+公式"},
+ {name:"佐久市立近代美術館",purposes:["rainyday","japan","family"],area:"佐久市猿久保",kind:"美術館・屋内",drive:12,transit:30,stay:60,genres:["歴史・文化","カフェ・グルメ"],weather:["any","rainy"],desc:"雨の日にも立ち寄りやすい屋内スポット。展示内容や開館日は事前に確認してから出かけよう。",map:"佐久市立近代美術館",url:"https://www.google.com/search?q=佐久市立近代美術館+公式"},
+ {name:"白駒の池",purposes:["hiking","scenic"],area:"佐久穂町・北八ヶ岳",kind:"森・湖・ハイキング",drive:65,transit:120,stay:120,genres:["自然・絶景","穴場スポット"],weather:["sunny"],desc:"苔の森と湖の景色が魅力の自然スポット。標高が高く天候が変わりやすいので、季節・道路状況・装備を確認してね。",map:"白駒の池 長野",url:"https://www.google.com/search?q=白駒の池+公式"}
+];
+let aiGenre="穴場スポット";
+let aiPurpose="all";
+function aiSpotPanel(){return `<section class="ai-feature"><div class="ai-feature-head"><div class="ai-feature-icon">✦</div><div><h3>AIおすすめスポット</h3><div style="font-size:10px;color:#718278">佐久の家から、次の寄り道を見つけよう</div></div></div><p>旅人の投稿と地域のスポット情報をヒントに、あなたに合う場所を探します。</p><div class="ai-quick">${["穴場スポット","自然・絶景","歴史・文化","カフェ・グルメ"].map(g=>`<button class="${g===aiGenre?'selected':''}" onclick="chooseAiGenre('${g}')">${g}</button>`).join("")}</div><div style="margin:12px 0 6px;font-size:12px;font-weight:800;color:#52665a">旅の目的から探す</div><div class="ai-quick ai-purpose">${[["all","目的を指定しない"],["karuizawa","軽井沢・周辺観光"],["onsen","温泉巡り"],["hiking","登山・アウトドア"],["japan","日本らしい風景・文化"],["scenic","絶景・写真旅"],["rainyday","雨の日・室内観光"],["family","家族旅行"]].map(([v,l])=>`<button class="${v===aiPurpose?'selected':''}" onclick="chooseAiPurpose('${v}')">${l}</button>`).join("")}</div><div class="ai-options"><select id="aiWeather"><option value="any">天気：どちらでも</option><option value="sunny">晴れの日向け</option><option value="rainy">雨の日向け</option></select><select id="aiDuration"><option value="half">半日（約4時間）</option><option value="short">2時間くらい</option><option value="full">1日たっぷり</option></select><select id="aiTransport"><option value="car">移動：車</option><option value="transit">公共交通・徒歩</option></select><select id="aiLanguage"><option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option><option value="zh">简体中文</option></select></div><button class="ai-go" onclick="runAiSpots()">✦ 条件からおすすめを表示</button>
+<div class="ai-chatbox" style="margin-top:18px;padding:14px;border:1px solid #dce7df;border-radius:16px;background:#fbfdfb">
+  <div style="font-weight:800;font-size:14px;margin-bottom:5px">✦ AI旅行アシスタント</div>
+  <div style="font-size:12px;color:#718278;margin-bottom:10px">「雨の日に温泉とカフェを半日で巡りたい」など、自由に相談できます。</div>
+  <textarea id="aiChatPrompt" rows="3" placeholder="例：佐久から車で、温泉と日本らしい景色を楽しめる半日プランを考えて" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #dce7df;border-radius:12px;font:inherit;resize:vertical;background:white"></textarea>
+  <button class="ai-go" id="aiChatSend" onclick="askRealAi()" style="margin-top:8px">AIに旅行プランを相談</button>
+  <div id="aiChatStatus" aria-live="polite" style="font-size:12px;color:#718278;margin-top:8px"></div>
+  <div id="aiChatAnswer" style="font-size:14px;line-height:1.7;white-space:pre-wrap;margin-top:10px"></div>
+</div>
+<div class="ai-results" id="aiSpotResults"></div></section>`}
+
+window.TABINOTE_AI_ENDPOINT = window.TABINOTE_AI_ENDPOINT || "/api/plan";
+window.askRealAi = async function(){
+ const prompt=(document.getElementById("aiChatPrompt")?.value||"").trim();
+ const status=document.getElementById("aiChatStatus"), answer=document.getElementById("aiChatAnswer"), button=document.getElementById("aiChatSend");
+ if(!prompt){status.textContent="相談したい内容を入力してね。";return;}
+ status.textContent="AIに相談中…";
+ answer.textContent="";
+ if(button)button.disabled=true;
+ try{
+   const res=await fetch(window.TABINOTE_AI_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:prompt,language:document.getElementById("aiLanguage")?.value||"ja",purpose:aiPurpose,genre:aiGenre,weather:document.getElementById("aiWeather")?.value||"any",duration:document.getElementById("aiDuration")?.value||"half",transport:document.getElementById("aiTransport")?.value||"car"})});
+   const data=await res.json().catch(()=>({}));
+   if(!res.ok)throw new Error(data.error||"AIサーバーからエラーが返りました。");
+   answer.textContent=data.answer||"回答を取得できませんでした。もう一度試してね。";
+   status.textContent="AIの回答です。営業時間・料金・交通情報は訪問前に確認してね。";
+ }catch(e){
+   status.textContent="本物のAIを使うには、バックエンドの設定が必要です。";
+   answer.textContent=(e.message||"接続できませんでした。")+"\n\n開発用のHTMLだけではAIは動きません。READMEの手順でサーバーを起動してね。";
+ }finally{if(button)button.disabled=false;}
+};
+
+window.chooseAiGenre=function(g){aiGenre=g;render();};
+window.chooseAiPurpose=function(p){aiPurpose=p;render();};
+window.runAiSpots=function(){
+ const host=document.getElementById("aiSpotResults");if(!host)return;
+ const w=document.getElementById("aiWeather")?.value||"any",d=document.getElementById("aiDuration")?.value||"half",t=document.getElementById("aiTransport")?.value||"car",lang=document.getElementById("aiLanguage")?.value||"ja";
+ let arr=aiSpotData.filter(s=>(s.genres.includes(aiGenre)||aiGenre==="穴場スポット")&&(aiPurpose==="all"||(s.purposes||[]).includes(aiPurpose))&&(w==="any"||s.weather.includes(w)));
+ if(!arr.length)arr=aiSpotData.filter(s=>(aiPurpose==="all"||(s.purposes||[]).includes(aiPurpose))&&(w==="any"||s.weather.includes(w)));
+ if(!arr.length)arr=aiSpotData.filter(s=>aiPurpose==="all"||(s.purposes||[]).includes(aiPurpose));
+ arr.sort((a,b)=>a[t==="car"?"drive":"transit"]-b[t==="car"?"drive":"transit"]);
+ arr=arr.slice(0,d==="short"?2:d==="half"?3:5);
+ const labels={ja:["地図・行き方","詳細を調べる"],en:["Map & directions","More info"],ko:["지도·길찾기","자세히 보기"],zh:["地图与路线","查看详情"]}[lang];
+ host.innerHTML=arr.map((s,i)=>`<div class="ai-result"><span class="community-tag">おすすめ ${i+1} · ${s.kind}</span><strong>${s.name}</strong><p>${s.desc}</p><div class="ai-meta">📍 ${s.area}　 ·　 🚗 約${s[t==="car"?"drive":"transit"]}分　 ·　 ⏱ 滞在目安 ${s.stay}分</div><div class="ai-links"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.map)}" target="_blank" rel="noopener">📍 ${labels[0]}</a><a href="${s.url}" target="_blank" rel="noopener">${labels[1]} ↗</a></div></div>`).join("");
+};
+
+
+</script>
+
+
+<script>
+/* User-generated post and review translation. Uses MyMemory public translation endpoint; requires internet. */
+async function translateUserText(elementId, button){
+ const target=(document.getElementById('languageSelect')||{}).value||'ja';
+ const node=document.getElementById(elementId);
+ if(!node)return;
+ const original=button.dataset.original||node.textContent||'';
+ if(!original.trim())return;
+ if(node.dataset.translated==='yes'){node.textContent=original;node.dataset.translated='no';button.textContent='🌐 翻訳する';return;}
+ const source=detectTextLanguage(original);
+ if(source===target){node.textContent=original;button.textContent='✓ 翻訳対象の言語と同じ';return;}
+ const langMap={ja:'ja',en:'en',ko:'ko',zh:'zh-CN'};
+ const pair=(langMap[source]||'en')+'|'+(langMap[target]||'en');
+ const oldLabel=button.textContent;button.disabled=true;button.textContent='翻訳中…';
+ try{
+  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(original.slice(0,450))+'&langpair='+encodeURIComponent(pair);
+  const response=await fetch(url);
+  if(!response.ok)throw new Error('translation api error');
+  const data=await response.json();
+  const translated=data&&data.responseData&&data.responseData.translatedText;
+  if(!translated||data.responseStatus===403)throw new Error('no translation');
+  node.textContent=translated;
+  node.dataset.translated='yes';
+  button.textContent='↩ 原文を表示';
+ }catch(e){
+  button.textContent='翻訳できませんでした';
+  alert('翻訳を取得できませんでした。インターネット接続を確認して、もう一度お試しください。');
+ }finally{button.disabled=false;if(button.textContent==='翻訳中…')button.textContent=oldLabel;}
+}
+function detectTextLanguage(text){
+ if(/[가-힣]/.test(text))return 'ko';
+ if(/[ぁ-ゖァ-ヺー]/.test(text))return 'ja';
+ if(/[一-龯]/.test(text))return 'zh';
+ return 'en';
+}
+</script>
+
+
+<script>
+/* Automatically translate guest-generated post captions and reviews when the UI language changes. */
+(function(){
+ const languageMap={ja:'ja',en:'en',ko:'ko',zh:'zh-CN'};
+ let running=false, queued=false;
+ async function translateOne(node, button, target){
+   const original=button.dataset.original || node.dataset.original || node.textContent || '';
+   if(!original.trim()) return;
+   node.dataset.original=original;
+   if(!button.dataset.original) button.dataset.original=original;
+   const source=detectTextLanguage(original);
+   if(source===target){node.textContent=original;node.dataset.translatedLang=target;button.textContent='🌐 '+(target==='ja'?'翻訳':'Translate');button.style.display='none';return;}
+   const langPair=(languageMap[source]||'en')+'|'+(languageMap[target]||'en');
+   node.textContent=original;
+   button.textContent=target==='ja'?'翻訳中…':'Translating…';
+   button.style.display='';
+   try{
+     const res=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(original.slice(0,450))+'&langpair='+encodeURIComponent(langPair));
+     if(!res.ok) throw new Error('translation unavailable');
+     const data=await res.json();
+     const translated=data?.responseData?.translatedText;
+     if(!translated || data.responseStatus===403) throw new Error('translation unavailable');
+     node.textContent=translated;node.dataset.translatedLang=target;
+     button.textContent=target==='ja'?'↩ 原文を表示':'↩ Show original';
+     button.style.display='';
+     button.onclick=function(){node.textContent=original;node.dataset.translatedLang='original';button.textContent=target==='ja'?'🌐 翻訳':'🌐 Translate';button.onclick=()=>translateOne(node,button,target);};
+   }catch(e){
+     node.textContent=original;node.dataset.translatedLang='failed';
+     button.textContent=target==='ja'?'🌐 翻訳（接続が必要）':'🌐 Translate (internet required)';
+     button.onclick=()=>translateOne(node,button,target);
+   }
+ }
+ window.autoTranslateGuestText=async function(){
+   if(running){queued=true;return;}
+   running=true;
+   try{
+     const target=document.getElementById('languageSelect')?.value||'ja';
+     const buttons=[...document.querySelectorAll('.translate-btn')];
+     for(const button of buttons){
+       const id=(button.getAttribute('onclick')||'').match(/'([^']+)'/);
+       const node=id?document.getElementById(id[1]):button.previousElementSibling;
+       if(!node)continue;
+       const original=button.dataset.original||node.dataset.original||node.textContent||'';
+       if(node.dataset.translatedLang===target)continue;
+       await translateOne(node,button,target);
+     }
+   } finally {running=false;if(queued){queued=false;setTimeout(window.autoTranslateGuestText,250);}}
+ };
+ document.addEventListener('change',e=>{if(e.target && e.target.id==='languageSelect')setTimeout(window.autoTranslateGuestText,100);});
+ const init=()=>{const screen=document.getElementById('screen');if(!screen)return;let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(window.autoTranslateGuestText,500);}).observe(screen,{childList:true,subtree:true});setTimeout(window.autoTranslateGuestText,600);};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+
+<script>
+(function(){
+ const dictionaries = {
+ en: [
+ ["佐久の家から、旅のつながりを。","Travel connections start at Saku no Ie."],
+ ["🔎 スポット・地域・旅のキーワード","🔎 Search places, areas, or travel keywords"],
+ ["フィード","Feed"],["地図","Map"],["投稿する","Create post"],["旅の記録","My trips"],["マイページ","My page"],
+ ["旅の記録を、","Travel memories,"],["つないでいこう。","let’s connect them."],
+ ["佐久の家に泊まった人たちの「ここ、よかった！」が、次の旅のヒントになる。あなたの発見も、次の誰かへ。","Discoveries from guests at Saku no Ie inspire the next traveler. Share yours, too."],
+ ["旅の記録をつなげる","Connect travel memories"],["佐久の家に泊まった人だけの、旅のSNS。","A travel community just for guests of Saku no Ie."],
+ ["宿泊者が見つけた穴場や、おいしかったお店。次に泊まる人へ、旅の発見をつないでいこう。","Hidden gems and great places to eat, shared by guests for future travelers."],
+ ["宿泊者招待コード","Guest invitation code"],["招待コードを確認する","Verify invitation code"],["コード入力がうまく進まない場合はこちら。登録画面へ直接進めます。","Having trouble with your code? Continue to registration."],["デモで登録画面へ進む","Continue to demo registration"],["通常の招待コード：","Demo invitation code:"],
+ ["ニックネームを決めよう。","Choose a nickname."],["メールアドレスやパスワードは不要。ニックネームとプロフィール画像だけで参加できるよ。","No email or password needed. Join with just a nickname and profile picture."],["プロフィール画像を選ぶ","Choose profile picture"],["画像なしでも登録できます","You can register without a picture"],["ニックネーム","Nickname"],["TABINOTEをはじめる","Start TABINOTE"],
+ ["次の旅のヒントを、 みんなの記録から。","Find inspiration for your next trip."],["佐久の家に泊まった人たちの、おすすめが集まる旅のSNS。","A travel community of recommendations from Saku no Ie guests."],["スポットを探す","Explore places"],["人気ランキング","Popular rankings"],["宿泊者のおすすめをチェック","Guest recommendations"],["人気スポット","Popular places"],["人気の投稿","Popular posts"],["※順位は試作品用のサンプルデータです。","* Rankings use sample data in this prototype."],
+ ["天気","Weather"],["訪問した月","Month visited"],["すべての天気","All weather"],["条件をリセット","Reset filters"],["みんなの旅ノート","Community travel notes"],["天気・月で絞り込み","Filter by weather and month"],
+ ["長野を、地図から探す。","Explore Nagano on the map."],["地域を選んで、気になるスポットをタップしてね。","Choose an area and tap a place."],["旅の足あと","Travel footprints"],["訪れた場所を記録しよう","Record places you visit"],["常時追跡はしません。ボタンを押したときだけ現在地を取得し、訪問スポットとして記録できます。","Your location is not tracked continuously. Tap the button to record a visited place."],["現在地を取得して記録する","Use current location and record"],["スポットを手動で記録","Add a place manually"],["スポット一覧","Places"],["スポット記録","Record a visit"],["この訪問を保存する","Save visit"],["記録した足あと","Recorded footprints"],["非公開にする","Make private"],["公開する","Make public"],["記録を削除","Delete record"],
+ ["見つけた景色をシェア","Share a discovery"],["写真を選んで、ひとこと添えるだけ。","Choose a photo and add a short caption."],["更新","Refresh"],["写真を追加","Add photo"],["お気に入りの1枚を選んでね","Choose your favorite photo"],["キャプション","Caption"],["場所を追加（任意）","Add a place (optional)"],["訪問日","Date visited"],["地域","Region"],["天気・気温は画面を開くと自動取得して投稿に記録します。","Weather and temperature are fetched automatically when available."],["タグ（任意・カンマ区切り）","Tags (optional, comma-separated)"],["シェアする","Share post"],["気軽なひとことだけでもOK。詳しい情報は、必要なときだけ追加してね。","A short note is enough. Add details only if you want."],
+ ["旅の記録","Travel memories"],["訪れた場所と、あとで見返したい景色。","Places you visited and views to remember."],["自分の旅ノート","My travel notes"],["最初の旅ノートを書く","Write your first travel note"],["保存した投稿","Saved posts"],["旅の足あとマップ","Travel footprint map"],["行きたいスポット","Places to visit"],["佐久市を拠点に、長野の素敵な場所を紹介しています。","Sharing wonderful places in Nagano from Saku City."],
+ ["マイプロフィール","My profile"],["表示名","Display name"],["ひとこと","Bio"],["プロフィールを保存","Save profile"],["ホスト・店舗向け","For hosts and businesses"],["宿の紹介や営業時間、おすすめスポットを編集できます。","Edit your accommodation info, hours, and recommended places."],["民泊・店舗ページを編集","Edit host/business page"],["デモからログアウト","Log out of demo"],["この端末の試用データを削除","Delete this device’s demo data"],["試作品の保存先はこのブラウザ内です。別のスマホとの共有や本番の会員認証には、公開用バックエンドの設定が必要です。","Prototype data is stored in this browser only. Sharing across devices and real member authentication require a backend."],
+ ["最近の投稿","Recent posts"],["戻る","Back"],["スポット詳細・口コミを見る","View place details and reviews"],["この場所を投稿する","Post about this place"],["みんなの口コミ","Community reviews"],["口コミを書く","Write a review"],["口コミを投稿する","Submit review"],["このスポットを投稿","Post about this place"],["ページ情報を編集","Edit page information"],["施設・店舗名","Name"],["住所・エリア","Address / area"],["紹介文","Description"],["営業時間・案内","Opening hours / info"],["変更を保存","Save changes"],["ホストのおすすめ","Host recommendations"],
+ ["いいね","Like"],["スポットを見る","View place"],["晴れ","Sunny"],["くもり","Cloudy"],["小雨","Light rain"],["雨","Rain"],["雪","Snow"],["未設定","Not set"],["その他（自由入力）","Other (enter manually)"],["気温（℃・任意）","Temperature (°C, optional)"],["写真・感想","Photo and thoughts"],["全体に公開する","Share publicly"],["GPSの正確な座標も公開する","Share exact GPS coordinates"],["公開後も非公開に変更できます。","You can make it private later."]
+ ],
+ ko: [
+ ["佐久の家から、旅のつながりを。","사쿠노이에에서 여행의 연결을."],["🔎 スポット・地域・旅のキーワード","🔎 장소·지역·여행 키워드 검색"],["フィード","피드"],["地図","지도"],["投稿する","게시하기"],["旅の記録","여행 기록"],["マイページ","마이페이지"],
+ ["旅の記録を、","여행의 기록을"],["つないでいこう。","서로 이어 봐요."],["佐久の家に泊まった人たちの「ここ、よかった！」が、次の旅のヒントになる。あなたの発見も、次の誰かへ。","사쿠노이에에 머문 여행자들의 추천이 다음 여행의 힌트가 됩니다. 당신의 발견도 나눠 주세요."],["旅の記録をつなげる","여행 기록 이어가기"],["佐久の家に泊まった人だけの、旅のSNS。","사쿠노이에 숙박객만을 위한 여행 SNS."],["宿泊者が見つけた穴場や、おいしかったお店。次に泊まる人へ、旅の発見をつないでいこう。","숙박객이 찾은 숨은 명소와 맛집을 다음 여행자와 나눠요."],
+ ["宿泊者招待コード","숙박객 초대 코드"],["招待コードを確認する","초대 코드 확인"],["コード入力がうまく進まない場合はこちら。登録画面へ直接進めます。","코드 입력에 문제가 있나요? 등록 화면으로 이동하세요."],["デモで登録画面へ進む","데모 등록 화면으로 이동"],["通常の招待コード：","데모 초대 코드:"],["ニックネームを決めよう。","닉네임을 정해요."],["メールアドレスやパスワードは不要。ニックネームとプロフィール画像だけで参加できるよ。","이메일과 비밀번호 없이 닉네임과 프로필 사진만으로 참여할 수 있어요."],["プロフィール画像を選ぶ","프로필 사진 선택"],["画像なしでも登録できます","사진 없이도 등록할 수 있어요"],["ニックネーム","닉네임"],["TABINOTEをはじめる","TABINOTE 시작하기"],
+ ["次の旅のヒントを、 みんなの記録から。","다음 여행의 힌트를 모두의 기록에서."],["佐久の家に泊まった人たちの、おすすめが集まる旅のSNS。","사쿠노이에 숙박객들의 추천이 모이는 여행 SNS."],["スポットを探す","장소 찾기"],["人気ランキング","인기 순위"],["宿泊者のおすすめをチェック","숙박객 추천 보기"],["人気スポット","인기 장소"],["人気の投稿","인기 게시물"],["※順位は試作品用のサンプルデータです。","※ 순위는 프로토타입용 샘플 데이터입니다."],["天気","날씨"],["訪問した月","방문 월"],["すべての天気","모든 날씨"],["条件をリセット","필터 초기화"],["みんなの旅ノート","모두의 여행 노트"],["天気・月で絞り込み","날씨·월별 필터"],
+ ["長野を、地図から探す。","지도에서 나가노를 찾아보세요."],["地域を選んで、気になるスポットをタップしてね。","지역을 선택하고 관심 있는 장소를 눌러 보세요."],["旅の足あと","여행 발자국"],["訪れた場所を記録しよう","방문한 장소 기록하기"],["常時追跡はしません。ボタンを押したときだけ現在地を取得し、訪問スポットとして記録できます。","위치를 계속 추적하지 않습니다. 버튼을 눌렀을 때만 현재 위치를 가져와 방문 장소를 기록합니다."],["現在地を取得して記録する","현재 위치로 기록"],["スポットを手動で記録","장소 직접 기록"],["スポット一覧","장소 목록"],["スポット記録","방문 기록"],["この訪問を保存する","방문 저장"],["記録した足あと","기록한 발자국"],["非公開にする","비공개로 전환"],["公開する","공개하기"],["記録を削除","기록 삭제"],
+ ["見つけた景色をシェア","발견한 풍경 공유하기"],["写真を選んで、ひとこと添えるだけ。","사진을 선택하고 한마디를 남겨 보세요."],["更新","새로고침"],["写真を追加","사진 추가"],["お気に入りの1枚を選んでね","마음에 드는 사진을 선택하세요"],["キャプション","설명"],["場所を追加（任意）","장소 추가(선택)"],["訪問日","방문일"],["地域","지역"],["天気・気温は画面を開くと自動取得して投稿に記録します。","날씨와 기온은 가능한 경우 자동으로 가져와 게시물에 기록합니다."],["タグ（任意・カンマ区切り）","태그(선택, 쉼표로 구분)"],["シェアする","공유하기"],["気軽なひとことだけでもOK。詳しい情報は、必要なときだけ追加してね。","짧은 한마디만으로도 좋아요. 자세한 정보는 필요할 때 추가하세요."],
+ ["自分の旅ノート","내 여행 노트"],["最初の旅ノートを書く","첫 여행 노트 작성"],["保存した投稿","저장한 게시물"],["旅の足あとマップ","여행 발자국 지도"],["行きたいスポット","가고 싶은 장소"],["マイプロフィール","내 프로필"],["表示名","표시 이름"],["ひとこと","소개"],["プロフィールを保存","프로필 저장"],["ホスト・店舗向け","호스트·업체용"],["宿の紹介や営業時間、おすすめスポットを編集できます。","숙소 소개, 운영 시간, 추천 장소를 편집할 수 있어요."],["民泊・店舗ページを編集","숙소·업체 페이지 편집"],["デモからログアウト","데모 로그아웃"],["この端末の試用データを削除","이 기기의 데모 데이터 삭제"],["試作品の保存先はこのブラウザ内です。別のスマホとの共有や本番の会員認証には、公開用バックエンドの設定が必要です。","프로토타입 데이터는 이 브라우저에만 저장됩니다. 여러 기기 공유와 실제 회원 인증에는 백엔드가 필요합니다."],["最近の投稿","최근 게시물"],["戻る","뒤로"],["スポット詳細・口コミを見る","장소 정보·리뷰 보기"],["みんなの口コミ","모두의 리뷰"],["口コミを書く","리뷰 작성"],["口コミを投稿する","리뷰 게시"],["変更を保存","변경 사항 저장"],["いいね","좋아요"],["スポットを見る","장소 보기"],["晴れ","맑음"],["くもり","흐림"],["小雨","약한 비"],["雨","비"],["雪","눈"],["未設定","미설정"],["気温（℃・任意）","기온(℃, 선택)"],["写真・感想","사진·감상"],["全体に公開する","전체 공개"],["公開後も非公開に変更できます。","게시 후에도 비공개로 변경할 수 있어요."]
+ ],
+ zh: [
+ ["佐久の家から、旅のつながりを。","从佐久之家，连接每一段旅程。"],["🔎 スポット・地域・旅のキーワード","🔎 搜索地点、地区或旅行关键词"],["フィード","动态"],["地図","地图"],["投稿する","发布"],["旅の記録","旅行记录"],["マイページ","我的页面"],["旅の記録を、","让旅行记忆"],["つないでいこう。","彼此连接。"],["佐久の家に泊まった人たちの「ここ、よかった！」が、次の旅のヒントになる。あなたの発見も、次の誰かへ。","入住佐久之家的旅客分享当地好去处，为下一位旅人提供灵感。也分享你的发现吧。"],["旅の記録をつなげる","连接旅行记忆"],["佐久の家に泊まった人だけの、旅のSNS。","仅限佐久之家住客使用的旅行社交平台。"],["宿泊者が見つけた穴場や、おいしかったお店。次に泊まる人へ、旅の発見をつないでいこう。","分享住客发现的小众景点和美味餐厅，把旅行灵感传递给下一位旅人。"],["宿泊者招待コード","住客邀请码"],["招待コードを確認する","验证邀请码"],["コード入力がうまく進まない場合はこちら。登録画面へ直接進めます。","邀请码输入遇到问题？可直接前往注册页面。"],["デモで登録画面へ進む","进入演示注册页面"],["通常の招待コード：","演示邀请码："],["ニックネームを決めよう。","设置昵称。"],["メールアドレスやパスワードは不要。ニックネームとプロフィール画像だけで参加できるよ。","无需邮箱或密码，只需昵称和头像即可加入。"],["プロフィール画像を選ぶ","选择头像"],["画像なしでも登録できます","也可以不上传头像"],["ニックネーム","昵称"],["TABINOTEをはじめる","开始使用 TABINOTE"],["次の旅のヒントを、 みんなの記録から。","从大家的记录中寻找下一段旅程的灵感。"],["佐久の家に泊まった人たちの、おすすめが集まる旅のSNS。","汇集佐久之家住客推荐的旅行社交平台。"],["スポットを探す","查找地点"],["人気ランキング","热门排行"],["宿泊者のおすすめをチェック","查看住客推荐"],["人気スポット","热门地点"],["人気の投稿","热门帖子"],["※順位は試作品用のサンプルデータです。","※ 排名为原型演示数据。"],["天気","天气"],["訪問した月","访问月份"],["すべての天気","所有天气"],["条件をリセット","重置筛选"],["みんなの旅ノート","大家的旅行笔记"],["天気・月で絞り込み","按天气和月份筛选"],["長野を、地図から探す。","在地图上探索长野。"],["地域を選んで、気になるスポットをタップしてね。","选择地区并点击感兴趣的地点。"],["旅の足あと","旅行足迹"],["訪れた場所を記録しよう","记录去过的地方"],["常時追跡はしません。ボタンを押したときだけ現在地を取得し、訪問スポットとして記録できます。","不会持续追踪位置。只有点击按钮时才会获取当前位置并记录访问地点。"],["現在地を取得して記録する","获取当前位置并记录"],["スポットを手動で記録","手动记录地点"],["スポット一覧","地点列表"],["スポット記録","记录访问"],["この訪問を保存する","保存访问记录"],["記録した足あと","已记录的足迹"],["非公開にする","设为私密"],["公開する","公开"],["記録を削除","删除记录"],["見つけた景色をシェア","分享旅途发现"],["写真を選んで、ひとこと添えるだけ。","选择照片并写下一句话。"],["更新","刷新"],["写真を追加","添加照片"],["お気に入りの1枚を選んでね","选择你最喜欢的照片"],["キャプション","配文"],["場所を追加（任意）","添加地点（选填）"],["訪問日","访问日期"],["地域","地区"],["天気・気温は画面を開くと自動取得して投稿に記録します。","打开页面时会自动获取天气和气温，并记录到帖子中（如可用）。"],["タグ（任意・カンマ区切り）","标签（选填，用逗号分隔）"],["シェアする","发布分享"],["気軽なひとことだけでもOK。詳しい情報は、必要なときだけ追加してね。","简单写一句就可以。需要时再补充详细信息。"],["自分の旅ノート","我的旅行笔记"],["最初の旅ノートを書く","写下第一篇旅行笔记"],["保存した投稿","已保存的帖子"],["旅の足あとマップ","旅行足迹地图"],["行きたいスポット","想去的地点"],["マイプロフィール","我的资料"],["表示名","显示名称"],["ひとこと","简介"],["プロフィールを保存","保存资料"],["ホスト・店舗向け","房东与商家"],["宿の紹介や営業時間、おすすめスポットを編集できます。","可编辑住宿介绍、营业时间和推荐地点。"],["民泊・店舗ページを編集","编辑住宿/商家页面"],["デモからログアウト","退出演示账号"],["この端末の試用データを削除","删除此设备上的演示数据"],["試作品の保存先はこのブラウザ内です。別のスマホとの共有や本番の会員認証には、公開用バックエンドの設定が必要です。","原型数据仅保存在当前浏览器中。跨设备共享和正式会员认证需要配置后端服务。"],["最近の投稿","最新帖子"],["戻る","返回"],["スポット詳細・口コミを見る","查看地点详情和评价"],["みんなの口コミ","大家的评价"],["口コミを書く","写评价"],["口コミを投稿する","发布评价"],["変更を保存","保存更改"],["いいね","赞"],["スポットを見る","查看地点"],["晴れ","晴天"],["くもり","多云"],["小雨","小雨"],["雨","雨天"],["雪","下雪"],["未設定","未设置"],["気温（℃・任意）","气温（℃，选填）"],["写真・感想","照片与感想"],["全体に公開する","公开分享"],["公開後も非公開に変更できます。","发布后也可以改为私密。"]
+ ]
+ };
+ const originalNodes = new WeakMap();
+ const pairsCache = {};
+ function translateText(text, lang){
+   if(lang==='ja') return text;
+   const pairs = dictionaries[lang] || [];
+   if(!pairsCache[lang]) pairsCache[lang] = pairs.slice().sort((a,b)=>b[0].length-a[0].length);
+   let out=text;
+   for(const [ja, tr] of pairsCache[lang]) out=out.split(ja).join(tr);
+   return out;
+ }
+ function applyLanguage(lang){
+   document.documentElement.lang = lang==='zh'?'zh-CN':lang;
+   document.querySelectorAll('#languageSelect').forEach(s=>{if(s.value!==lang)s.value=lang});
+   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+   let n;
+   while(n=walker.nextNode()){
+     const parent=n.parentElement;
+     if(!parent || parent.closest('script,style,select,option')) continue;
+     if(!originalNodes.has(n)) originalNodes.set(n,n.nodeValue);
+     const original=originalNodes.get(n);
+     const translated=translateText(original,lang);
+     if(n.nodeValue!==translated) n.nodeValue=translated;
+   }
+   document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{
+     if(!el.dataset.originalPlaceholder) el.dataset.originalPlaceholder=el.placeholder;
+     el.placeholder=translateText(el.dataset.originalPlaceholder,lang);
+   });
+   const search=document.getElementById('globalSearch');
+   if(search) search.setAttribute('aria-label', lang==='en'?'Search':lang==='ko'?'검색':lang==='zh'?'搜索':'検索');
+ }
+ function setup(){
+   const sel=document.getElementById('languageSelect');
+   if(!sel) return;
+   let lang='ja';
+   try{lang=localStorage.getItem('tabinote_language')||'ja'}catch(e){}
+   sel.value=lang; applyLanguage(lang);
+   sel.addEventListener('change',()=>{const v=sel.value;try{localStorage.setItem('tabinote_language',v)}catch(e){}applyLanguage(v)});
+   const observer=new MutationObserver(()=>applyLanguage(sel.value||'ja'));
+   observer.observe(document.getElementById('screen')||document.body,{childList:true,subtree:true,characterData:true});
+ }
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setup); else setup();
+})();
+</script>
+
+</body>
+</html>

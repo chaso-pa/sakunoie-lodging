@@ -1,1 +1,12 @@
-.omc
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OMC / Claude
+.omc/

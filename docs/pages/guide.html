@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ウェルカムガイド｜佐久の家</title>
+  <meta name="description" content="長野県佐久市の家主居住型民泊「佐久の家」の宿泊者向けウェルカムガイドです。">
+  <meta name="robots" content="noindex">
+  <style>
+    :root {
+      --bg: #faf7f3;
+      --surface: #ffffff;
+      --text: #2f2a26;
+      --muted: #6f655d;
+      --accent: #b5603c; /* テラコッタ */
+      --line: #e6ddd4;
+      --soft: #f4ede6;
+      --todo-bg: #fff1c2;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+      line-height: 1.9;
+      font-size: 15px;
+    }
+    header, main, footer { max-width: 820px; margin: 0 auto; padding: 0 16px; }
+    header { padding-top: 40px; padding-bottom: 8px; }
+    .site { color: var(--accent); font-weight: 700; letter-spacing: .1em; text-decoration: none; }
+    h1 { font-size: 1.7rem; margin: .4em 0 .2em; letter-spacing: .05em; }
+    nav a { color: var(--muted); margin-right: 1em; font-size: .9rem; }
+    main {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px 28px 32px;
+      margin-top: 16px;
+    }
+    h2 {
+      font-size: 1.1rem;
+      margin: 2.2em 0 .5em;
+      padding-left: .6em;
+      border-left: 4px solid var(--accent);
+      scroll-margin-top: 16px;
+    }
+    h3 { font-size: .98rem; margin: 1.4em 0 .3em; }
+    ul, ol { padding-left: 1.4em; }
+    p { margin: .5em 0; }
+    .lead { font-size: 1.02rem; }
+    .note { color: var(--muted); font-size: .88rem; }
+    mark.todo { background: var(--todo-bg); padding: 0 .2em; border-radius: 3px; }
+    .toc {
+      background: var(--soft);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 1.2em 0;
+    }
+    .toc ol { margin: 0; columns: 2; column-gap: 2em; }
+    .toc a { color: var(--text); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 1em 0; }
+    .card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; text-align: center; }
+    .card .k { color: var(--muted); font-size: .82rem; }
+    .card .v { font-size: 1.15rem; font-weight: 700; color: var(--accent); }
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: var(--soft);
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin: .8em 0;
+    }
+    table { border-collapse: collapse; width: 100%; margin: .6em 0; font-size: .92rem; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--soft); font-weight: 600; width: 32%; }
+    code { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; background: var(--soft); padding: .1em .4em; border-radius: 4px; }
+    footer { color: var(--muted); font-size: .85rem; padding-top: 24px; padding-bottom: 40px; }
+    @media (max-width: 600px) {
+      main { padding: 18px 16px 24px; }
+      h1 { font-size: 1.4rem; }
+      .toc ol { columns: 1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="site" href="./">佐久の家</a>
+    <h1>ウェルカムガイド</h1>
+    <nav>
+      <a href="./guide.html">ウェルカムガイド</a>
+      <a href="./terms.html">宿泊約款</a>
+      <a href="./pricing.html">宿泊料金表</a>
+    </nav>
+  </header>
+
+  <main>
+    <p class="lead">ようこそ佐久の家へ。ご宿泊ありがとうございます。<br>
+    滞在中に知っておいていただきたいことをこのページにまとめました。分からないことがあれば、いつでもお気軽にお声がけください。</p>
+
+    <div class="cards">
+      <div class="card"><div class="k">チェックイン</div><div class="v">15:00〜</div></div>
+      <div class="card"><div class="k">チェックアウト</div><div class="v">〜10:00</div></div>
+      <div class="card"><div class="k">静粛時間</div><div class="v">22:00〜5:00</div></div>
+      <div class="card"><div class="k">ホストの入浴</div><div class="v">20:00〜21:00</div></div>
+    </div>
+
+    <nav class="toc" aria-label="目次">
+      <ol>
+        <li><a href="#about">家主居住型について</a></li>
+        <li><a href="#areas">ご利用いただける場所</a></li>
+        <li><a href="#living">リビング</a></li>
+        <li><a href="#pantry">パントリー・冷蔵庫</a></li>
+        <li><a href="#bath">お風呂・洗面台・トイレ</a></li>
+        <li><a href="#laundry">ランドリー</a></li>
+        <li><a href="#room">お部屋・プロジェクター</a></li>
+        <li><a href="#wifi">Wi-Fi</a></li>
+        <li><a href="#aircon">エアコン</a></li>
+        <li><a href="#garbage">ゴミの分別</a></li>
+        <li><a href="#rules">ハウスルール</a></li>
+        <li><a href="#key">ルームキー・チェックアウト</a></li>
+        <li><a href="#nearby">周辺情報</a></li>
+        <li><a href="#contact">お問い合わせ</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="about">家主居住型の民泊について</h2>
+    <p>佐久の家は、ホストが同じ建物内に暮らす家主居住型の民泊です。ゲストの皆さまには専用のお部屋をご用意していますが、リビング・お風呂・ランドリー・トイレなど一部のスペースはホストと共用になります。</p>
+    <p>一般住宅のため、生活音が聞こえる場合があります。あらかじめご了承ください。</p>
+
+    <h2 id="areas">ご利用いただける場所</h2>
+    <table>
+      <tr><th>ご利用いただける場所</th><td>ゲストルーム、リビング（LDK）、パントリー、ランドリールーム、お風呂、脱衣所・洗面台、トイレ</td></tr>
+      <tr><th>立ち入りをご遠慮いただく場所</th><td>主寝室、書斎</td></tr>
+    </table>
+
+    <h2 id="living">リビング</h2>
+    <p>リビングは共用スペースです。ソファでくつろいだり、お食事をとったり、滞在中はご自由にお使いください。</p>
+
+    <h2 id="pantry">パントリー・冷蔵庫</h2>
+    <p>パントリーにあるものは、滞在中ご自由にお使いいただけます。</p>
+    <ul>
+      <li>ウォーターサーバー（冷水・温水）</li>
+      <li>コーヒーなどの飲み物</li>
+      <li>お菓子・軽食</li>
+      <li>ボードゲーム ── よかったら遊んでみてください。「あと1人足りない！」というときは、タイミングが合えばホストも喜んで参加します。</li>
+    </ul>
+    <h3>冷蔵庫</h3>
+    <p>冷蔵庫には<strong>ゲスト用のスペース</strong>があります。購入した飲み物や食べ物などはこちらに入れてください。</p>
+
+    <h2 id="bath">お風呂・洗面台・トイレ</h2>
+    <p>お風呂・脱衣所・洗面台・トイレは共用スペースです。</p>
+    <div class="callout"><strong>20:00〜21:00 はホストが入浴します。</strong>お風呂はその前後の時間帯でご利用ください。</div>
+    <ul>
+      <li>タオルは脱衣所にご用意しています。</li>
+      <li>ドライヤー、アメニティ（歯磨きセット・化粧水・乳液など）は洗面台にあります。ご自由にお使いください。</li>
+    </ul>
+    <p class="note">佐久市内には温泉や日帰り入浴施設もあります。お出かけの際は、こちらのタオルを持って行っていただいて構いません。</p>
+
+    <h2 id="laundry">ランドリー</h2>
+    <p>ランドリールームの洗濯機はご自由にお使いいただけます。</p>
+    <div class="callout">洗濯から乾燥まで<strong>約4〜6時間</strong>かかります。お急ぎの場合はご注意ください。</div>
+    <p class="note">お近くのスーパー「ナナーズ」にもコインランドリーがあります。短時間で済ませたいときに便利です。</p>
+
+    <h2 id="room">お部屋・プロジェクター</h2>
+    <p>ゲストルームは、滞在中の皆さま専用のスペースです。どうぞゆっくりお過ごしください。</p>
+    <h3>プロジェクターの使い方</h3>
+    <p>映画や動画などを自由にお楽しみください。</p>
+    <ol>
+      <li><mark class="todo">電源の入れ方</mark></li>
+      <li><mark class="todo">スマートフォン・PC との接続方法</mark></li>
+      <li><mark class="todo">音量・入力切替</mark></li>
+    </ol>
+    <p class="note">接続方法などが分からないときは、遠慮なくお声がけください。</p>
+
+    <h2 id="wifi">Wi-Fi</h2>
+    <p>Wi-Fi は無料でご利用いただけます。</p>
+    <p>接続用の <strong>QRコードをゲストルーム内に掲示</strong>しています。スマートフォンのカメラで読み込むと接続できます。ネットワーク名とパスワードも同じ場所に記載しています。</p>
+    <p class="note">接続できない場合は、いつでもお声がけください。</p>
+
+    <h2 id="aircon">エアコン</h2>
+    <p>お部屋のリモコンで冷房・暖房などを操作できます。暑いとき・寒いときは遠慮なくお使いください。</p>
+    <ol>
+      <li><mark class="todo">運転／停止</mark></li>
+      <li><mark class="todo">冷房・暖房の切替</mark></li>
+      <li><mark class="todo">温度設定</mark></li>
+    </ol>
+
+    <h2 id="garbage">ゴミの分別</h2>
+    <p>ゴミは次の3つに分けていただけると助かります。</p>
+    <table>
+      <tr><th>燃えるゴミ</th><td>生ゴミ、紙くず、ティッシュ、プラスチック容器など<mark class="todo">（区分要確認）</mark></td></tr>
+      <tr><th>ペットボトル</th><td>キャップとラベルを外していただけると助かります</td></tr>
+      <tr><th>ビン・カン</th><td>中を軽くすすいでください</td></tr>
+    </table>
+    <p class="note">ゴミ箱の場所：<mark class="todo">○○</mark></p>
+
+    <h2 id="rules">ハウスルール</h2>
+    <ul>
+      <li><strong>禁煙</strong>：敷地内は全面禁煙です（電子たばこ・加熱式たばこを含みます）。</li>
+      <li><strong>静粛時間</strong>：22:00〜翌5:00は、大きな音を立てないようお願いします。夜間の出入りも静かにお願いします。</li>
+      <li>パーティーや大音量での音楽再生はご遠慮ください。</li>
+      <li>ご予約者以外の方を建物内に招き入れることはご遠慮ください。</li>
+      <li>門限はありません。</li>
+    </ul>
+    <p class="note">詳しくは<a href="./terms.html">宿泊約款</a>をご覧ください。</p>
+
+    <h2 id="key">ルームキー・チェックアウト</h2>
+    <p>チェックイン時にルームキーをお渡しします。外出の際は、お忘れなくお持ちください。</p>
+    <h3>チェックアウト（10:00まで）</h3>
+    <ul>
+      <li>ルームキーをご返却ください（返却方法：<mark class="todo">ホストに手渡し／○○に置く</mark>）。</li>
+      <li>ゴミは分別して<mark class="todo">○○</mark>にお願いします。</li>
+      <li>お忘れ物がないかご確認ください。</li>
+    </ul>
+
+    <h2 id="nearby">周辺情報</h2>
+    <ul>
+      <li><strong>ナナーズ</strong>（スーパー）── お買い物に。コインランドリーもあります。</li>
+      <li><strong>温泉・日帰り入浴施設</strong> ── 佐久市内にいくつかあります。おすすめはホストにお気軽にお尋ねください。</li>
+      <li><strong>軽井沢</strong> ── 車で約20分。小諸・上田エリアへのお出かけにも便利です。</li>
+    </ul>
+    <p class="note">駐車場はゲスト用に1台分ご用意しています（無料）。</p>
+
+    <h2 id="contact">お問い合わせ</h2>
+    <p>ホストは同じ建物内にいますので、お困りのときはいつでもお声がけください。<br>
+    Airbnb のメッセージ機能からもご連絡いただけます。英語でのやりとりも可能です。</p>
+    <p>佐久での滞在を、どうぞゆっくりお楽しみください。</p>
+  </main>
+
+  <footer>
+    <p>佐久の家（家主居住型 簡易宿所）<br>
+    所在地：長野県佐久市安原1412-1<br>
+    旅館業法に基づく許可：長野県佐久保健所指令07佐保第11-68号</p>
+  </footer>
+</body>
+</html>
