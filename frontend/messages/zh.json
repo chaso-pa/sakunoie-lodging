@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "title": "佐久之家",
+    "description": "长野县佐久市房东同住型民宿“佐久之家”的住客专用页面。"
+  },
+  "common": {
+    "siteName": "佐久之家",
+    "loading": "加载中…",
+    "back": "返回",
+    "languageLabel": "Language / 言語",
+    "retry": "重试"
+  },
+  "errors": {
+    "generic": "出了点问题，请稍后再试。",
+    "network": "无法连接服务器，请检查网络后重试。",
+    "rateLimited": "尝试次数过多，请稍等片刻后再试。"
+  },
+  "lodging": {
+    "nav": {
+      "label": "住宿信息",
+      "guide": "入住指南",
+      "terms": "住宿条款",
+      "pricing": "住宿价目表",
+      "community": "住客社区"
+    },
+    "japaneseOnly": "本页正文仅提供日语版本。",
+    "home": {
+      "title": "致各位住客",
+      "lead": "有关住宿的说明，请查看以下页面。",
+      "guideDescription": "入住期间需要了解的事项",
+      "termsDescription": "住宿合同的相关条款",
+      "pricingDescription": "住宿价格与使用条件",
+      "communityDescription": "住客专属的旅行社交平台“TABINOTE”"
+    }
+  },
+  "auth": {
+    "brand": "TABINOTE",
+    "brandSub": "SAKU NO IE GUEST COMMUNITY",
+    "backToInvite": "返回输入邀请码",
+    "welcome": {
+      "artLabel": "有山有湖的旅行风景",
+      "kicker": "YOUR TRIP, CONNECTED",
+      "titleLine1": "让旅行记忆",
+      "titleLine2": "彼此连接。",
+      "description": "入住佐久之家的旅客分享当地好去处，为下一位旅人提供灵感。也分享你的发现吧。",
+      "cta": "连接旅行记忆　→",
+      "foot": "佐久之家住客专属社区"
+    },
+    "invite": {
+      "eyebrow": "GUESTS ONLY",
+      "title": "仅限佐久之家住客使用的旅行社交平台。",
+      "description": "分享住客发现的小众景点和美味餐厅，把旅行灵感传递给下一位旅人。",
+      "codeLabel": "住客邀请码",
+      "codePlaceholder": "房东提供的邀请码",
+      "submit": "验证邀请码",
+      "noteTitle": "您有邀请码吗？",
+      "noteBody": "请输入办理入住时房东提供的邀请码。只有住过的客人才能注册。",
+      "restoreLink": "我有继承码",
+      "errors": {
+        "required": "请输入邀请码。",
+        "invalid": "无法确认该邀请码，请输入房东提供的邀请码。"
+      }
+    },
+    "signup": {
+      "eyebrow": "YOUR PROFILE",
+      "title": "设置昵称。",
+      "description": "无需邮箱或密码，只需昵称和头像即可加入。",
+      "avatarAlt": "头像预览",
+      "chooseAvatar": "📷 选择头像",
+      "removeAvatar": "移除头像",
+      "avatarOptional": "也可以不上传头像",
+      "nicknameLabel": "昵称",
+      "nicknamePlaceholder": "例如：旅行的Mika",
+      "languageLabel": "显示语言",
+      "submit": "开始使用 TABINOTE",
+      "note": "已通过住客邀请码验证。设置资料后，退房后也可以继续使用。",
+      "errors": {
+        "nicknameRequired": "请输入昵称。",
+        "nicknameTooLong": "昵称请控制在30个字符以内。",
+        "avatarType": "请选择 JPEG、PNG 或 WebP 格式的图片。",
+        "avatarTooLarge": "图片太大（最大 10MB）。",
+        "inviteNotVerified": "邀请码验证已失效，请重新输入邀请码。",
+        "invalid": "请检查输入的内容。"
+      }
+    },
+    "transferCode": {
+      "eyebrow": "KEEP THIS CODE",
+      "title": "请保存您的继承码。",
+      "description": "更换手机或浏览器时，可以用这个继承码回到同一个账号。",
+      "codeLabel": "您的继承码",
+      "copy": "复制继承码",
+      "copied": "已复制",
+      "warning": "此继承码仅显示这一次，请务必用备忘录或截图保存。丢失后将无法转移账号。请勿告诉他人。",
+      "confirm": "我已保存继承码",
+      "continue": "开始使用 TABINOTE"
+    },
+    "restore": {
+      "eyebrow": "WELCOME BACK",
+      "title": "使用继承码继续。",
+      "description": "输入注册时显示的继承码，即可回到同一个账号。",
+      "codeLabel": "继承码",
+      "submit": "恢复账号",
+      "note": "恢复后，之前使用的设备或浏览器将被退出登录。",
+      "errors": {
+        "format": "继承码由12位字母和数字组成，请再次确认。",
+        "invalid": "无法确认该继承码。"
+      }
+    },
+    "logout": {
+      "button": "退出登录",
+      "done": "已退出登录"
+    },
+    "signedIn": {
+      "eyebrow": "MEMBERS ONLY",
+      "title": "欢迎，{nickname}。",
+      "description": "您已登录。社区页面正在准备中。"
+    }
+  },
+  "community": {
+    "tagline": "从佐久之家，连接每一段旅程。",
+    "nav": {
+      "label": "主导航",
+      "feed": "动态",
+      "map": "地图",
+      "post": "发布",
+      "trips": "旅行记录",
+      "profile": "我的页面",
+      "ai": "AI 景点"
+    }
+  }
+}

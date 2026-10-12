@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "title": "佐久の家",
+    "description": "長野県佐久市の家主居住型民泊「佐久の家」の宿泊者向けページです。"
+  },
+  "common": {
+    "siteName": "佐久の家",
+    "loading": "読み込み中…",
+    "back": "戻る",
+    "languageLabel": "Language / 言語",
+    "retry": "もう一度試す"
+  },
+  "errors": {
+    "generic": "うまくいきませんでした。時間をおいてもう一度お試しください。",
+    "network": "サーバーに接続できませんでした。通信環境を確認して、もう一度お試しください。",
+    "rateLimited": "試行回数が多すぎます。しばらく待ってからもう一度お試しください。"
+  },
+  "lodging": {
+    "nav": {
+      "label": "宿泊情報",
+      "guide": "ウェルカムガイド",
+      "terms": "宿泊約款",
+      "pricing": "宿泊料金表",
+      "community": "宿泊者コミュニティ"
+    },
+    "japaneseOnly": "このページの本文は日本語のみでご案内しています。",
+    "home": {
+      "title": "宿泊者のみなさまへ",
+      "lead": "ご宿泊に関するご案内はこちらからご覧いただけます。",
+      "guideDescription": "滞在中に知っておいていただきたいこと",
+      "termsDescription": "ご宿泊の契約に関する取り決め",
+      "pricingDescription": "宿泊料金とご利用条件",
+      "communityDescription": "宿泊者限定の旅のSNS「TABINOTE」"
+    }
+  },
+  "auth": {
+    "brand": "TABINOTE",
+    "brandSub": "SAKU NO IE GUEST COMMUNITY",
+    "backToInvite": "招待コードの入力に戻る",
+    "welcome": {
+      "artLabel": "山と湖の旅の風景",
+      "kicker": "YOUR TRIP, CONNECTED",
+      "titleLine1": "旅の記録を、",
+      "titleLine2": "つないでいこう。",
+      "description": "佐久の家に泊まった人たちの「ここ、よかった！」が、次の旅のヒントになる。あなたの発見も、次の誰かへ。",
+      "cta": "旅の記録をつなげる　→",
+      "foot": "佐久の家 宿泊者限定コミュニティ"
+    },
+    "invite": {
+      "eyebrow": "GUESTS ONLY",
+      "title": "佐久の家に泊まった人だけの、旅のSNS。",
+      "description": "宿泊者が見つけた穴場や、おいしかったお店。次に泊まる人へ、旅の発見をつないでいこう。",
+      "codeLabel": "宿泊者招待コード",
+      "codePlaceholder": "ホストから案内されたコード",
+      "submit": "招待コードを確認する",
+      "noteTitle": "招待コードをお持ちですか？",
+      "noteBody": "チェックイン時にホストから案内されたコードを入力してください。宿泊経験者だけが登録できます。",
+      "restoreLink": "引き継ぎコードをお持ちの方はこちら",
+      "errors": {
+        "required": "招待コードを入力してください。",
+        "invalid": "コードを確認できませんでした。ホストから案内されたコードを入力してください。"
+      }
+    },
+    "signup": {
+      "eyebrow": "YOUR PROFILE",
+      "title": "ニックネームを決めよう。",
+      "description": "メールアドレスやパスワードは不要。ニックネームとプロフィール画像だけで参加できるよ。",
+      "avatarAlt": "プロフィール画像のプレビュー",
+      "chooseAvatar": "📷 プロフィール画像を選ぶ",
+      "removeAvatar": "画像を外す",
+      "avatarOptional": "画像なしでも登録できます",
+      "nicknameLabel": "ニックネーム",
+      "nicknamePlaceholder": "例：旅するMika",
+      "languageLabel": "表示言語",
+      "submit": "TABINOTEをはじめる",
+      "note": "宿泊者招待コードで確認済み。プロフィール設定後は、チェックアウト後もずっと利用できます。",
+      "errors": {
+        "nicknameRequired": "ニックネームを入力してください。",
+        "nicknameTooLong": "ニックネームは30文字以内で入力してください。",
+        "avatarType": "画像は JPEG・PNG・WebP のいずれかを選んでください。",
+        "avatarTooLarge": "画像のサイズが大きすぎます（10MBまで）。",
+        "inviteNotVerified": "招待コードの確認が切れました。もう一度コードを入力してください。",
+        "invalid": "入力内容を確認してください。"
+      }
+    },
+    "transferCode": {
+      "eyebrow": "KEEP THIS CODE",
+      "title": "引き継ぎコードを保存してください。",
+      "description": "機種変更やブラウザを変えたとき、このコードで同じアカウントに戻れます。",
+      "codeLabel": "あなたの引き継ぎコード",
+      "copy": "コードをコピー",
+      "copied": "コピーしました",
+      "warning": "このコードが表示されるのは今回だけです。メモやスクリーンショットで必ず保存してください。なくすとアカウントを引き継げなくなります。他の人には教えないでください。",
+      "confirm": "引き継ぎコードを保存しました",
+      "continue": "TABINOTEをはじめる"
+    },
+    "restore": {
+      "eyebrow": "WELCOME BACK",
+      "title": "引き継ぎコードで続きから。",
+      "description": "登録時に表示された引き継ぎコードを入力すると、同じアカウントに戻れます。",
+      "codeLabel": "引き継ぎコード",
+      "submit": "アカウントを引き継ぐ",
+      "note": "引き継ぐと、これまで使っていた端末やブラウザではログアウトされます。",
+      "errors": {
+        "format": "引き継ぎコードは英数字12文字です。もう一度確認してください。",
+        "invalid": "引き継ぎコードを確認できませんでした。"
+      }
+    },
+    "logout": {
+      "button": "ログアウト",
+      "done": "ログアウトしました"
+    },
+    "signedIn": {
+      "eyebrow": "MEMBERS ONLY",
+      "title": "{nickname}さん、ようこそ。",
+      "description": "ログイン中です。コミュニティの各画面はただいま準備中です。"
+    }
+  },
+  "community": {
+    "tagline": "佐久の家から、旅のつながりを。",
+    "nav": {
+      "label": "メインナビ",
+      "feed": "フィード",
+      "map": "地図",
+      "post": "投稿する",
+      "trips": "旅の記録",
+      "profile": "マイページ",
+      "ai": "AIスポット"
+    }
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "title": "사쿠노이에",
+    "description": "나가노현 사쿠시의 호스트 거주형 민박 ‘사쿠노이에’ 숙박객을 위한 페이지입니다."
+  },
+  "common": {
+    "siteName": "사쿠노이에",
+    "loading": "불러오는 중…",
+    "back": "뒤로",
+    "languageLabel": "Language / 言語",
+    "retry": "다시 시도"
+  },
+  "errors": {
+    "generic": "문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+    "network": "서버에 연결할 수 없습니다. 네트워크 상태를 확인하고 다시 시도해 주세요.",
+    "rateLimited": "시도 횟수가 너무 많습니다. 잠시 기다린 후 다시 시도해 주세요."
+  },
+  "lodging": {
+    "nav": {
+      "label": "숙박 안내",
+      "guide": "웰컴 가이드",
+      "terms": "숙박 약관",
+      "pricing": "숙박 요금표",
+      "community": "숙박객 커뮤니티"
+    },
+    "japaneseOnly": "이 페이지의 본문은 일본어로만 제공됩니다.",
+    "home": {
+      "title": "숙박객 여러분께",
+      "lead": "숙박에 관한 안내는 아래 페이지에서 확인하실 수 있습니다.",
+      "guideDescription": "머무는 동안 알아 두실 내용",
+      "termsDescription": "숙박 계약에 관한 약관",
+      "pricingDescription": "숙박 요금과 이용 조건",
+      "communityDescription": "숙박객 전용 여행 SNS ‘TABINOTE’"
+    }
+  },
+  "auth": {
+    "brand": "TABINOTE",
+    "brandSub": "SAKU NO IE GUEST COMMUNITY",
+    "backToInvite": "초대 코드 입력으로 돌아가기",
+    "welcome": {
+      "artLabel": "산과 호수가 있는 여행 풍경",
+      "kicker": "YOUR TRIP, CONNECTED",
+      "titleLine1": "여행의 기록을",
+      "titleLine2": "서로 이어 봐요.",
+      "description": "사쿠노이에에 머문 여행자들의 추천이 다음 여행의 힌트가 됩니다. 당신의 발견도 나눠 주세요.",
+      "cta": "여행 기록 이어가기　→",
+      "foot": "사쿠노이에 숙박객 전용 커뮤니티"
+    },
+    "invite": {
+      "eyebrow": "GUESTS ONLY",
+      "title": "사쿠노이에 숙박객만을 위한 여행 SNS.",
+      "description": "숙박객이 찾은 숨은 명소와 맛집을 다음 여행자와 나눠요.",
+      "codeLabel": "숙박객 초대 코드",
+      "codePlaceholder": "호스트에게 안내받은 코드",
+      "submit": "초대 코드 확인",
+      "noteTitle": "초대 코드를 가지고 계신가요?",
+      "noteBody": "체크인할 때 호스트에게 안내받은 코드를 입력해 주세요. 숙박 경험이 있는 분만 등록할 수 있습니다.",
+      "restoreLink": "인계 코드를 가지고 있어요",
+      "errors": {
+        "required": "초대 코드를 입력해 주세요.",
+        "invalid": "코드를 확인할 수 없습니다. 호스트에게 안내받은 코드를 입력해 주세요."
+      }
+    },
+    "signup": {
+      "eyebrow": "YOUR PROFILE",
+      "title": "닉네임을 정해요.",
+      "description": "이메일과 비밀번호 없이 닉네임과 프로필 사진만으로 참여할 수 있어요.",
+      "avatarAlt": "프로필 사진 미리보기",
+      "chooseAvatar": "📷 프로필 사진 선택",
+      "removeAvatar": "사진 삭제",
+      "avatarOptional": "사진 없이도 등록할 수 있어요",
+      "nicknameLabel": "닉네임",
+      "nicknamePlaceholder": "예: 여행하는 Mika",
+      "languageLabel": "표시 언어",
+      "submit": "TABINOTE 시작하기",
+      "note": "숙박객 초대 코드로 확인되었습니다. 프로필을 설정하면 체크아웃 후에도 계속 이용할 수 있습니다.",
+      "errors": {
+        "nicknameRequired": "닉네임을 입력해 주세요.",
+        "nicknameTooLong": "닉네임은 30자 이내로 입력해 주세요.",
+        "avatarType": "JPEG, PNG, WebP 이미지 중에서 선택해 주세요.",
+        "avatarTooLarge": "이미지 용량이 너무 큽니다(최대 10MB).",
+        "inviteNotVerified": "초대 코드 확인이 만료되었습니다. 코드를 다시 입력해 주세요.",
+        "invalid": "입력 내용을 확인해 주세요."
+      }
+    },
+    "transferCode": {
+      "eyebrow": "KEEP THIS CODE",
+      "title": "인계 코드를 저장해 주세요.",
+      "description": "기기나 브라우저를 바꿔도 이 코드로 같은 계정으로 돌아올 수 있습니다.",
+      "codeLabel": "나의 인계 코드",
+      "copy": "코드 복사",
+      "copied": "복사했습니다",
+      "warning": "이 코드는 지금 한 번만 표시됩니다. 메모나 스크린샷으로 꼭 저장해 주세요. 잃어버리면 계정을 옮길 수 없습니다. 다른 사람에게 알려 주지 마세요.",
+      "confirm": "인계 코드를 저장했습니다",
+      "continue": "TABINOTE 시작하기"
+    },
+    "restore": {
+      "eyebrow": "WELCOME BACK",
+      "title": "인계 코드로 이어서 이용하기.",
+      "description": "등록할 때 표시된 인계 코드를 입력하면 같은 계정으로 돌아올 수 있습니다.",
+      "codeLabel": "인계 코드",
+      "submit": "계정 이어받기",
+      "note": "계정을 이어받으면 이전에 사용하던 기기나 브라우저에서는 로그아웃됩니다.",
+      "errors": {
+        "format": "인계 코드는 영문과 숫자 12자입니다. 다시 확인해 주세요.",
+        "invalid": "인계 코드를 확인할 수 없습니다."
+      }
+    },
+    "logout": {
+      "button": "로그아웃",
+      "done": "로그아웃했습니다"
+    },
+    "signedIn": {
+      "eyebrow": "MEMBERS ONLY",
+      "title": "{nickname} 님, 환영합니다.",
+      "description": "로그인되어 있습니다. 커뮤니티 화면은 준비 중입니다."
+    }
+  },
+  "community": {
+    "tagline": "사쿠노이에에서 여행의 연결을.",
+    "nav": {
+      "label": "메인 내비게이션",
+      "feed": "피드",
+      "map": "지도",
+      "post": "게시하기",
+      "trips": "여행 기록",
+      "profile": "마이페이지",
+      "ai": "AI 스폿"
+    }
+  }
+}

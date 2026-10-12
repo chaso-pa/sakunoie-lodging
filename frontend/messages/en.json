@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "title": "Saku no Ie",
+    "description": "Guest pages for Saku no Ie, a host-occupied guesthouse in Saku, Nagano."
+  },
+  "common": {
+    "siteName": "Saku no Ie",
+    "loading": "Loading…",
+    "back": "Back",
+    "languageLabel": "Language / 言語",
+    "retry": "Try again"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again in a little while.",
+    "network": "Could not reach the server. Check your connection and try again.",
+    "rateLimited": "Too many attempts. Please wait a moment and try again."
+  },
+  "lodging": {
+    "nav": {
+      "label": "Guest information",
+      "guide": "Welcome Guide",
+      "terms": "Terms of Stay",
+      "pricing": "Rates",
+      "community": "Guest Community"
+    },
+    "japaneseOnly": "The text of this page is available in Japanese only.",
+    "home": {
+      "title": "For our guests",
+      "lead": "Information about your stay is available on the pages below.",
+      "guideDescription": "What you should know during your stay",
+      "termsDescription": "The terms of the accommodation contract",
+      "pricingDescription": "Room rates and conditions",
+      "communityDescription": "TABINOTE, a travel community just for our guests"
+    }
+  },
+  "auth": {
+    "brand": "TABINOTE",
+    "brandSub": "SAKU NO IE GUEST COMMUNITY",
+    "backToInvite": "Back to invitation code",
+    "welcome": {
+      "artLabel": "A travel landscape with mountains and a lake",
+      "kicker": "YOUR TRIP, CONNECTED",
+      "titleLine1": "Travel memories,",
+      "titleLine2": "let’s connect them.",
+      "description": "Discoveries from guests at Saku no Ie inspire the next traveler. Share yours, too.",
+      "cta": "Connect travel memories　→",
+      "foot": "A community for Saku no Ie guests only"
+    },
+    "invite": {
+      "eyebrow": "GUESTS ONLY",
+      "title": "A travel community just for guests of Saku no Ie.",
+      "description": "Hidden gems and great places to eat, shared by guests for future travelers.",
+      "codeLabel": "Guest invitation code",
+      "codePlaceholder": "The code your host gave you",
+      "submit": "Verify invitation code",
+      "noteTitle": "Do you have an invitation code?",
+      "noteBody": "Enter the code your host gave you at check-in. Only people who have stayed with us can register.",
+      "restoreLink": "I have a transfer code",
+      "errors": {
+        "required": "Enter your invitation code.",
+        "invalid": "We could not verify that code. Enter the code your host gave you."
+      }
+    },
+    "signup": {
+      "eyebrow": "YOUR PROFILE",
+      "title": "Choose a nickname.",
+      "description": "No email or password needed. Join with just a nickname and profile picture.",
+      "avatarAlt": "Profile picture preview",
+      "chooseAvatar": "📷 Choose profile picture",
+      "removeAvatar": "Remove picture",
+      "avatarOptional": "You can register without a picture",
+      "nicknameLabel": "Nickname",
+      "nicknamePlaceholder": "e.g. Traveling Mika",
+      "languageLabel": "Display language",
+      "submit": "Start TABINOTE",
+      "note": "Verified with a guest invitation code. Once your profile is set, you can keep using TABINOTE after check-out.",
+      "errors": {
+        "nicknameRequired": "Enter a nickname.",
+        "nicknameTooLong": "Nicknames can be up to 30 characters.",
+        "avatarType": "Choose a JPEG, PNG or WebP image.",
+        "avatarTooLarge": "That image is too large (10 MB maximum).",
+        "inviteNotVerified": "Your invitation code check has expired. Please enter the code again.",
+        "invalid": "Please check what you entered."
+      }
+    },
+    "transferCode": {
+      "eyebrow": "KEEP THIS CODE",
+      "title": "Save your transfer code.",
+      "description": "If you change phones or browsers, this code brings you back to the same account.",
+      "codeLabel": "Your transfer code",
+      "copy": "Copy code",
+      "copied": "Copied",
+      "warning": "This code is shown only once. Save it now in a note or a screenshot. Without it you cannot move your account. Do not share it with anyone.",
+      "confirm": "I have saved my transfer code",
+      "continue": "Start TABINOTE"
+    },
+    "restore": {
+      "eyebrow": "WELCOME BACK",
+      "title": "Continue with your transfer code.",
+      "description": "Enter the transfer code shown when you registered to return to the same account.",
+      "codeLabel": "Transfer code",
+      "submit": "Restore my account",
+      "note": "Restoring signs you out on the device or browser you used before.",
+      "errors": {
+        "format": "A transfer code is 12 letters and numbers. Please check it again.",
+        "invalid": "We could not verify that transfer code."
+      }
+    },
+    "logout": {
+      "button": "Log out",
+      "done": "You have been logged out"
+    },
+    "signedIn": {
+      "eyebrow": "MEMBERS ONLY",
+      "title": "Welcome, {nickname}.",
+      "description": "You are signed in. The community screens are being prepared."
+    }
+  },
+  "community": {
+    "tagline": "Travel connections start at Saku no Ie.",
+    "nav": {
+      "label": "Main navigation",
+      "feed": "Feed",
+      "map": "Map",
+      "post": "Create post",
+      "trips": "Travel memories",
+      "profile": "My page",
+      "ai": "AI Spots"
+    }
+  }
+}

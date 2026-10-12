@@ -1,0 +1,14 @@
+.root {
+  min-height: 100dvh;
+  background: var(--lodging-bg);
+  color: var(--lodging-text);
+  font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+  line-height: 1.9;
+  font-size: 15px;
+}
+
+.column {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
