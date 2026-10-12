@@ -1,0 +1,215 @@
+// Prisma はマイグレーション管理専用。Go からの DB アクセスは GORM（internal/models）で行う。
+// 接続 URL は Prisma 7 の方式に従い prisma.config.ts の datasource.url で指定する。
+// スキーマを変更したら internal/models の GORM 構造体も手動で同期すること。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Member {
+  id                String   @id @default(uuid())
+  nickname          String   @db.VarChar(30)
+  avatarUrl         String?  @map("avatar_url") @db.VarChar(500)
+  preferredLanguage String   @default("ja") @map("preferred_language") @db.VarChar(5)
+  transferCodeHash  String   @map("transfer_code_hash") @db.VarChar(255)
+  sessionVersion    Int      @default(1) @map("session_version")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  posts     Post[]
+  likes     Like[]
+  bookmarks Bookmark[]
+  reviews   Review[]
+  gpsVisits GpsVisit[]
+
+  // 引き継ぎコードの復元は WHERE transfer_code_hash = ? の 1 件検索（計画 4.7）。
+  @@unique([transferCodeHash], map: "uq_members_transfer_code_hash")
+  @@map("members")
+}
+
+// scs/mysqlstore が管理するセッションテーブル。
+// Prisma でマイグレーション管理するが、GORM 構造体は不要。
+// 期限切れセッションの削除は scs の cleanup goroutine が自動実行する
+// （mysqlstore.NewWithCleanupInterval で間隔を指定、デフォルト 5 分）。
+model Session {
+  token  String   @id @db.Char(43)
+  data   Bytes    @db.Blob
+  expiry DateTime @db.Timestamp(6)
+
+  @@index([expiry], map: "idx_sessions_expiry")
+  @@map("sessions")
+}
+
+model Spot {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  emoji       String   @db.VarChar(10)
+  area        String   @db.VarChar(20)
+  category    String   @db.VarChar(30)
+  description String   @db.Text
+  isSample    Boolean  @default(false) @map("is_sample")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  posts     Post[]
+  reviews   Review[]
+  gpsVisits GpsVisit[]
+
+  @@map("spots")
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  memberId    String    @map("member_id")
+  spotId      String?   @map("spot_id")
+  caption     String    @db.Text
+  // 投稿フォームで選んだ地域。スポット未指定の投稿を地域で絞り込むために持つ。
+  area        String?   @db.VarChar(20)
+  language    String    @default("ja") @db.VarChar(5)
+  weather     String?   @db.VarChar(20)
+  temperature Float?
+  visitedAt   DateTime? @map("visited_at")
+  isSample    Boolean   @default(false) @map("is_sample")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  member    Member      @relation(fields: [memberId], references: [id])
+  spot      Spot?       @relation(fields: [spotId], references: [id])
+  media     PostMedia[]
+  likes     Like[]
+  bookmarks Bookmark[]
+  tags      PostTag[]
+
+  @@index([memberId], map: "idx_posts_member_id")
+  @@index([spotId], map: "idx_posts_spot_id")
+  @@index([createdAt], map: "idx_posts_created_at")
+  @@map("posts")
+}
+
+model PostMedia {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  mediaUrl  String   @map("media_url") @db.VarChar(500)
+  mediaType String   @default("photo") @map("media_type") @db.VarChar(10)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId], map: "idx_post_media_post_id")
+  @@map("post_media")
+}
+
+model PostTag {
+  id     String @id @default(uuid())
+  postId String @map("post_id")
+  tag    String @db.VarChar(50)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId], map: "idx_post_tags_post_id")
+  @@map("post_tags")
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  memberId  String   @map("member_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  member Member @relation(fields: [memberId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, postId])
+  @@map("likes")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  memberId  String   @map("member_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  member Member @relation(fields: [memberId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, postId])
+  @@map("bookmarks")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  memberId  String   @map("member_id")
+  spotId    String   @map("spot_id")
+  stars     Int      @db.TinyInt
+  text      String   @db.Text
+  isSample  Boolean  @default(false) @map("is_sample")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  member Member @relation(fields: [memberId], references: [id])
+  spot   Spot   @relation(fields: [spotId], references: [id])
+
+  @@index([spotId], map: "idx_reviews_spot_id")
+  @@map("reviews")
+}
+
+model GpsVisit {
+  id          String   @id @default(uuid())
+  memberId    String   @map("member_id")
+  spotId      String?  @map("spot_id")
+  placeName   String   @map("place_name") @db.VarChar(100)
+  emoji       String   @db.VarChar(10)
+  area        String   @db.VarChar(20)
+  visitedDate DateTime @map("visited_date") @db.Date
+  weather     String?  @db.VarChar(20)
+  temperature Float?
+  note        String?  @db.Text
+  isPublic    Boolean  @default(false) @map("is_public")
+  exactPublic Boolean  @default(false) @map("exact_public")
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  member Member @relation(fields: [memberId], references: [id])
+  spot   Spot?  @relation(fields: [spotId], references: [id])
+
+  @@index([memberId], map: "idx_gps_visits_member_id")
+  @@map("gps_visits")
+}
+
+model AiSpot {
+  id          String @id @default(uuid())
+  name        String @db.VarChar(100)
+  purposes    String @db.VarChar(200) // JSON array stored as string
+  area        String @db.VarChar(50)
+  kind        String @db.VarChar(30)
+  driveMin    Int    @map("drive_min")
+  transitMin  Int    @map("transit_min")
+  stayMin     Int    @map("stay_min")
+  genres      String @db.VarChar(200) // JSON array stored as string
+  weathers    String @db.VarChar(100) // JSON array stored as string
+  description String @db.Text
+  mapQuery    String @map("map_query") @db.VarChar(200)
+  searchUrl   String @map("search_url") @db.VarChar(500)
+
+  @@map("ai_spots")
+}
+
+// 翻訳キャッシュ。mymemory の無料枠は 5000 語/日と少ないため、
+// 同じテキスト+言語ペアの再翻訳を避ける。
+model PostTranslation {
+  id             String   @id @default(uuid())
+  sourceTextHash String   @map("source_text_hash") @db.Char(64) // SHA-256 hex
+  sourceLang     String   @map("source_lang") @db.VarChar(5)
+  targetLang     String   @map("target_lang") @db.VarChar(5)
+  translatedText String   @map("translated_text") @db.Text
+  provider       String   @db.VarChar(20)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([sourceTextHash, sourceLang, targetLang])
+  @@map("post_translations")
+}

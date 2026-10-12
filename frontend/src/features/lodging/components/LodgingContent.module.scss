@@ -1,0 +1,265 @@
+// Styles for the lodging information documents, taken from docs/pages/{guide,pricing,terms}.html.
+
+.content {
+  background: var(--lodging-surface);
+  border: 1px solid var(--lodging-line);
+  border-radius: 8px;
+  padding: 24px 28px 32px;
+  margin-top: 16px;
+
+  @media (max-width: 600px) {
+    padding: 18px 16px 24px;
+  }
+
+  p {
+    margin: 0.5em 0;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.4em;
+    margin: 1em 0;
+  }
+
+  li ol {
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  code {
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    background: var(--lodging-soft);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+  }
+
+  .h2 {
+    font-size: 1.1rem;
+    line-height: 1.9;
+    font-weight: 700;
+    margin: 2.2em 0 0.5em;
+    padding-left: 0.6em;
+    border-left: 4px solid var(--lodging-accent);
+    scroll-margin-top: 16px;
+
+    &:first-child {
+      margin-top: 0.5em;
+    }
+  }
+
+  .h3 {
+    font-size: 0.98rem;
+    line-height: 1.9;
+    font-weight: 700;
+    margin: 1.4em 0 0.3em;
+  }
+
+  .lead {
+    font-size: 1.02rem;
+  }
+
+  .note {
+    color: var(--lodging-muted);
+    font-size: 0.88rem;
+  }
+
+  .spaced {
+    margin-top: 2em;
+  }
+
+  .todo {
+    background: var(--lodging-todo-bg);
+    color: inherit;
+    padding: 0 0.2em;
+    border-radius: 3px;
+  }
+
+  .toc {
+    background: var(--lodging-soft);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 1.2em 0;
+
+    ol {
+      margin: 0;
+      columns: 2;
+      column-gap: 2em;
+
+      @media (max-width: 600px) {
+        columns: 1;
+      }
+    }
+
+    a {
+      color: var(--lodging-text);
+    }
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 1em 0;
+  }
+
+  .card {
+    border: 1px solid var(--lodging-line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .k {
+    color: var(--lodging-muted);
+    font-size: 0.82rem;
+  }
+
+  .v {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--lodging-accent);
+  }
+
+  .callout {
+    border-left: 4px solid var(--lodging-accent);
+    background: var(--lodging-soft);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 0.8em 0;
+  }
+
+  .price {
+    text-align: center;
+    border: 1px solid var(--lodging-line);
+    border-radius: 8px;
+    padding: 20px 12px;
+    margin: 1em 0;
+  }
+
+  .label {
+    color: var(--lodging-muted);
+    font-size: 0.9rem;
+  }
+
+  .amount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--lodging-accent);
+    letter-spacing: 0.02em;
+
+    @media (max-width: 600px) {
+      font-size: 1.6rem;
+    }
+  }
+
+  .unit {
+    font-size: 0.95rem;
+  }
+
+  .table,
+  .kvTable {
+    --table-border-color: var(--lodging-line);
+    --table-vertical-spacing: 8px;
+    --table-horizontal-spacing: 10px;
+
+    margin: 0.6em 0;
+    font-size: 0.92rem;
+    line-height: 1.9;
+    color: inherit;
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--lodging-soft);
+      font-weight: 600;
+    }
+  }
+
+  .kvTable th {
+    width: 32%;
+  }
+
+  // Terms: numbered clauses, "(1)" items and イロハ sub-items.
+  .clause {
+    margin: 0.4em 0;
+  }
+
+  .num {
+    font-weight: 700;
+    margin-right: 0.3em;
+  }
+
+  .paren {
+    list-style: none;
+    counter-reset: p;
+    padding-left: 2.4em;
+
+    > li {
+      counter-increment: p;
+      position: relative;
+
+      &::before {
+        content: '(' counter(p) ')';
+        position: absolute;
+        left: -2.4em;
+      }
+    }
+  }
+
+  .iroha {
+    list-style: none;
+    padding-left: 1.8em;
+  }
+}
+
+.notice {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--lodging-soft);
+  color: var(--lodging-muted);
+  font-size: 0.88rem;
+}
+
+.footer {
+  color: var(--lodging-muted);
+  font-size: 0.85rem;
+  padding-top: 24px;
+  padding-bottom: 40px;
+
+  p {
+    margin: 0.5em 0;
+  }
+}
+
+.homeList {
+  list-style: none;
+  padding: 0 !important;
+  display: grid;
+  gap: 10px;
+}
+
+.homeLink {
+  display: block;
+  border: 1px solid var(--lodging-line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-decoration: none;
+
+  strong {
+    display: block;
+    color: var(--lodging-accent);
+  }
+
+  span {
+    color: var(--lodging-muted);
+    font-size: 0.88rem;
+  }
+}

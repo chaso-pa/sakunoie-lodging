@@ -1,0 +1,46 @@
+.header {
+  padding-top: 40px;
+  padding-bottom: 8px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.site {
+  color: var(--lodging-accent);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+}
+
+.header .title {
+  font-size: 1.7rem;
+  line-height: 1.9;
+  font-weight: 700;
+  margin: 0.4em 0 0.2em;
+  letter-spacing: 0.05em;
+
+  @media (max-width: 600px) {
+    font-size: 1.4rem;
+  }
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1em;
+
+  a {
+    color: var(--lodging-muted);
+    font-size: 0.9rem;
+
+    &[aria-current='page'] {
+      color: var(--lodging-text);
+      font-weight: 600;
+    }
+  }
+}

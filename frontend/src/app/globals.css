@@ -1,0 +1,32 @@
+/* Design tokens taken from the prototypes in docs/pages. */
+:root {
+  /* Guest community (sns.html) */
+  --saku-green: #1e6a58;
+  --saku-mint: #e9f4ef;
+  --saku-ink: #20312c;
+  --saku-muted: #718079;
+  --saku-line: #e3eae6;
+  --saku-paper: #fbfcfa;
+  --saku-orange: #f0a15b;
+  --saku-community-bg: #eef2ef;
+  --saku-community-width: 480px;
+
+  /* Lodging information pages (guide.html, pricing.html, terms.html) */
+  --lodging-bg: #faf7f3;
+  --lodging-surface: #ffffff;
+  --lodging-text: #2f2a26;
+  --lodging-muted: #6f655d;
+  --lodging-accent: #b5603c;
+  --lodging-line: #e6ddd4;
+  --lodging-soft: #f4ede6;
+  --lodging-todo-bg: #fff1c2;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--saku-ink);
+}

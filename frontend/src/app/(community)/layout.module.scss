@@ -1,0 +1,14 @@
+// The prototype's phone-width column (.app in docs/pages/sns.html).
+.backdrop {
+  min-height: 100dvh;
+  background: var(--saku-community-bg);
+}
+
+.app {
+  max-width: var(--saku-community-width);
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--saku-paper);
+  position: relative;
+  box-shadow: 0 0 30px #152b2010;
+}
