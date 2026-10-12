@@ -1,0 +1,26 @@
+{
+  "name": "sakunoie-lodging-backend",
+  "private": true,
+  "scripts": {
+		"db:generate": "prisma generate",
+		"db:push": "prisma db push",
+		"db:pull": "prisma db pull",
+		"db:migrate": "prisma migrate dev",
+		"db:migrate:deploy": "prisma migrate deploy",
+		"db:migrate:reset": "prisma migrate reset",
+		"db:seed": "go run ./cmd/seed",
+		"db:studio": "prisma studio",
+		"db:format": "prisma format",
+		"db:validate": "prisma validate",
+		"db:reset": "prisma migrate reset --force",
+		"setup": "npm run db:migrate:deploy && npm run db:seed",
+		"dev:setup": "cp -n .env.example .env && npm run setup"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.0",
+    "prisma": "^7.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.0.0"
+  }
+}
