@@ -289,30 +289,3 @@
   margin-top: 13px;
   letter-spacing: 0.04em;
 }
-
-// Signed-in placeholder
-.signedIn {
-  padding: 18px 14px 22px;
-}
-
-.signedInTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.hero {
-  padding: 20px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #e4f2e9, #f6f0dc);
-  margin-bottom: 16px;
-  text-align: center;
-
-  .title {
-    font-size: 24px;
-    line-height: 1.35;
-    margin: 5px 0 8px;
-  }
-}

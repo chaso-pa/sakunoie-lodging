@@ -1,0 +1,47 @@
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 14px;
+
+  strong {
+    overflow-wrap: anywhere;
+  }
+}
+
+.avatarButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.infoList {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+
+  dt {
+    font-size: 12px;
+    font-weight: 750;
+    color: var(--saku-muted);
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-size: 14px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+}
+
+.recommendations {
+  border: 1px solid var(--saku-line);
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 14px;
+
+  > :last-child {
+    border-bottom: 0;
+  }
+}

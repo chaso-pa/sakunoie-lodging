@@ -1,0 +1,302 @@
+'use client';
+
+import {
+  Button,
+  Collapse,
+  FileButton,
+  NativeSelect,
+  NumberInput,
+  Select,
+  Textarea,
+  TextInput,
+  UnstyledButton
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+import shared from '@/components/Community.module.scss';
+import { paths } from '@/config/paths';
+import { captionMaxLength, tagsMaxLength, useCreatePost } from '@/features/post/api/create-post';
+import { useWeather } from '@/features/post/api/get-weather';
+import classes from '@/features/post/components/Post.module.scss';
+import { WeatherCard } from '@/features/post/components/WeatherCard';
+import { useCommunityLabels } from '@/hooks/use-community-labels';
+import { useSpots } from '@/hooks/use-spots';
+import { getApiErrorStatus, isUploadTooLarge } from '@/lib/api-client';
+import { allWeatherValues, areaValues, todayIsoDate } from '@/utils/community-labels';
+import { downscaleImage, ImageError } from '@/utils/downscale-image';
+
+/** Composer: one photo, a caption, an optional spot, and the weather filled in from the API. */
+export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
+  const t = useTranslations('community.compose');
+  const tCommon = useTranslations('community.common');
+  const tErrors = useTranslations('errors');
+  const { areaLabel, weatherLabel } = useCommunityLabels();
+  const locale = useLocale();
+  const router = useRouter();
+  const spots = useSpots();
+  const weather = useWeather();
+  const createPost = useCreatePost();
+
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [caption, setCaption] = useState('');
+  const [spotId, setSpotId] = useState<string | null>(initialSpotId ?? null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [visitedAt, setVisitedAt] = useState(todayIsoDate);
+  const [area, setArea] = useState<string>(areaValues[0]);
+  const [tags, setTags] = useState('');
+  // null = "follow the automatic weather"; a value means the member chose it.
+  const [weatherChoice, setWeatherChoice] = useState<string | null>(null);
+  const [temperatureChoice, setTemperatureChoice] = useState<number | string | null>(null);
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    if (!photo) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photo);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
+
+  const auto = weather.isError ? undefined : weather.data;
+  const weatherValue = weatherChoice ?? auto?.weather ?? '';
+  const temperatureValue = temperatureChoice ?? auto?.temperature ?? '';
+  const weatherOptions = [...new Set<string>([...allWeatherValues, ...(weatherValue ? [weatherValue] : [])])];
+
+  const selectPhoto = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+    setPhotoError('');
+    setProcessing(true);
+    try {
+      setPhoto(await downscaleImage(file));
+    } catch (error) {
+      const problem = error instanceof ImageError ? error.problem : 'unreadable';
+      setPhotoError(
+        problem === 'type'
+          ? tCommon('imageType')
+          : problem === 'tooLarge'
+            ? tCommon('fileTooLarge')
+            : tCommon('imageUnreadable')
+      );
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const refreshWeather = async () => {
+    const result = await weather.refetch();
+    if (result.isSuccess) {
+      // An explicit refresh replaces whatever was in the fields, as in the prototype.
+      setWeatherChoice(null);
+      setTemperatureChoice(null);
+      notifications.show({ message: t('weatherUpdated') });
+    }
+  };
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!photo && !caption.trim()) {
+      setFormError(t('errors.empty'));
+      return;
+    }
+    setFormError('');
+    createPost.mutate(
+      {
+        caption,
+        media: photo,
+        spot_id: spotId ?? '',
+        language: locale,
+        weather: weatherValue,
+        temperature: typeof temperatureValue === 'number' ? temperatureValue : null,
+        visited_at: visitedAt,
+        area,
+        tags
+      },
+      {
+        onSuccess: () => {
+          notifications.show({ message: t('shared') });
+          router.push(paths.community.feed.getHref());
+        },
+        onError: (error) => {
+          const status = getApiErrorStatus(error);
+          if (isUploadTooLarge(error)) {
+            setFormError(tCommon('fileTooLarge'));
+          } else if (status === undefined) {
+            setFormError(tErrors('network'));
+          } else if (status === 422 || status === 400) {
+            setFormError(t('errors.invalid'));
+          } else if (status === 429) {
+            setFormError(t('errors.dailyLimit'));
+          } else {
+            setFormError(tErrors('generic'));
+          }
+        }
+      }
+    );
+  };
+
+  return (
+    <>
+      <div className={shared.eyebrow}>{t('eyebrow')}</div>
+      <h1 className={shared.h1}>{t('title')} 📸</h1>
+      <p className={shared.muted}>{t('lead')}</p>
+
+      <WeatherCard weather={weather} onRefresh={refreshWeather} />
+
+      <form onSubmit={submit} noValidate>
+        <div className={shared.fieldLabel} id='post-photo-label'>
+          {t('photoLabel')}
+        </div>
+        <div className={classes.preview}>
+          {preview ? (
+            // biome-ignore lint/performance/noImgElement: a local object URL preview, nothing for next/image to optimise
+            <img src={preview} alt={t('previewAlt')} />
+          ) : (
+            <span>
+              ＋<br />
+              {processing ? t('photoProcessing') : t('photoHint')}
+            </span>
+          )}
+        </div>
+        <div className={classes.photoButtons}>
+          <FileButton onChange={selectPhoto} accept='image/*'>
+            {(props) => (
+              <Button {...props} variant='light' size='sm' loading={processing} aria-describedby='post-photo-label'>
+                {photo ? t('changePhoto') : t('choosePhoto')}
+              </Button>
+            )}
+          </FileButton>
+          {photo && (
+            <Button variant='default' size='sm' onClick={() => setPhoto(null)}>
+              {t('removePhoto')}
+            </Button>
+          )}
+        </div>
+        <p className={shared.formError} role='alert'>
+          {photoError}
+        </p>
+
+        <Textarea
+          className={shared.field}
+          label={t('captionLabel')}
+          placeholder={t('captionPlaceholder')}
+          size='md'
+          radius='sm'
+          classNames={{ label: shared.fieldLabel }}
+          minRows={4}
+          autosize
+          maxLength={captionMaxLength}
+          value={caption}
+          onChange={(event) => setCaption(event.currentTarget.value)}
+        />
+        <Select
+          className={shared.field}
+          label={`📍 ${t('spotLabel')}`}
+          placeholder={spots.isError ? t('spotsUnavailable') : t('spotPlaceholder')}
+          nothingFoundMessage={t('noSpotMatch')}
+          size='md'
+          radius='sm'
+          classNames={{ label: shared.fieldLabel }}
+          searchable
+          clearable
+          disabled={spots.isPending}
+          data={(spots.data ?? []).map((spot) => ({ value: spot.id, label: `${spot.emoji} ${spot.name}` }))}
+          value={spotId}
+          onChange={setSpotId}
+        />
+
+        <div className={classes.details}>
+          <UnstyledButton
+            className={classes.detailsToggle}
+            aria-expanded={detailsOpen}
+            aria-controls='post-details'
+            onClick={() => setDetailsOpen((open) => !open)}
+          >
+            {detailsOpen ? '－' : '＋'} {t('detailsToggle')}
+          </UnstyledButton>
+          <Collapse expanded={detailsOpen} id='post-details'>
+            <div className={shared.grid2} style={{ marginTop: 12 }}>
+              <TextInput
+                type='date'
+                label={t('dateLabel')}
+                size='md'
+                radius='sm'
+                classNames={{ label: shared.fieldLabel }}
+                value={visitedAt}
+                max={todayIsoDate()}
+                onChange={(event) => setVisitedAt(event.currentTarget.value)}
+              />
+              <NativeSelect
+                label={t('areaLabel')}
+                description={spotId ? t('areaFromSpot') : undefined}
+                size='md'
+                radius='sm'
+                classNames={{ label: shared.fieldLabel }}
+                disabled={Boolean(spotId)}
+                value={area}
+                onChange={(event) => setArea(event.currentTarget.value)}
+                data={areaValues.map((value) => ({ value, label: areaLabel(value) }))}
+              />
+            </div>
+            <div className={shared.grid2} style={{ marginTop: 12 }}>
+              <NativeSelect
+                label={t('weatherLabel')}
+                size='md'
+                radius='sm'
+                classNames={{ label: shared.fieldLabel }}
+                value={weatherValue}
+                onChange={(event) => setWeatherChoice(event.currentTarget.value)}
+                data={[
+                  { value: '', label: weatherLabel('未設定') },
+                  ...weatherOptions.map((value) => ({ value, label: weatherLabel(value) }))
+                ]}
+              />
+              <NumberInput
+                label={t('tempLabel')}
+                size='md'
+                radius='sm'
+                classNames={{ label: shared.fieldLabel }}
+                min={-30}
+                max={50}
+                value={temperatureValue}
+                onChange={setTemperatureChoice}
+              />
+            </div>
+            <p className={shared.muted} style={{ fontSize: 11, marginTop: 8 }}>
+              {t('weatherAutoNote')}
+            </p>
+            <TextInput
+              className={shared.field}
+              label={t('tagsLabel')}
+              placeholder={t('tagsPlaceholder')}
+              size='md'
+              radius='sm'
+              classNames={{ label: shared.fieldLabel }}
+              maxLength={tagsMaxLength}
+              value={tags}
+              onChange={(event) => setTags(event.currentTarget.value)}
+            />
+          </Collapse>
+        </div>
+
+        <p className={shared.formError} role='alert'>
+          {formError}
+        </p>
+        <Button type='submit' fullWidth size='lg' loading={createPost.isPending} disabled={processing}>
+          {t('submit')}
+        </Button>
+      </form>
+      <p className={shared.muted} style={{ marginTop: 12 }}>
+        {t('footNote')}
+      </p>
+    </>
+  );
+}

@@ -5,13 +5,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { SignupResponse } from '@/features/auth/api/signup';
-import { setSignedInMember, useMe } from '@/features/auth/api/use-me';
 import classes from '@/features/auth/components/Auth.module.scss';
 import { InviteCodeForm } from '@/features/auth/components/InviteCodeForm';
 import { SignupForm } from '@/features/auth/components/SignupForm';
 import { TransferCodeDisplay } from '@/features/auth/components/TransferCodeDisplay';
 import { TransferCodeForm } from '@/features/auth/components/TransferCodeForm';
 import { WelcomePage } from '@/features/auth/components/WelcomePage';
+import { setSignedInMember, useMe } from '@/hooks/use-me';
 
 type Step = 'welcome' | 'invite' | 'signup' | 'restore';
 

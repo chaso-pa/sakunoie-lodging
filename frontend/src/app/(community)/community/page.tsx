@@ -1,5 +1,5 @@
-import { SignedInPlaceholder } from '@/features/auth';
+import { FeedPage } from '@/features/feed';
 
-export default function CommunityHomePage() {
-  return <SignedInPlaceholder />;
+export default function CommunityFeedPage() {
+  return <FeedPage />;
 }

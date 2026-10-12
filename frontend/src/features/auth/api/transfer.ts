@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { setSignedInMember } from '@/features/auth/api/use-me';
+import { setSignedInMember } from '@/hooks/use-me';
 import { api } from '@/lib/api-client';
 import { memberSchema } from '@/types/member';
 
