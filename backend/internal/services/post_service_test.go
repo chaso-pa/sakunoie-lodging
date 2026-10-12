@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strings"
@@ -14,7 +15,9 @@ import (
 	"github.com/chaso-pa/sakunoie-lodging-backend/internal/models"
 	"github.com/chaso-pa/sakunoie-lodging-backend/internal/storage"
 	"github.com/chaso-pa/sakunoie-lodging-backend/internal/testutil"
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func TestSpotScore(t *testing.T) {
@@ -171,23 +174,6 @@ func TestToggleLikeAndBookmarkIntegration(t *testing.T) {
 	// A like that already exists cannot be duplicated, even inserted directly.
 	if err := db.Create(&models.Like{MemberID: bob, PostID: post.ID}).Error; err == nil {
 		t.Fatal("a second like row for the same member and post was accepted")
-	}
-
-	// However the toggles interleave, one member never holds two likes, and
-	// an even number of toggles ends where it started.
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s.ToggleLike(ctx, bob, post.ID)
-		}()
-	}
-	wg.Wait()
-	var bobLikes int64
-	db.Model(&models.Like{}).Where("member_id = ? AND post_id = ?", bob, post.ID).Count(&bobLikes)
-	if bobLikes > 1 {
-		t.Fatalf("bob holds %d likes on one post", bobLikes)
 	}
 
 	bookmarked, err := s.ToggleBookmark(ctx, bob, post.ID)
@@ -506,5 +492,228 @@ func TestListPostsFiltersIntegration(t *testing.T) {
 	mine, _ := s.Mine(ctx, bob)
 	if len(mine) != 2 || mine[0].ID != c.ID || !mine[0].IsMine {
 		t.Fatalf("bob's posts = %+v", mine)
+	}
+}
+
+// How "inserted" is told from "was already there": GORM's OnConflict
+// DoNothing becomes INSERT ... ON DUPLICATE KEY UPDATE id = id on MySQL, and
+// the server reports 1 affected row for an insert and 0 for a duplicate left
+// unchanged. toggle depends on exactly that.
+func TestToggleInsertDetectionIntegration(t *testing.T) {
+	db := testutil.NewDB(t, "services").Gorm
+	s := NewPostService(db, newTrackingUploader())
+	alice := addMember(t, db, "Alice")
+	post := mustCreatePost(t, s, alice, CreatePostParams{Caption: "x"})
+
+	insert := func() int64 {
+		t.Helper()
+		res := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&models.Like{MemberID: alice, PostID: post.ID})
+		if res.Error != nil {
+			t.Fatal(res.Error)
+		}
+		return res.RowsAffected
+	}
+	if n := insert(); n != 1 {
+		t.Fatalf("first insert: RowsAffected = %d, want 1", n)
+	}
+	// A fresh struct with a new id, same (member_id, post_id): the duplicate.
+	if n := insert(); n != 0 {
+		t.Fatalf("duplicate insert: RowsAffected = %d, want 0", n)
+	}
+	var rows int64
+	db.Model(&models.Like{}).Count(&rows)
+	if rows != 1 {
+		t.Fatalf("rows = %d, want 1", rows)
+	}
+
+	// And through the service: on, off, on.
+	db.Where("1 = 1").Delete(&models.Like{})
+	for i, want := range []bool{true, false, true} {
+		liked, count, err := s.ToggleLike(context.Background(), alice, post.ID)
+		wantCount := 0
+		if want {
+			wantCount = 1
+		}
+		if err != nil || liked != want || count != wantCount {
+			t.Fatalf("toggle %d = %v, %d, %v; want %v, %d", i+1, liked, count, err, want, wantCount)
+		}
+	}
+}
+
+// Many members reacting to one post at the same moment, and one member
+// hammering the button, must never fail: no deadlock reaches the caller,
+// and what the calls report matches what is in the table.
+func TestToggleConcurrencyIntegration(t *testing.T) {
+	db := testutil.NewDB(t, "services").Gorm
+	ctx := context.Background()
+	s := NewPostService(db, newTrackingUploader())
+	author := addMember(t, db, "Author")
+	post := mustCreatePost(t, s, author, CreatePostParams{Caption: "popular"})
+
+	const members = 24
+	ids := make([]string, members)
+	for i := range ids {
+		ids[i] = addMember(t, db, fmt.Sprintf("Member%02d", i))
+	}
+
+	type result struct {
+		member string
+		on     bool
+		err    error
+	}
+	run := func(n int, call func(i int) result) []result {
+		t.Helper()
+		results := make([]result, n)
+		start := make(chan struct{})
+		var wg sync.WaitGroup
+		for i := 0; i < n; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				results[i] = call(i)
+			}()
+		}
+		close(start)
+		wg.Wait()
+		for _, r := range results {
+			if r.err != nil {
+				t.Fatalf("a concurrent toggle failed: %v", r.err)
+			}
+		}
+		return results
+	}
+	count := func(model any, where string, args ...any) int {
+		t.Helper()
+		var n int64
+		if err := db.Model(model).Where(where, args...).Count(&n).Error; err != nil {
+			t.Fatal(err)
+		}
+		return int(n)
+	}
+
+	// Round 1: every member likes and bookmarks the post at once. This is
+	// the case that deadlocked when the toggle deleted before inserting.
+	for round := 1; round <= 3; round++ {
+		wantOn := round%2 == 1
+		likes := run(members, func(i int) result {
+			on, _, err := s.ToggleLike(ctx, ids[i], post.ID)
+			return result{ids[i], on, err}
+		})
+		saves := run(members, func(i int) result {
+			on, err := s.ToggleBookmark(ctx, ids[i], post.ID)
+			return result{ids[i], on, err}
+		})
+		for _, r := range append(likes, saves...) {
+			if r.on != wantOn {
+				t.Fatalf("round %d: a toggle reported %v, want %v", round, r.on, wantOn)
+			}
+		}
+		want := 0
+		if wantOn {
+			want = members
+		}
+		if got := count(&models.Like{}, "post_id = ?", post.ID); got != want {
+			t.Fatalf("round %d: %d like rows, want %d", round, got, want)
+		}
+		if got := count(&models.Bookmark{}, "post_id = ?", post.ID); got != want {
+			t.Fatalf("round %d: %d bookmark rows, want %d", round, got, want)
+		}
+	}
+	// After three rounds everyone has it on.
+
+	// Round 2: one member toggles 40 times in parallel while the others
+	// toggle once each. The member can never hold two rows, each of their
+	// calls flipped the state exactly once (as many "on" as "off" for an
+	// even number of calls, ending where it started), and the count the
+	// service reports afterwards is the number of rows.
+	const presses = 40
+	hammer := ids[0]
+	before := count(&models.Like{}, "member_id = ? AND post_id = ?", hammer, post.ID)
+	results := run(presses+members-1, func(i int) result {
+		if i < presses {
+			on, _, err := s.ToggleLike(ctx, hammer, post.ID)
+			return result{hammer, on, err}
+		}
+		m := ids[i-presses+1]
+		on, _, err := s.ToggleLike(ctx, m, post.ID)
+		return result{m, on, err}
+	})
+	ons := 0
+	for _, r := range results[:presses] {
+		if r.on {
+			ons++
+		}
+	}
+	if ons != presses/2 {
+		t.Fatalf("%d presses reported on %d times, want %d: some toggle did not flip the state", presses, ons, presses/2)
+	}
+	after := count(&models.Like{}, "member_id = ? AND post_id = ?", hammer, post.ID)
+	if after != before || after > 1 {
+		t.Fatalf("the member holds %d likes after an even number of presses, had %d", after, before)
+	}
+	// The others each toggled once more: off.
+	rows := count(&models.Like{}, "post_id = ?", post.ID)
+	if rows != after {
+		t.Fatalf("%d like rows, want %d (only the hammering member's)", rows, after)
+	}
+	var duplicates int64
+	db.Raw("SELECT COUNT(*) FROM (SELECT member_id FROM likes WHERE post_id = ? GROUP BY member_id HAVING COUNT(*) > 1) d", post.ID).Scan(&duplicates)
+	if duplicates != 0 {
+		t.Fatalf("%d members hold more than one like", duplicates)
+	}
+	// The count a caller is told is the count in the table.
+	_, reported, err := s.ToggleLike(ctx, author, post.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := count(&models.Like{}, "post_id = ?", post.ID); reported != got || got != rows+1 {
+		t.Fatalf("reported like_count %d, rows %d, want %d", reported, got, rows+1)
+	}
+}
+
+func TestRetryOnLockConflict(t *testing.T) {
+	deadlock := &mysqldriver.MySQLError{Number: 1213, Message: "Deadlock found when trying to get lock"}
+	timeout := &mysqldriver.MySQLError{Number: 1205, Message: "Lock wait timeout exceeded"}
+	duplicate := &mysqldriver.MySQLError{Number: 1062, Message: "Duplicate entry"}
+	ctx := context.Background()
+
+	// Conflicts are retried until the transaction goes through.
+	calls := 0
+	err := retryOnLockConflict(ctx, func() error {
+		calls++
+		switch calls {
+		case 1:
+			return fmt.Errorf("toggle: %w", deadlock)
+		case 2:
+			return timeout
+		}
+		return nil
+	})
+	if err != nil || calls != 3 {
+		t.Fatalf("err = %v after %d calls, want nil after 3", err, calls)
+	}
+
+	// Bounded: a conflict that never clears is returned after the last try.
+	calls = 0
+	err = retryOnLockConflict(ctx, func() error { calls++; return deadlock })
+	if !errors.Is(err, deadlock) || calls != lockRetryAttempts {
+		t.Fatalf("err = %v after %d calls, want the deadlock after %d", err, calls, lockRetryAttempts)
+	}
+
+	// Anything else is not retried.
+	for _, other := range []error{duplicate, ErrPostNotFound, errors.New("boom")} {
+		calls = 0
+		if err := retryOnLockConflict(ctx, func() error { calls++; return other }); !errors.Is(err, other) || calls != 1 {
+			t.Fatalf("%v: %d calls, err %v; want 1 call", other, calls, err)
+		}
+	}
+
+	// A cancelled request stops waiting.
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	calls = 0
+	if err := retryOnLockConflict(cancelled, func() error { calls++; return deadlock }); !errors.Is(err, deadlock) || calls != 1 {
+		t.Fatalf("cancelled: %d calls, err %v", calls, err)
 	}
 }

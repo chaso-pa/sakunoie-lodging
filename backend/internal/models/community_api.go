@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 // MemberSummary is how a member appears next to their content. It carries
 // nothing but the public profile.
 type MemberSummary struct {
@@ -39,12 +37,3 @@ func NewOKOutput() *OKOutput {
 
 // DateLayout is the format of date-only fields (visited_at, visited_date).
 const DateLayout = "2006-01-02"
-
-// FormatDate renders t as YYYY-MM-DD, or nil when t is nil.
-func FormatDate(t *time.Time) *string {
-	if t == nil {
-		return nil
-	}
-	s := t.Format(DateLayout)
-	return &s
-}

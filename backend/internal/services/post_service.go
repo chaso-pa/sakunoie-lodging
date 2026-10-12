@@ -36,6 +36,10 @@ const (
 	cleanupTimeout = 10 * time.Second
 )
 
+// japanTime is the zone "which month was this posted in" is answered in.
+// The lodging and its guests are in Japan, whatever zone the server runs in.
+var japanTime = time.FixedZone("Asia/Tokyo", 9*60*60)
+
 // postAreas are the regions a post without a spot can be filed under.
 var postAreas = map[string]bool{"東信": true, "北信": true, "中信": true, "南信": true}
 
@@ -72,7 +76,19 @@ func (s *PostService) List(ctx context.Context, viewerID string, f PostFilter) (
 		q = q.Where("posts.weather = ?", f.Weather)
 	}
 	if f.Month != "" {
-		q = q.Where("DATE_FORMAT(COALESCE(posts.visited_at, posts.created_at), '%Y-%m') = ?", f.Month)
+		month, err := time.ParseInLocation("2006-01", f.Month, japanTime)
+		if err != nil {
+			return nil, 0, invalid("month must be in YYYY-MM format")
+		}
+		next := month.AddDate(0, 1, 0)
+		// visited_at is a calendar date and is compared as one. A post
+		// without it is filed under the month it was posted in, which is
+		// read in Japan time: created_at is an instant, and the bounds are
+		// passed as instants so the driver converts them the same way it
+		// converted created_at when the row was written.
+		q = q.Where(`(posts.visited_at IS NOT NULL AND posts.visited_at >= ? AND posts.visited_at < ?)
+			OR (posts.visited_at IS NULL AND posts.created_at >= ? AND posts.created_at < ?)`,
+			month.Format(models.DateLayout), next.Format(models.DateLayout), month, next)
 	}
 	if query := strings.TrimSpace(f.Query); query != "" {
 		like := containsPattern(query)
@@ -190,7 +206,7 @@ func (s *PostService) hydrate(ctx context.Context, viewerID string, ids []string
 			Area:         p.Area,
 			Weather:      p.Weather,
 			Temperature:  p.Temperature,
-			VisitedAt:    models.FormatDate(p.VisitedAt),
+			VisitedAt:    (*string)(p.VisitedAt),
 			Tags:         make([]string, len(p.Tags)),
 			LikeCount:    likes[p.ID],
 			IsLiked:      liked[p.ID],
@@ -331,7 +347,7 @@ func (s *PostService) Create(ctx context.Context, memberID string, p CreatePostP
 		post.Temperature = &temp
 	}
 	if raw := strings.TrimSpace(p.VisitedAt); raw != "" {
-		date, err := time.ParseInLocation(models.DateLayout, raw, time.Local)
+		date, err := models.ParseCalendarDate(raw)
 		if err != nil {
 			return nil, invalid("visited_at must be a date in YYYY-MM-DD format")
 		}
@@ -438,12 +454,24 @@ func (s *PostService) removeImages(ctx context.Context, urls []string) {
 	}
 }
 
-func (s *PostService) exists(tx *gorm.DB, id string) error {
-	var n int64
-	if err := tx.Model(&models.Post{}).Where("id = ?", id).Count(&n).Error; err != nil {
+// lockPost takes the row lock of the post for the rest of the transaction,
+// or reports ErrPostNotFound.
+//
+// Every like and bookmark toggle of a post goes through this lock, so the
+// toggles of one post run one after another. That is what makes them
+// deadlock-free: the statements that follow lock index records and gaps in
+// likes or bookmarks, and without a common first lock two transactions can
+// take those in opposite orders (members liking the same post at once, or
+// one member pressing the button twice). The transaction is three short
+// statements, so the wait is negligible, and deleting a post takes the same
+// lock first.
+func (s *PostService) lockPost(tx *gorm.DB, id string) error {
+	var ids []string
+	if err := tx.Model(&models.Post{}).Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", id).Limit(1).Pluck("id", &ids).Error; err != nil {
 		return err
 	}
-	if n == 0 {
+	if len(ids) == 0 {
 		return ErrPostNotFound
 	}
 	return nil
@@ -455,13 +483,15 @@ func (s *PostService) exists(tx *gorm.DB, id string) error {
 func (s *PostService) ToggleLike(ctx context.Context, memberID, postID string) (bool, int, error) {
 	var liked bool
 	var count int64
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var err error
-		liked, err = s.toggle(tx, &models.Like{}, &models.Like{MemberID: memberID, PostID: postID}, memberID, postID)
-		if err != nil {
-			return err
-		}
-		return tx.Model(&models.Like{}).Where("post_id = ?", postID).Count(&count).Error
+	err := retryOnLockConflict(ctx, func() error {
+		return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			var err error
+			liked, err = s.toggle(tx, &models.Like{}, &models.Like{MemberID: memberID, PostID: postID}, memberID, postID)
+			if err != nil {
+				return err
+			}
+			return tx.Model(&models.Like{}).Where("post_id = ?", postID).Count(&count).Error
+		})
 	})
 	if err != nil {
 		if errors.Is(err, ErrPostNotFound) {
@@ -475,10 +505,12 @@ func (s *PostService) ToggleLike(ctx context.Context, memberID, postID string) (
 // ToggleBookmark flips memberID's bookmark on the post.
 func (s *PostService) ToggleBookmark(ctx context.Context, memberID, postID string) (bool, error) {
 	var bookmarked bool
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var err error
-		bookmarked, err = s.toggle(tx, &models.Bookmark{}, &models.Bookmark{MemberID: memberID, PostID: postID}, memberID, postID)
-		return err
+	err := retryOnLockConflict(ctx, func() error {
+		return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			var err error
+			bookmarked, err = s.toggle(tx, &models.Bookmark{}, &models.Bookmark{MemberID: memberID, PostID: postID}, memberID, postID)
+			return err
+		})
 	})
 	if err != nil {
 		if errors.Is(err, ErrPostNotFound) {
@@ -489,23 +521,35 @@ func (s *PostService) ToggleBookmark(ctx context.Context, memberID, postID strin
 	return bookmarked, nil
 }
 
-// toggle deletes the member's row for the post when there is one, and
-// inserts row otherwise. It reports whether the row exists afterwards.
+// toggle inserts row (the member's like or bookmark of the post) when there
+// is none, and deletes the existing one otherwise. It reports whether the
+// row exists afterwards.
+//
+// It holds the post's row lock (lockPost), and inserts before it deletes:
+// deleting first would, when there is no row, leave a gap lock on the unique
+// (member_id, post_id) index, which is what made two members liking the
+// same post at once deadlock.
+//
+// "Inserted" is read from RowsAffected: the statement is
+// INSERT ... ON DUPLICATE KEY UPDATE id = id, for which MySQL reports 1 row
+// when it inserted and 0 when the row was already there and left unchanged
+// (the driver does not set CLIENT_FOUND_ROWS).
+// TestToggleInsertDetectionIntegration pins that down against the server.
 func (s *PostService) toggle(tx *gorm.DB, model, row any, memberID, postID string) (bool, error) {
-	if err := s.exists(tx, postID); err != nil {
+	if err := s.lockPost(tx, postID); err != nil {
 		return false, err
 	}
-	res := tx.Where("member_id = ? AND post_id = ?", memberID, postID).Delete(model)
+	res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(row)
 	if res.Error != nil {
 		return false, res.Error
 	}
 	if res.RowsAffected > 0 {
-		return false, nil
+		return true, nil
 	}
-	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(row).Error; err != nil {
+	if err := tx.Where("member_id = ? AND post_id = ?", memberID, postID).Delete(model).Error; err != nil {
 		return false, err
 	}
-	return true, nil
+	return false, nil
 }
 
 // SpotScore is the prototype's popularity formula for a spot

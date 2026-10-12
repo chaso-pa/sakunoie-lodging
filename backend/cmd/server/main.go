@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/chaso-pa/sakunoie-lodging-backend/internal/config"
@@ -18,6 +20,23 @@ import (
 	"github.com/chaso-pa/sakunoie-lodging-backend/internal/session"
 	"github.com/chaso-pa/sakunoie-lodging-backend/internal/storage"
 	"github.com/gin-gonic/gin"
+)
+
+// HTTP server timeouts.
+//
+// readTimeout covers the whole request including its body, so it has to fit
+// a 10MB photo sent over a slow phone connection: 3 minutes is about 0.5Mbps.
+// writeTimeout runs from the end of the request headers to the end of the
+// response, so it includes that upload as well as the handler's own work,
+// the slowest of which is the AI call with its 30 second limit.
+// shutdownTimeout is longer than that AI call, so a request in flight at
+// shutdown can still be answered.
+const (
+	readHeaderTimeout = 10 * time.Second
+	readTimeout       = 3 * time.Minute
+	writeTimeout      = 4 * time.Minute
+	idleTimeout       = 2 * time.Minute
+	shutdownTimeout   = 40 * time.Second
 )
 
 func main() {
@@ -57,10 +76,45 @@ func main() {
 
 	// scs wraps the whole engine so every Gin middleware and Huma handler
 	// sees the session on the request context. Do not use r.Run().
-	log.Printf("Server starting on port %s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, sessionManager.LoadAndSave(r)); err != nil {
-		log.Fatal("Failed to start server: ", err)
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           sessionManager.LoadAndSave(r),
+		ReadHeaderTimeout: readHeaderTimeout,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
 	}
+
+	// Stop on SIGINT and SIGTERM: no new connections, and requests already
+	// running get shutdownTimeout to finish.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		log.Printf("Server starting on port %s", cfg.Port)
+		serveErr <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serveErr:
+		log.Fatal("Failed to start server: ", err)
+	case <-ctx.Done():
+	}
+	stop() // a second signal kills the process the usual way
+
+	log.Println("Shutting down")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Shutdown did not finish cleanly: %v", err)
+		_ = srv.Close()
+	}
+	if sqlDB, err := db.DB(); err == nil {
+		_ = sqlDB.Close()
+	}
+	_ = sessionDB.Close()
+	log.Println("Server stopped")
 }
 
 // newImageUploader builds the S3 backed uploader. Without S3 settings image

@@ -17,7 +17,11 @@ import (
 const (
 	weatherTimeout  = 5 * time.Second
 	weatherCacheTTL = 10 * time.Minute
-	weatherSource   = "open-meteo"
+	// weatherCacheMaxEntries bounds the cache. Positions are rounded to
+	// about 1km, so a client walking through coordinates could otherwise
+	// grow it without limit.
+	weatherCacheMaxEntries = 500
+	weatherSource          = "open-meteo"
 
 	// Saku City, the default when the client sends no position. The
 	// prototype always used this point.
@@ -146,14 +150,33 @@ func (s *WeatherService) Current(ctx context.Context, latitude, longitude float6
 		Source:      weatherSource,
 	}
 
-	s.mu.Lock()
-	for key, e := range s.cache {
-		if !s.now().Before(e.expires) {
-			delete(s.cache, key)
-		}
-	}
-	s.cache[cacheKey] = weatherCacheEntry{weather: weather, expires: s.now().Add(weatherCacheTTL)}
-	s.mu.Unlock()
+	s.store(cacheKey, weather)
 
 	return &weather, nil
+}
+
+// store caches weather under key, keeping the cache within
+// weatherCacheMaxEntries: expired entries go first, then the oldest.
+func (s *WeatherService) store(key string, weather Weather) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.now()
+	for k, e := range s.cache {
+		if !now.Before(e.expires) {
+			delete(s.cache, k)
+		}
+	}
+	if _, replacing := s.cache[key]; !replacing {
+		for len(s.cache) >= weatherCacheMaxEntries {
+			oldest, found := "", false
+			var oldestExpiry time.Time
+			for k, e := range s.cache {
+				if !found || e.expires.Before(oldestExpiry) {
+					oldest, oldestExpiry, found = k, e.expires, true
+				}
+			}
+			delete(s.cache, oldest)
+		}
+	}
+	s.cache[key] = weatherCacheEntry{weather: weather, expires: now.Add(weatherCacheTTL)}
 }

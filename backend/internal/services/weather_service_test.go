@@ -130,3 +130,47 @@ func TestWeatherTimeout(t *testing.T) {
 	}
 	assertNoLeak(t, err, "35.12", "139.65", srv.URL)
 }
+
+func TestWeatherCacheIsBounded(t *testing.T) {
+	srv := newStub(t, func(w http.ResponseWriter, _ stubRequest) {
+		w.Write([]byte(`{"current":{"temperature_2m":10,"weather_code":0}}`))
+	})
+	s := NewWeatherService(srv.URL)
+	now := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+	s.now = func() time.Time { return now }
+	ctx := context.Background()
+
+	// More distinct positions than the cache holds, one second apart.
+	const extra = 25
+	for i := 0; i < weatherCacheMaxEntries+extra; i++ {
+		if _, err := s.Current(ctx, float64(i%180)-90+0.5, float64(i/180)); err != nil {
+			t.Fatal(err)
+		}
+		if len(s.cache) > weatherCacheMaxEntries {
+			t.Fatalf("cache grew to %d entries, over the cap of %d", len(s.cache), weatherCacheMaxEntries)
+		}
+		now = now.Add(time.Second)
+	}
+	if len(s.cache) != weatherCacheMaxEntries {
+		t.Fatalf("cache holds %d entries, want %d", len(s.cache), weatherCacheMaxEntries)
+	}
+	// The oldest went first: the first position is fetched again, the most
+	// recent one is still cached.
+	calls := srv.calls()
+	last := weatherCacheMaxEntries + extra - 1
+	if _, err := s.Current(ctx, float64(last%180)-90+0.5, float64(last/180)); err != nil || srv.calls() != calls {
+		t.Fatalf("the newest entry was evicted (calls %d → %d, err %v)", calls, srv.calls(), err)
+	}
+	if _, err := s.Current(ctx, -89.5, 0); err != nil || srv.calls() != calls+1 {
+		t.Fatalf("the oldest entry was kept (calls %d → %d, err %v)", calls, srv.calls(), err)
+	}
+
+	// Expired entries are dropped before any live one.
+	now = now.Add(weatherCacheTTL + time.Minute)
+	if _, err := s.Current(ctx, 0.5, 0.5); err != nil {
+		t.Fatal(err)
+	}
+	if len(s.cache) != 1 {
+		t.Fatalf("%d entries after everything expired, want 1", len(s.cache))
+	}
+}

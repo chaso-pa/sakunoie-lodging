@@ -24,11 +24,17 @@ func NewRouter(deps *routes.Deps) (*gin.Engine, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	release := deps.Config != nil && deps.Config.IsRelease()
 	r := gin.New()
 	// gin.Logger and gin.Recovery are not used: the first logs query strings
 	// (search text, coordinates) and the second dumps request headers,
 	// including the session cookie.
-	r.Use(middlewares.RequestID(), middlewares.RequestLogger(logger), middlewares.Recovery(logger))
+	r.Use(
+		middlewares.SecurityHeaders(release),
+		middlewares.RequestID(),
+		middlewares.RequestLogger(logger),
+		middlewares.Recovery(logger),
+	)
 
 	// Trust only the Next.js proxy on localhost. Gin trusts every proxy by
 	// default, in which case ClientIP() returns the left-most X-Forwarded-For
@@ -67,8 +73,8 @@ func NewRouter(deps *routes.Deps) (*gin.Engine, error) {
 	// Two Huma APIs on the same /api prefix: public and auth-required. Their
 	// OpenAPI, docs and schema paths differ so the routes do not collide.
 	// Operation paths are relative to the group ("/auth/me" → /api/auth/me).
-	publicAPI := humagin.NewWithGroup(r, publicGroup, apiConfig("Sakunoie Public API", ""))
-	authAPI := humagin.NewWithGroup(r, authGroup, apiConfig("Sakunoie Auth API", "/auth"))
+	publicAPI := humagin.NewWithGroup(r, publicGroup, apiConfig("Sakunoie Public API", "", release))
+	authAPI := humagin.NewWithGroup(r, authGroup, apiConfig("Sakunoie Auth API", "/auth", release))
 
 	routes.SetupStaticRoutes(r) // /health (raw Gin)
 	routes.SetupAuthRoutes(publicAPI, authAPI, deps)
@@ -84,9 +90,24 @@ func NewRouter(deps *routes.Deps) (*gin.Engine, error) {
 // apiConfig returns Huma's default config with the documentation endpoints
 // moved under suffix: /api/docs{suffix}, /api/openapi{suffix}.json and
 // /api/schemas{suffix}/{schema}.
-func apiConfig(title, suffix string) huma.Config {
+//
+// In release mode none of them is served: the docs UI, the OpenAPI documents
+// and the JSON schemas describe the whole API to anyone who asks, and the
+// public instance would hand them out without a session. Huma's default
+// CreateHooks are dropped as well. Their only job is to add a "$schema" link
+// (and a Link header) to every response body, which would point at schema
+// URLs that no longer exist; requests are validated and errors are rendered
+// without them, as the release mode tests check.
+func apiConfig(title, suffix string, release bool) huma.Config {
 	cfg := huma.DefaultConfig(title, "1.0.0")
 	cfg.Servers = []*huma.Server{{URL: apiPrefix}}
+	if release {
+		cfg.DocsPath = ""
+		cfg.OpenAPIPath = ""
+		cfg.SchemasPath = ""
+		cfg.CreateHooks = nil
+		return cfg
+	}
 	cfg.DocsPath = "/docs" + suffix
 	cfg.OpenAPIPath = "/openapi" + suffix
 	cfg.SchemasPath = "/schemas" + suffix

@@ -176,7 +176,12 @@ func seed(tx *gorm.DB) error {
 	}
 
 	for _, p := range seedPosts {
-		date, err := time.ParseInLocation("2006-01-02", p.date, time.Local)
+		date, err := models.ParseCalendarDate(p.date)
+		if err != nil {
+			return err
+		}
+		// Posted at noon, Japan time, on the day of the visit.
+		postedAt, err := time.ParseInLocation(models.DateLayout, p.date, time.FixedZone("Asia/Tokyo", 9*60*60))
 		if err != nil {
 			return err
 		}
@@ -201,7 +206,7 @@ func seed(tx *gorm.DB) error {
 			Temperature: &temp,
 			VisitedAt:   &date,
 			IsSample:    true,
-			CreatedAt:   date.Add(12 * time.Hour),
+			CreatedAt:   postedAt.Add(12 * time.Hour),
 		}
 		if err := tx.Create(&post).Error; err != nil {
 			return err

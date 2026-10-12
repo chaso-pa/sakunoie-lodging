@@ -79,8 +79,8 @@ type GetSpotInput struct {
 type GetSpotOutput struct {
 	Body struct {
 		Spot    SpotResponse       `json:"spot" doc:"スポット"`
-		Reviews []ReviewResponse   `json:"reviews" doc:"口コミ（新しい順）"`
-		Posts   []SpotPostResponse `json:"posts" doc:"関連投稿（新しい順）"`
+		Reviews []ReviewResponse   `json:"reviews" doc:"口コミ（新しい順、最新 100 件まで）"`
+		Posts   []SpotPostResponse `json:"posts" doc:"関連投稿（新しい順、最新 20 件まで）"`
 	}
 }
 

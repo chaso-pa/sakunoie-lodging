@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/chaso-pa/sakunoie-lodging-backend/internal/models"
@@ -48,7 +47,7 @@ func visitResponse(v *models.GpsVisit, viewerID string) models.GpsVisitResponse 
 		PlaceName:   v.PlaceName,
 		Emoji:       v.Emoji,
 		Area:        v.Area,
-		VisitedDate: v.VisitedDate.Format(models.DateLayout),
+		VisitedDate: v.VisitedDate.String(),
 		Weather:     v.Weather,
 		Temperature: v.Temperature,
 		Note:        v.Note,
@@ -117,7 +116,7 @@ type CreateGpsVisitParams struct {
 }
 
 func (s *GpsVisitService) Create(ctx context.Context, memberID string, p CreateGpsVisitParams) (*models.GpsVisitResponse, error) {
-	date, err := time.ParseInLocation(models.DateLayout, strings.TrimSpace(p.VisitedDate), time.Local)
+	date, err := models.ParseCalendarDate(strings.TrimSpace(p.VisitedDate))
 	if err != nil {
 		return nil, invalid("visited_date must be a date in YYYY-MM-DD format")
 	}

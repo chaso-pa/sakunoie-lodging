@@ -14,7 +14,9 @@ import (
 )
 
 const (
-	spotPostLimit   = 20
+	spotPostLimit = 20
+	// spotReviewLimit bounds the reviews on a spot's page to the newest ones.
+	spotReviewLimit = 100
 	maxReviewLength = 1000
 	// defaultAiGenre matches every AI spot, as in the prototype.
 	defaultAiGenre = "穴場スポット"
@@ -96,7 +98,7 @@ func (s *SpotService) Get(ctx context.Context, id string) (*SpotDetail, error) {
 
 	var reviews []models.Review
 	if err := s.db.WithContext(ctx).Preload("Member").
-		Where("spot_id = ?", id).Order("created_at DESC, id").Find(&reviews).Error; err != nil {
+		Where("spot_id = ?", id).Order("created_at DESC, id").Limit(spotReviewLimit).Find(&reviews).Error; err != nil {
 		return nil, fmt.Errorf("list reviews: %w", err)
 	}
 

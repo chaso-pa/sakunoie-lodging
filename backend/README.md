@@ -37,6 +37,12 @@ go run ./cmd/server         # http://localhost:8080
 全員共通の上限（どちらも 30 回/分）に切り替え、連続失敗のロックは適用しない。引き継ぎコードは約 62 ビットの
 乱数なのでこの頻度では総当たりできず、招待コードの総当たりは 1 日 43,200 回までに抑えられる。
 
+### 日付とタイムゾーン
+
+訪問日（投稿の `visited_at`、足あとの `visited_date`）は時刻もタイムゾーンも持たない暦日として扱い、文字列の
+まま保存・返却する。サーバーのタイムゾーンが変わっても日付はずれない。フィードの月での絞り込みは、訪問日が
+あればその暦日で、なければ投稿日時を日本時間（Asia/Tokyo）で見た月で判定する。
+
 ### 足あとの公開範囲
 
 足あと（`POST /api/gps-visits`）は、`is_public` も `exact_public` も省略時は false。会員が明示的にオンに
@@ -80,8 +86,10 @@ go test ./...
 名前が `Integration` で終わるテストは MySQL を使う（S3 のテストは MinIO も使う。既定は
 `http://127.0.0.1:9000`、`TEST_S3_ENDPOINT` などで変更可。テストごとに専用バケットを作って消す）。既定の接続先は docker compose の MySQL
 （`root:root@tcp(127.0.0.1:3306)`）で、`TEST_MYSQL_DSN` で変更できる。テストは
-`sakunoie_test_<パッケージ名>` という専用データベースを作り直し、`prisma/migrations` の SQL を適用して使う
-（開発用の `sakunoie` データベースには触れない）。
+`sakunoie_test_<パッケージ名>_<プロセス ID>` という専用データベースを作り、`prisma/migrations` の SQL を
+適用して使う（開発用の `sakunoie` データベースには触れない）。名前にプロセス ID を含むので、スイートを同時に
+複数実行しても互いのデータベースを壊さない。データベースはパッケージのテスト終了時に削除する。強制終了などで
+残ったものは、MySQL が同じマシンにある場合に限り、次回の実行時にまとめて削除する。
 
 MySQL に接続できない場合、これらのテストは失敗ではなくスキップになる。スキップを失敗として扱いたいとき
 （CI など）は `REQUIRE_TEST_DB=1 go test ./...` とする（MinIO に届かない場合も失敗になる）。
@@ -104,5 +112,12 @@ internal/logging/  slog の設定とリクエスト ID の受け渡し
 prisma/            スキーマとマイグレーション
 ```
 
-API は `/api` 配下。公開 API のドキュメントは `/api/docs`、認証必須 API のドキュメントは
-`/api/docs/auth`（ログインが必要）。規約は `CLAUDE.md` を参照。
+API は `/api` 配下。debug モードでは公開 API のドキュメントを `/api/docs`、認証必須 API のドキュメントを
+`/api/docs/auth`（ログインが必要）で見られる。**release モード（`GIN_MODE=release`）ではドキュメント UI・
+OpenAPI・JSON スキーマをどちらも配信しない**（404）。その場合、応答本文の `$schema` フィールドも付かない。
+規約は `CLAUDE.md` を参照。
+
+すべての応答に `Cache-Control: no-store`、`X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY` を付け、
+release モードでは `Strict-Transport-Security` も付ける。
+
+サーバーは SIGINT / SIGTERM で新規接続の受付を止め、処理中のリクエストを最大 40 秒待ってから終了する。
