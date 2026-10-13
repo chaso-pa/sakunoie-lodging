@@ -375,9 +375,9 @@ func (s *PlaceService) results(ctx context.Context, places []Place) ([]models.Pl
 
 // matchingSpots returns the stored spots whose name or address contains
 // text: the curated ones, the ones registered from OpenStreetMap, and the
-// hand-entered ones. A hand-entered spot that no post uses yet is only
-// shown to the member who entered it, so a place typed in by mistake, or
-// typed in and thought better of, is not put in front of everyone.
+// hand-entered ones, as far as the member may see them (visibleSpots): a
+// hand-entered spot that no post uses is only shown to the member who
+// entered it.
 //
 // Google spots are never matched: their names are not stored.
 func (s *PlaceService) matchingSpots(ctx context.Context, memberID, text string) ([]models.Spot, error) {
@@ -386,8 +386,7 @@ func (s *PlaceService) matchingSpots(ctx context.Context, memberID, text string)
 	err := s.db.WithContext(ctx).
 		Where("source <> ?", models.SpotSourceGoogle).
 		Where("(name LIKE ? OR original_name LIKE ? OR address LIKE ?)", like, like, like).
-		Where("(source <> ? OR created_by_member_id = ? OR EXISTS (SELECT 1 FROM posts WHERE posts.spot_id = spots.id))",
-			models.SpotSourceManual, memberID).
+		Scopes(visibleSpots(memberID)).
 		Order("created_at, id").Limit(localSpotMatches).Find(&spots).Error
 	if err != nil {
 		return nil, fmt.Errorf("search spots: %w", err)

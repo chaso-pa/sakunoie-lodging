@@ -387,12 +387,15 @@ func (s *PostService) Create(ctx context.Context, memberID string, p CreatePostP
 		post.VisitedAt = &date
 	}
 	if p.SpotID != "" {
-		var spot models.Spot
-		if err := s.db.WithContext(ctx).Where("id = ?", p.SpotID).First(&spot).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, invalid("spot_id does not match any spot")
-			}
-			return nil, fmt.Errorf("get spot: %w", err)
+		// A spot the member may not see is answered like one that does
+		// not exist: they cannot attach, and so publish, a place somebody
+		// else typed in and has not shared.
+		spot, err := findVisibleSpot(s.db.WithContext(ctx), memberID, p.SpotID)
+		if errors.Is(err, ErrSpotNotFound) {
+			return nil, invalid("spot_id does not match any spot")
+		}
+		if err != nil {
+			return nil, err
 		}
 		post.SpotID = &spot.ID
 		if spot.Area != "" {
@@ -616,7 +619,9 @@ func RankingTitle(caption string) string {
 // Curated spots are always candidates. A member-registered spot becomes
 // one with its first post or public footprint: a place that was picked in
 // the composer and never posted about is not a ranking entry, however many
-// of those accumulate. Among equal scores curated spots come first.
+// of those accumulate. A hand-entered spot needs a post, not just its
+// creator's public footprint: until then nobody else may see it
+// (visibleSpots). Among equal scores curated spots come first.
 func (s *PostService) SpotRanking(ctx context.Context, viewerID string, limit int) ([]models.RankingItem, error) {
 	var rows []struct {
 		models.Spot
@@ -631,6 +636,9 @@ func (s *PostService) SpotRanking(ctx context.Context, viewerID string, limit in
 		(SELECT COUNT(*) FROM bookmarks JOIN posts ON posts.id = bookmarks.post_id WHERE posts.spot_id = spots.id) AS save_count,
 		(SELECT COUNT(*) FROM gps_visits WHERE gps_visits.spot_id = spots.id AND gps_visits.is_public = TRUE) AS visit_count`).
 		Where("spots.category <> ?", lodgingCategory).
+		// The same list for every viewer: a hand-entered spot is ranked
+		// only once a post has made it visible to all.
+		Scopes(visibleSpots("")).
 		Where(`spots.source = ?
 			OR EXISTS (SELECT 1 FROM posts WHERE posts.spot_id = spots.id)
 			OR EXISTS (SELECT 1 FROM gps_visits WHERE gps_visits.spot_id = spots.id AND gps_visits.is_public = TRUE)`, models.SpotSourceSeed).

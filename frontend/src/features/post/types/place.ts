@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { httpUrlOrNull } from '@/utils/http-url';
 
 export type LatLng = { latitude: number; longitude: number };
 
@@ -40,13 +41,14 @@ export const placeSchema = z.object({
   emoji: z.string(),
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
-  map_url: z.string().nullable(),
+  map_url: httpUrlOrNull,
   distance_m: z.number().nullable(),
-  photo_url: z.string().nullable()
+  photo_url: httpUrlOrNull
 });
 export type Place = z.infer<typeof placeSchema>;
 
-export const placeAttributionSchema = z.object({ text: z.string(), url: z.string() });
+/** `url` is null when the API sent something that is not an http(s) URL; the text is then shown unlinked. */
+export const placeAttributionSchema = z.object({ text: z.string(), url: httpUrlOrNull });
 export type PlaceAttribution = z.infer<typeof placeAttributionSchema>;
 
 export const placeKey = (place: Place) => `${place.source}:${place.external_id ?? place.spot_id ?? place.name}`;

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { httpUrlOrNull } from '@/utils/http-url';
 
 /** Go encodes an empty slice as `null`; treat that as an empty list. */
 const listOf = <T extends z.ZodType>(item: T) =>
@@ -33,7 +34,8 @@ const spotPlaceFields = {
   address: z.string().nullable(),
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
-  map_url: z.string().nullable(),
+  /** Rendered as a link, so anything but an http(s) URL is dropped. */
+  map_url: httpUrlOrNull,
   details_available: z.boolean()
 };
 

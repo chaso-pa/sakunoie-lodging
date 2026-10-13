@@ -846,3 +846,161 @@ func TestPostAreaWithRegionlessSpotIntegration(t *testing.T) {
 		t.Fatalf("search by region found %d posts, want 1", total)
 	}
 }
+
+// One rule decides who may see or use a spot, on every path that takes a
+// spot id: a hand-entered spot belongs to its creator alone until a post
+// points at it. To anyone else it does not exist.
+func TestUnpostedManualSpotIsHiddenIntegration(t *testing.T) {
+	db := testutil.NewDB(t, "services").Gorm
+	ctx := context.Background()
+	places := NewPlaceService(db, NewPlaceProvidersOf(osmFake()))
+	posts := NewPostService(db, newTrackingUploader()).WithPlaces(places)
+	spots := NewSpotService(db).WithPlaces(places)
+	visits := NewGpsVisitService(db)
+	alice, bob := addMember(t, db, "Alice"), addMember(t, db, "Bob")
+	yes := true
+
+	secret, _, err := places.Register(ctx, alice, RegisterSpotParams{Source: "manual", Name: "まだ共有していない場所", Address: "佐久市某所 1-2-3",
+		Latitude: ptr(36.2), Longitude: ptr(138.4)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const missing = "00000000-0000-4000-8000-000000000000"
+
+	// inSearch reports whether a search by the member lists the spot (the
+	// fake provider adds its own result to every search).
+	inSearch := func(member string) bool {
+		found, err := places.Search(ctx, member, PlaceSearchParams{Query: "共有していない"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, r := range found.Results {
+			if r.SpotID != nil && *r.SpotID == secret.ID {
+				return true
+			}
+		}
+		return false
+	}
+	// hidden checks that the spot is, to the member, exactly like an id
+	// that was never issued.
+	var validation *ValidationError
+	hidden := func(t *testing.T, member string) {
+		t.Helper()
+		for _, id := range []string{secret.ID, missing} {
+			if _, err := spots.Get(ctx, member, id); !errors.Is(err, ErrSpotNotFound) {
+				t.Errorf("Get(%s): err = %v, want ErrSpotNotFound", id, err)
+			}
+			if _, err := spots.CreateReview(ctx, member, id, 5, "口コミ"); !errors.Is(err, ErrSpotNotFound) {
+				t.Errorf("CreateReview(%s): err = %v, want ErrSpotNotFound", id, err)
+			}
+			_, postErr := posts.Create(ctx, member, CreatePostParams{Caption: "他人の場所で投稿", SpotID: id})
+			_, visitErr := visits.Create(ctx, member, CreateGpsVisitParams{SpotID: id, PlaceName: "足あと", VisitedDate: "2026-10-01", IsPublic: &yes})
+			for what, err := range map[string]error{"post": postErr, "footprint": visitErr} {
+				if !errors.As(err, &validation) || validation.Message != "spot_id does not match any spot" {
+					t.Errorf("%s with spot %s: err = %v, want the unknown-spot error", what, id, err)
+				}
+			}
+		}
+		if inSearch(member) {
+			t.Errorf("search shows the spot to another member")
+		}
+	}
+	rows := func(table string) int64 {
+		var n int64
+		db.Table(table).Count(&n)
+		return n
+	}
+
+	t.Run("before any post", func(t *testing.T) {
+		hidden(t, bob)
+		if rows("posts") != 0 || rows("reviews") != 0 || rows("gps_visits") != 0 {
+			t.Fatalf("a refused request left rows: posts %d, reviews %d, footprints %d", rows("posts"), rows("reviews"), rows("gps_visits"))
+		}
+		// The creator sees and uses it.
+		detail, err := spots.Get(ctx, alice, secret.ID)
+		if err != nil || detail.Spot.Name != "まだ共有していない場所" || !detail.Spot.IsMine {
+			t.Fatalf("creator's view = %+v, err = %v", detail, err)
+		}
+		if !inSearch(alice) {
+			t.Fatal("the creator's search does not list their own spot")
+		}
+		if _, err := spots.CreateReview(ctx, alice, secret.ID, 4, "自分用のメモ"); err != nil {
+			t.Fatal(err)
+		}
+		// Even the creator's public footprint does not rank it: the
+		// ranking is the same list for everyone.
+		if _, err := visits.Create(ctx, alice, CreateGpsVisitParams{SpotID: secret.ID, VisitedDate: "2026-10-01", IsPublic: &yes}); err != nil {
+			t.Fatal(err)
+		}
+		for _, viewer := range []string{alice, bob} {
+			if ranking, err := posts.SpotRanking(ctx, viewer, 20); err != nil || len(ranking) != 0 {
+				t.Fatalf("ranking = %+v, err = %v", ranking, err)
+			}
+		}
+	})
+
+	var post *models.PostResponse
+	t.Run("after the creator posts", func(t *testing.T) {
+		post = mustCreatePost(t, posts, alice, CreatePostParams{Caption: "共有します", SpotID: secret.ID})
+		detail, err := spots.Get(ctx, bob, secret.ID)
+		if err != nil || detail.Spot.Name != "まだ共有していない場所" || *detail.Spot.Address != "佐久市某所 1-2-3" || detail.Spot.IsMine {
+			t.Fatalf("bob's view = %+v, err = %v", detail, err)
+		}
+		if !inSearch(bob) {
+			t.Fatal("search does not list the spot after it was posted")
+		}
+		if _, err := spots.CreateReview(ctx, bob, secret.ID, 5, "行ってみたい"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := visits.Create(ctx, bob, CreateGpsVisitParams{SpotID: secret.ID, VisitedDate: "2026-10-02"}); err != nil {
+			t.Fatal(err)
+		}
+		if ranking, _ := posts.SpotRanking(ctx, bob, 20); len(ranking) != 1 || ranking[0].Name != "まだ共有していない場所" {
+			t.Fatalf("ranking = %+v", ranking)
+		}
+	})
+
+	t.Run("after the only post is deleted", func(t *testing.T) {
+		if err := posts.Delete(ctx, alice, post.ID); err != nil {
+			t.Fatal(err)
+		}
+		before := [3]int64{rows("posts"), rows("reviews"), rows("gps_visits")}
+		hidden(t, bob)
+		if after := [3]int64{rows("posts"), rows("reviews"), rows("gps_visits")}; after != before {
+			t.Fatalf("rows changed: %v → %v", before, after)
+		}
+		if ranking, _ := posts.SpotRanking(ctx, bob, 20); len(ranking) != 0 {
+			t.Fatalf("ranking = %+v", ranking)
+		}
+		if _, err := spots.Get(ctx, alice, secret.ID); err != nil {
+			t.Fatalf("the creator lost their own spot: %v", err)
+		}
+		// Another member's post would keep it visible: any post counts.
+		mustCreatePost(t, posts, alice, CreatePostParams{Caption: "もう一度共有", SpotID: secret.ID})
+		bobPost := mustCreatePost(t, posts, bob, CreatePostParams{Caption: "ボブも投稿", SpotID: secret.ID})
+		if bobPost.Spot == nil || bobPost.Spot.ID != secret.ID {
+			t.Fatalf("bob's post = %+v", bobPost)
+		}
+	})
+
+	// Seed and OpenStreetMap spots are visible to everyone from the start.
+	t.Run("other sources are unaffected", func(t *testing.T) {
+		seeded := addSpot(t, db, "白駒の池", "東信", "自然")
+		osm, _, err := places.Register(ctx, alice, RegisterSpotParams{Source: "osm", ExternalID: "N6353535276"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, id := range []string{seeded, osm.ID} {
+			if _, err := spots.Get(ctx, bob, id); err != nil {
+				t.Errorf("Get(%s): %v", id, err)
+			}
+			if _, err := spots.CreateReview(ctx, bob, id, 5, "口コミ"); err != nil {
+				t.Errorf("CreateReview(%s): %v", id, err)
+			}
+			if _, err := visits.Create(ctx, bob, CreateGpsVisitParams{SpotID: id, VisitedDate: "2026-10-03"}); err != nil {
+				t.Errorf("footprint at %s: %v", id, err)
+			}
+			mustCreatePost(t, posts, bob, CreatePostParams{Caption: "投稿", SpotID: id})
+		}
+	})
+}

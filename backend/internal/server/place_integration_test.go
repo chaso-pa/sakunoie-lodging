@@ -940,3 +940,104 @@ func TestPlaceBusyIntegration(t *testing.T) {
 		t.Fatalf("Retry-After on a not-configured 503 = %q", got)
 	}
 }
+
+// Over HTTP: another member's hand-entered spot answers exactly like an
+// unknown id until a post uses it, and again once that post is gone.
+func TestUnpostedManualSpotIsHiddenIntegration(t *testing.T) {
+	osm := newOSMStub(t)
+	a := newPlaceApp(t, osm, nil)
+	alice, bob := a.client(t), a.client(t)
+	alice.signup("Alice")
+	bob.signup("Bob")
+	const (
+		name    = "まだ共有していない場所"
+		address = "佐久市某所 1-2-3"
+		missing = "00000000-0000-4000-8000-000000000000"
+	)
+	r := alice.postJSON("/api/spots", map[string]any{"source": "manual", "name": name, "address": address, "latitude": 36.2345, "longitude": 138.4567})
+	wantStatus(t, r, http.StatusOK)
+	secret := obj(t, r.json(t), "spot")["id"].(string)
+
+	// attempts returns status and body of every way Bob can address a spot.
+	attempts := func(c *client, id string) map[string]response {
+		return map[string]response{
+			"detail":    c.get("/api/spots/" + id),
+			"review":    c.postJSON("/api/spots/"+id+"/reviews", map[string]any{"stars": 5, "text": "口コミ"}),
+			"post":      c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "他人の場所で投稿", "spot_id": id}),
+			"footprint": c.postJSON("/api/gps-visits", map[string]any{"spot_id": id, "place_name": "足あと", "visited_date": "2026-10-01", "is_public": true}),
+		}
+	}
+	hiddenFromBob := func(t *testing.T) {
+		t.Helper()
+		got, unknown := attempts(bob, secret), attempts(bob, missing)
+		for path, want := range map[string]int{"detail": 404, "review": 404, "post": 422, "footprint": 422} {
+			r := got[path]
+			if r.Code != want {
+				t.Errorf("%s: status = %d, want %d; body: %s", path, r.Code, want, r.Body)
+			}
+			// Indistinguishable from an id that does not exist.
+			if r.Code != unknown[path].Code || r.json(t)["detail"] != unknown[path].json(t)["detail"] {
+				t.Errorf("%s: hidden spot answered %d %v, unknown id %d %v", path, r.Code, r.json(t)["detail"], unknown[path].Code, unknown[path].json(t)["detail"])
+			}
+			for _, leak := range []string{name, address, "36.2345", "138.4567"} {
+				if strings.Contains(r.Body.String(), leak) {
+					t.Errorf("%s: the answer contains %q", path, leak)
+				}
+			}
+		}
+		// Nor through any list Bob can read.
+		for _, path := range []string{"/api/spots", "/api/posts", "/api/rankings?type=spots&limit=20", "/api/rankings?type=posts&limit=20", "/api/gps-visits/public"} {
+			r := bob.get(path)
+			wantStatus(t, r, http.StatusOK)
+			for _, leak := range []string{name, address, "36.2345"} {
+				if strings.Contains(r.Body.String(), leak) {
+					t.Errorf("GET %s shows %q to another member", path, leak)
+				}
+			}
+		}
+		r := bob.postJSON("/api/places/search", map[string]any{"query": "共有していない"})
+		wantStatus(t, r, http.StatusOK)
+		if strings.Contains(r.Body.String(), name) {
+			t.Errorf("search shows the spot to another member: %s", r.Body)
+		}
+	}
+
+	hiddenFromBob(t)
+	var posts, reviews int
+	a.db.Sessions.QueryRow("SELECT (SELECT COUNT(*) FROM posts), (SELECT COUNT(*) FROM reviews)").Scan(&posts, &reviews)
+	if posts != 0 || reviews != 0 {
+		t.Fatalf("refused requests left %d posts and %d reviews", posts, reviews)
+	}
+	// Alice, the creator, succeeds on each path. The post comes last.
+	wantStatus(t, alice.get("/api/spots/"+secret), http.StatusOK)
+	wantStatus(t, alice.postJSON("/api/spots/"+secret+"/reviews", map[string]any{"stars": 4, "text": "自分用"}), http.StatusOK)
+	wantStatus(t, alice.postJSON("/api/gps-visits", map[string]any{"spot_id": secret, "visited_date": "2026-10-01"}), http.StatusOK)
+	hiddenFromBob(t)
+
+	r = alice.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "共有します", "spot_id": secret})
+	wantStatus(t, r, http.StatusOK)
+	postID := obj(t, r.json(t), "post")["id"].(string)
+
+	// Now it is a place of the community.
+	r = bob.get("/api/spots/" + secret)
+	wantStatus(t, r, http.StatusOK)
+	if spot := obj(t, r.json(t), "spot"); spot["name"] != name || spot["address"] != address || spot["is_mine"] != false {
+		t.Fatalf("spot page for bob = %s", r.Body)
+	}
+	for path, r := range attempts(bob, secret) {
+		if r.Code != http.StatusOK {
+			t.Errorf("%s after the post: status = %d; body: %s", path, r.Code, r.Body)
+		}
+	}
+	// Bob's own post now keeps it visible; remove it to test the last one.
+	r = bob.get("/api/posts/mine")
+	for _, p := range list(t, r.json(t), "posts") {
+		wantStatus(t, bob.del("/api/posts/"+p["id"].(string)), http.StatusOK)
+	}
+	wantStatus(t, bob.get("/api/spots/"+secret), http.StatusOK)
+
+	// Alice deletes the only post left: the spot is hers alone again.
+	wantStatus(t, alice.del("/api/posts/"+postID), http.StatusOK)
+	hiddenFromBob(t)
+	wantStatus(t, alice.get("/api/spots/"+secret), http.StatusOK)
+}

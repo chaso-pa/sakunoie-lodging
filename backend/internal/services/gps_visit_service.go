@@ -156,12 +156,15 @@ func (s *GpsVisitService) Create(ctx context.Context, memberID string, p CreateG
 	}
 
 	if p.SpotID != "" {
-		var spot models.Spot
-		if err := s.db.WithContext(ctx).Where("id = ?", p.SpotID).First(&spot).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, invalid("spot_id does not match any spot")
-			}
-			return nil, fmt.Errorf("get spot: %w", err)
+		// A spot the member may not see is answered like one that does
+		// not exist: they cannot attach, and so publish, a place somebody
+		// else typed in and has not shared.
+		spot, err := findVisibleSpot(s.db.WithContext(ctx), memberID, p.SpotID)
+		if errors.Is(err, ErrSpotNotFound) {
+			return nil, invalid("spot_id does not match any spot")
+		}
+		if err != nil {
+			return nil, err
 		}
 		visit.SpotID = &spot.ID
 		visit.PlaceName = orDefault(visit.PlaceName, spot.Name)

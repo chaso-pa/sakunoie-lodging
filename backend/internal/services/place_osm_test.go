@@ -620,7 +620,9 @@ func TestPlaceCache(t *testing.T) {
 	if again, _ := c.get("a"); again[0].Name != "A" {
 		t.Fatal("the cached slice was modified through a returned copy")
 	}
-	// An empty answer is cached too.
+	// An empty answer is cached too. It goes in a moment later than "a", so
+	// that "a" is unambiguously the entry closest to expiry below.
+	now = now.Add(time.Second)
 	c.put("empty", nil)
 	if got, ok := c.get("empty"); !ok || len(got) != 0 {
 		t.Fatalf("empty = %v, %v", got, ok)

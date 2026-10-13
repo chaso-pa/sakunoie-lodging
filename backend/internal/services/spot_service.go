@@ -40,6 +40,45 @@ func (s *SpotService) WithPlaces(places *PlaceService) *SpotService {
 	return s
 }
 
+// visibleSpots keeps the spots memberID may see or use. It is the one rule
+// for every place a spot is looked up, by id or by text:
+//
+//	a spot is visible when it is not hand-entered, or the member entered
+//	it, or at least one post points at it.
+//
+// A hand-entered place is member-written text that may be anything, a home
+// address included, so it stays with the member who typed it until they
+// (or, once it is visible, anyone) publish it by posting with it. To
+// everyone else it does not exist: lookups answer exactly as they do for
+// an id that was never issued.
+//
+// The rule is evaluated on every read and nothing records that a spot
+// "was once posted". Deleting the last post that uses a hand-entered spot
+// therefore returns it to its creator alone: deleting the post is how a
+// member takes back what they published, and the place goes with it.
+//
+// An empty memberID is nobody: only the first and last conditions can
+// hold, which is what viewer-independent lists (the ranking) use.
+func visibleSpots(memberID string) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where(`(spots.source <> ? OR spots.created_by_member_id = ?
+			OR EXISTS (SELECT 1 FROM posts WHERE posts.spot_id = spots.id))`, models.SpotSourceManual, memberID)
+	}
+}
+
+// findVisibleSpot loads the spot with this id if memberID may see it, and
+// returns ErrSpotNotFound otherwise, whether the spot is missing or hidden.
+func findVisibleSpot(db *gorm.DB, memberID, id string) (*models.Spot, error) {
+	var spot models.Spot
+	if err := db.Scopes(visibleSpots(memberID)).Where("spots.id = ?", id).First(&spot).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrSpotNotFound
+		}
+		return nil, fmt.Errorf("get spot: %w", err)
+	}
+	return &spot, nil
+}
+
 // List returns the curated spots, optionally of one area, with their
 // review and post counts.
 //
@@ -108,9 +147,10 @@ type SpotDetail struct {
 	Posts   []models.SpotPostResponse
 }
 
-// Get returns the spot as viewerID sees it.
+// Get returns the spot as viewerID sees it, or ErrSpotNotFound when it is
+// not visible to them (visibleSpots).
 func (s *SpotService) Get(ctx context.Context, viewerID, id string) (*SpotDetail, error) {
-	spot, err := s.find(ctx, id)
+	spot, err := findVisibleSpot(s.db.WithContext(ctx), viewerID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -163,17 +203,6 @@ func (s *SpotService) Get(ctx context.Context, viewerID, id string) (*SpotDetail
 	return detail, nil
 }
 
-func (s *SpotService) find(ctx context.Context, id string) (*models.Spot, error) {
-	var spot models.Spot
-	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&spot).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrSpotNotFound
-		}
-		return nil, fmt.Errorf("get spot: %w", err)
-	}
-	return &spot, nil
-}
-
 // CreateReview adds memberID's review to the spot.
 func (s *SpotService) CreateReview(ctx context.Context, memberID, spotID string, stars int, text string) (*models.ReviewResponse, error) {
 	text = strings.TrimSpace(text)
@@ -183,7 +212,7 @@ func (s *SpotService) CreateReview(ctx context.Context, memberID, spotID string,
 	if text == "" || utf8.RuneCountInString(text) > maxReviewLength {
 		return nil, invalid("text must be 1 to 1000 characters")
 	}
-	if _, err := s.find(ctx, spotID); err != nil {
+	if _, err := findVisibleSpot(s.db.WithContext(ctx), memberID, spotID); err != nil {
 		return nil, err
 	}
 
