@@ -42,6 +42,13 @@ Because `src/proxy.ts` handles `/api/*`, Next.js buffers those request bodies. T
 API is the one that rejects an oversized upload with a proper error. A body over 12MB is answered with a
 plain 500 by Next.js and does not reach the API.
 
+A post carries up to five photos in one request, so that 10MB is the limit for all of them together; the
+API also caps each photo at 4MB (see "投稿の写真" in `backend/README.md`). The composer downscales every
+photo to a JPEG of at most 1600px before it is added (`src/utils/downscale-image.ts`), which keeps a photo
+at a few hundred kilobytes, and checks the same three limits itself: five photos (`postPhotoLimit`), 4MB
+each (`postPhotoMaxBytes`) and 9.5MB in total (`uploadMaxBytes`, leaving room for the other form fields).
+`getPostPhotoProblem` in `src/lib/api-client.ts` turns the API's refusals into the composer's messages.
+
 ### Place picker map
 
 The post composer's place picker draws its map with [Leaflet](https://leafletjs.com) and raster tiles. With

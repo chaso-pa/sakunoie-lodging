@@ -428,6 +428,14 @@ func (u *recordingUploader) UploadImage(_ context.Context, kind string, r io.Rea
 	return "http://storage.test/" + kind + "/avatar.jpg", nil
 }
 
+func (u *recordingUploader) UploadImages(ctx context.Context, kind string, images []io.Reader) ([]string, error) {
+	urls := make([]string, len(images))
+	for i, r := range images {
+		urls[i], _ = u.UploadImage(ctx, kind, r)
+	}
+	return urls, nil
+}
+
 func (u *recordingUploader) DeleteImage(context.Context, string) error { return nil }
 
 func TestSignupWithAvatarIntegration(t *testing.T) {

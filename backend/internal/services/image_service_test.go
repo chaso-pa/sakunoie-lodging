@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"strings"
 	"testing"
 
@@ -184,7 +185,10 @@ type memoryStore struct {
 	objects map[string][]byte
 	types   map[string]string
 	putErr  error
+	// failPut makes the nth Put (1 based) fail, and only that one.
+	failPut int
 	puts    int
+	deletes int
 }
 
 func newMemoryStore() *memoryStore {
@@ -196,12 +200,16 @@ func (m *memoryStore) Put(_ context.Context, key, contentType string, data []byt
 	if m.putErr != nil {
 		return m.putErr
 	}
+	if m.puts == m.failPut {
+		return errors.New("connection reset")
+	}
 	m.objects[key] = data
 	m.types[key] = contentType
 	return nil
 }
 
 func (m *memoryStore) Delete(_ context.Context, key string) error {
+	m.deletes++
 	delete(m.objects, key)
 	return nil
 }
@@ -275,12 +283,31 @@ func TestImageServiceNeverStoresRejectedFiles(t *testing.T) {
 		"gif":        []byte("GIF89a\x01\x00\x01\x00"),
 		"executable": []byte("\x7fELF\x02\x01\x01\x00"),
 		"fake jpeg":  append([]byte{0xFF, 0xD8, 0xFF, 0xE0}, []byte("not a real jpeg")...),
-		"too large":  append(testutil.PlainJPEG(t, 8, 8), make([]byte, MaxImageBytes)...),
 	} {
 		if _, err := s.UploadImage(ctx, storage.KindPost, bytes.NewReader(data)); !errors.Is(err, storage.ErrInvalidImage) {
 			t.Errorf("%s: err = %v, want ErrInvalidImage", name, err)
 		}
 	}
+	// The size cap depends on the kind: 4MB for a post photo, 10MB for an
+	// avatar. A file at the cap gets past it (and is then judged as an
+	// image); one byte more does not.
+	jpeg := testutil.PlainJPEG(t, 8, 8)
+	padded := func(size int) []byte { return append(jpeg, make([]byte, size-len(jpeg))...) }
+	for _, c := range []struct {
+		kind string
+		max  int
+	}{{storage.KindPost, MaxPostPhotoBytes}, {storage.KindAvatar, MaxImageBytes}} {
+		if _, err := s.UploadImage(ctx, c.kind, bytes.NewReader(padded(c.max+1))); !errors.Is(err, storage.ErrImageTooLarge) {
+			t.Errorf("%s over the cap: err = %v, want ErrImageTooLarge", c.kind, err)
+		}
+	}
+	if store.puts != 0 {
+		t.Fatalf("oversized files reached the store (%d puts)", store.puts)
+	}
+	if _, err := s.UploadImage(ctx, storage.KindPost, bytes.NewReader(padded(MaxPostPhotoBytes))); err != nil {
+		t.Fatalf("a post photo of exactly the cap: %v", err)
+	}
+	store.puts, store.objects = 0, map[string][]byte{}
 	if store.puts != 0 || len(store.objects) != 0 {
 		t.Fatalf("rejected files reached the store (%d puts)", store.puts)
 	}
@@ -288,5 +315,100 @@ func TestImageServiceNeverStoresRejectedFiles(t *testing.T) {
 	store.putErr = errors.New("connection refused")
 	if _, err := s.UploadImage(ctx, storage.KindPost, bytes.NewReader(testutil.PlainJPEG(t, 8, 8))); !errors.Is(err, storage.ErrUnavailable) {
 		t.Fatalf("err = %v, want ErrUnavailable", err)
+	}
+}
+
+// exifPhotos returns n photos with EXIF whose stored heights differ (40,
+// 41, ...: JPEGWithGPSExif is rotated a quarter turn when sanitised), so the
+// order of the stored objects can be read back from them.
+func exifPhotos(t *testing.T, n int) []io.Reader {
+	t.Helper()
+	readers := make([]io.Reader, n)
+	for i := range readers {
+		readers[i] = bytes.NewReader(testutil.JPEGWithGPSExif(t, 40+i, 20))
+	}
+	return readers
+}
+
+func TestImageServiceUploadImages(t *testing.T) {
+	ctx := context.Background()
+	store := newMemoryStore()
+	s := NewImageService(store)
+
+	urls, err := s.UploadImages(ctx, storage.KindPost, exifPhotos(t, 5))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(urls) != 5 || len(store.objects) != 5 {
+		t.Fatalf("%d urls, %d objects, want 5 and 5", len(urls), len(store.objects))
+	}
+	for i, url := range urls {
+		key, ok := store.KeyFromURL(url)
+		if !ok || !strings.HasPrefix(key, "posts/") {
+			t.Fatalf("url %d = %q", i, url)
+		}
+		stored := store.objects[key]
+		if testutil.HasExif(stored) {
+			t.Fatalf("photo %d still has EXIF", i+1)
+		}
+		// The URLs are in the order the photos were given.
+		if b := decodeJPEG(t, stored).Bounds(); b.Dx() != 20 || b.Dy() != 40+i {
+			t.Fatalf("photo %d is %dx%d, want 20x%d", i+1, b.Dx(), b.Dy(), 40+i)
+		}
+	}
+
+	if urls, err := s.UploadImages(ctx, storage.KindPost, nil); err != nil || len(urls) != 0 {
+		t.Fatalf("no images: %v, %v", urls, err)
+	}
+}
+
+// One refused file refuses them all, and none is stored: the check of every
+// image comes before the first write.
+func TestImageServiceUploadImagesRejectsAllForOne(t *testing.T) {
+	ctx := context.Background()
+	jpeg := testutil.PlainJPEG(t, 8, 8)
+
+	for name, c := range map[string]struct {
+		bad  []byte
+		want error
+	}{
+		"script":    {[]byte("#!/bin/sh\nrm -rf /"), storage.ErrInvalidImage},
+		"fake jpeg": {append([]byte{0xFF, 0xD8, 0xFF, 0xE0}, []byte("not a real jpeg")...), storage.ErrInvalidImage},
+		"empty":     {nil, storage.ErrInvalidImage},
+		"too large": {append(testutil.PlainJPEG(t, 8, 8), make([]byte, MaxPostPhotoBytes)...), storage.ErrImageTooLarge},
+	} {
+		for position := 0; position < 3; position++ {
+			store := newMemoryStore()
+			images := []io.Reader{bytes.NewReader(jpeg), bytes.NewReader(jpeg), bytes.NewReader(jpeg)}
+			images[position] = bytes.NewReader(c.bad)
+
+			_, err := NewImageService(store).UploadImages(ctx, storage.KindPost, images)
+			var rejected *storage.ImageError
+			if !errors.As(err, &rejected) || rejected.Index != position || !errors.Is(err, c.want) {
+				t.Errorf("%s at %d: err = %v, want %v for index %d", name, position, err, c.want, position)
+			}
+			if store.puts != 0 {
+				t.Errorf("%s at %d: %d images were stored", name, position, store.puts)
+			}
+		}
+	}
+}
+
+// When the store fails part way, the images already written are deleted
+// again, also when the request was cancelled in the meantime.
+func TestImageServiceUploadImagesCleansUpAfterFailedWrite(t *testing.T) {
+	for failAt := 1; failAt <= 5; failAt++ {
+		store := newMemoryStore()
+		store.failPut = failAt
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		urls, err := NewImageService(store).UploadImages(ctx, storage.KindPost, exifPhotos(t, 5))
+		if !errors.Is(err, storage.ErrUnavailable) || urls != nil {
+			t.Fatalf("write %d fails: urls = %v, err = %v, want ErrUnavailable", failAt, urls, err)
+		}
+		if store.puts != failAt || store.deletes != failAt-1 || len(store.objects) != 0 {
+			t.Fatalf("write %d fails: %d puts, %d deletes, %d objects left", failAt, store.puts, store.deletes, len(store.objects))
+		}
 	}
 }

@@ -70,33 +70,56 @@ func TestParseTags(t *testing.T) {
 }
 
 // trackingUploader is a storage.ImageUploader that records what it stored
-// and deleted. afterUpload, when set, runs once an upload has succeeded.
+// and deleted. afterUpload, when set, runs once an upload call has
+// succeeded.
 type trackingUploader struct {
 	mu          sync.Mutex
 	stored      map[string]bool
+	content     map[string][]byte // what was sent for each URL
 	deleted     []string
 	n           int
 	afterUpload func()
 }
 
 func newTrackingUploader() *trackingUploader {
-	return &trackingUploader{stored: map[string]bool{}}
+	return &trackingUploader{stored: map[string]bool{}, content: map[string][]byte{}}
 }
 
-func (u *trackingUploader) UploadImage(_ context.Context, kind string, r io.Reader) (string, error) {
-	data, _ := io.ReadAll(r)
-	if DetectImageType(data) == "" {
-		return "", storage.ErrInvalidImage
+func (u *trackingUploader) UploadImage(ctx context.Context, kind string, r io.Reader) (string, error) {
+	urls, err := u.UploadImages(ctx, kind, []io.Reader{r})
+	if err != nil {
+		var image *storage.ImageError
+		if errors.As(err, &image) {
+			return "", image.Err
+		}
+		return "", err
+	}
+	return urls[0], nil
+}
+
+// UploadImages keeps the contract of the real one: every image is checked
+// before the first is stored.
+func (u *trackingUploader) UploadImages(_ context.Context, kind string, images []io.Reader) ([]string, error) {
+	all := make([][]byte, len(images))
+	for i, r := range images {
+		all[i], _ = io.ReadAll(r)
+		if DetectImageType(all[i]) == "" {
+			return nil, &storage.ImageError{Index: i, Err: storage.ErrInvalidImage}
+		}
 	}
 	u.mu.Lock()
-	u.n++
-	url := "http://storage.test/" + kind + "/" + string(rune('a'+u.n)) + ".jpg"
-	u.stored[url] = true
+	urls := make([]string, len(all))
+	for i, data := range all {
+		u.n++
+		urls[i] = "http://storage.test/" + kind + "/" + string(rune('a'+u.n)) + ".jpg"
+		u.stored[urls[i]] = true
+		u.content[urls[i]] = data
+	}
 	u.mu.Unlock()
 	if u.afterUpload != nil {
 		u.afterUpload()
 	}
-	return url, nil
+	return urls, nil
 }
 
 func (u *trackingUploader) DeleteImage(_ context.Context, url string) error {
@@ -290,7 +313,7 @@ func TestCreatePostIntegration(t *testing.T) {
 
 	post := mustCreatePost(t, s, alice, CreatePostParams{
 		Caption: "  朝の森  ", SpotID: pond, Language: "ja", Weather: "晴れ", Temperature: "13.5",
-		VisitedAt: "2026-10-08", Area: "南信", Tags: "自然, 朝さんぽ", Media: bytes.NewReader(jpeg),
+		VisitedAt: "2026-10-08", Area: "南信", Tags: "自然, 朝さんぽ", Media: []io.Reader{bytes.NewReader(jpeg)},
 	})
 	if post.Caption != "朝の森" || post.Spot == nil || post.Spot.Name != "白駒の池" || *post.Weather != "晴れ" || *post.Temperature != 13.5 ||
 		*post.VisitedAt != "2026-10-08" || !reflect.DeepEqual(post.Tags, []string{"自然", "朝さんぽ"}) || !post.IsMine || post.IsSample {
@@ -305,7 +328,7 @@ func TestCreatePostIntegration(t *testing.T) {
 	}
 
 	// Photo only, and caption only, are both fine; neither is not.
-	if p := mustCreatePost(t, s, alice, CreatePostParams{Media: bytes.NewReader(jpeg), Area: "北信"}); p.Caption != "" || *p.Area != "北信" || p.Spot != nil {
+	if p := mustCreatePost(t, s, alice, CreatePostParams{Media: []io.Reader{bytes.NewReader(jpeg)}, Area: "北信"}); p.Caption != "" || *p.Area != "北信" || p.Spot != nil {
 		t.Fatalf("photo-only post = %+v", p)
 	}
 	var validation *ValidationError
@@ -330,7 +353,7 @@ func TestCreatePostIntegration(t *testing.T) {
 	var before, after int64
 	db.Model(&models.Post{}).Count(&before)
 	storedBefore := len(uploader.stored)
-	_, err := s.Create(ctx, alice, CreatePostParams{Caption: "x", Media: strings.NewReader("#!/bin/sh\nrm -rf /")})
+	_, err := s.Create(ctx, alice, CreatePostParams{Caption: "x", Media: []io.Reader{strings.NewReader("#!/bin/sh\nrm -rf /")}})
 	if !errors.Is(err, storage.ErrInvalidImage) {
 		t.Fatalf("err = %v, want ErrInvalidImage", err)
 	}
@@ -340,8 +363,90 @@ func TestCreatePostIntegration(t *testing.T) {
 	}
 }
 
-// If the insert fails after the photo was stored, the post is not created
-// and the stored object is removed again.
+// photos returns n different JPEGs (8, 9, 10... pixels wide) as the readers
+// of a post form, and their bytes.
+func photos(t *testing.T, n int) ([]io.Reader, [][]byte) {
+	t.Helper()
+	readers, data := make([]io.Reader, n), make([][]byte, n)
+	for i := range data {
+		data[i] = testutil.PlainJPEG(t, 8+i, 8)
+		readers[i] = bytes.NewReader(data[i])
+	}
+	return readers, data
+}
+
+func countRows(t *testing.T, db *gorm.DB, model any) int64 {
+	t.Helper()
+	var n int64
+	if err := db.Model(model).Count(&n).Error; err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+// A post carries up to MaxPostPhotos photos, shown in the order they were
+// sent. One more, or one file that is not an image, refuses the whole post
+// before anything is stored.
+func TestCreatePostWithSeveralPhotosIntegration(t *testing.T) {
+	db := testutil.NewDB(t, "services").Gorm
+	ctx := context.Background()
+	uploader := newTrackingUploader()
+	s := NewPostService(db, uploader)
+	alice, bob := addMember(t, db, "Alice"), addMember(t, db, "Bob")
+
+	readers, sent := photos(t, MaxPostPhotos)
+	post := mustCreatePost(t, s, alice, CreatePostParams{Media: readers})
+	if len(post.Media) != MaxPostPhotos {
+		t.Fatalf("media = %+v, want %d photos", post.Media, MaxPostPhotos)
+	}
+	for i, m := range post.Media {
+		if m.Type != "photo" || !bytes.Equal(uploader.content[m.URL], sent[i]) {
+			t.Fatalf("photo %d of the post is not photo %d of the form", i+1, i+1)
+		}
+	}
+	// The order is the stored sort_order, not an accident of the ids.
+	var rows []models.PostMedia
+	if err := db.Where("post_id = ?", post.ID).Order("sort_order").Find(&rows).Error; err != nil {
+		t.Fatal(err)
+	}
+	for i, row := range rows {
+		if row.SortOrder != i || row.MediaURL != post.Media[i].URL {
+			t.Fatalf("row %d = %+v, want sort_order %d and %s", i, row, i, post.Media[i].URL)
+		}
+	}
+	// Every reader of the post gets the same order.
+	feed, _, err := s.List(ctx, bob, PostFilter{})
+	if err != nil || len(feed) != 1 || !reflect.DeepEqual(feed[0].Media, post.Media) {
+		t.Fatalf("feed = %+v, %v", feed, err)
+	}
+
+	postsBefore, uploadsBefore := countRows(t, db, &models.Post{}), uploader.n
+
+	// One over the limit.
+	readers, _ = photos(t, MaxPostPhotos+1)
+	if _, err := s.Create(ctx, alice, CreatePostParams{Caption: "x", Media: readers}); !errors.Is(err, ErrTooManyPhotos) {
+		t.Fatalf("%d photos: err = %v, want ErrTooManyPhotos", MaxPostPhotos+1, err)
+	}
+
+	// A script between two good photos: the error names it.
+	readers, _ = photos(t, 3)
+	readers[1] = strings.NewReader("#!/bin/sh\nrm -rf /")
+	_, err = s.Create(ctx, alice, CreatePostParams{Caption: "x", Media: readers})
+	var image *storage.ImageError
+	if !errors.As(err, &image) || image.Index != 1 || !errors.Is(err, storage.ErrInvalidImage) {
+		t.Fatalf("bad file among good ones: err = %v, want an ImageError for index 1", err)
+	}
+
+	if countRows(t, db, &models.Post{}) != postsBefore || uploader.n != uploadsBefore || len(uploader.stored) != MaxPostPhotos {
+		t.Fatalf("a refused post left something behind: %d uploads, stored %v", uploader.n-uploadsBefore, uploader.stored)
+	}
+	if n := countRows(t, db, &models.PostMedia{}); n != MaxPostPhotos {
+		t.Fatalf("post_media has %d rows, want %d", n, MaxPostPhotos)
+	}
+}
+
+// If the insert fails after the photos were stored, the post is not created
+// and the stored objects are removed again.
 func TestCreatePostFailureRemovesImageIntegration(t *testing.T) {
 	db := testutil.NewDB(t, "services").Gorm
 	uploader := newTrackingUploader()
@@ -352,15 +457,16 @@ func TestCreatePostFailureRemovesImageIntegration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	uploader.afterUpload = cancel
 
-	_, err := s.Create(ctx, alice, CreatePostParams{Caption: "x", Tags: "a,b", Media: bytes.NewReader(testutil.PlainJPEG(t, 8, 8))})
+	readers, _ := photos(t, 3)
+	_, err := s.Create(ctx, alice, CreatePostParams{Caption: "x", Tags: "a,b", Media: readers})
 	if err == nil {
 		t.Fatal("expected the insert to fail")
 	}
-	if uploader.n != 1 {
-		t.Fatalf("uploads = %d, want 1", uploader.n)
+	if uploader.n != 3 {
+		t.Fatalf("uploads = %d, want 3", uploader.n)
 	}
-	if len(uploader.stored) != 0 || len(uploader.deleted) != 1 {
-		t.Fatalf("the uploaded object was left behind: stored %v, deleted %v", uploader.stored, uploader.deleted)
+	if len(uploader.stored) != 0 || len(uploader.deleted) != 3 {
+		t.Fatalf("uploaded objects were left behind: stored %v, deleted %v", uploader.stored, uploader.deleted)
 	}
 	for _, model := range []any{&models.Post{}, &models.PostMedia{}, &models.PostTag{}} {
 		var n int64
@@ -378,8 +484,10 @@ func TestDeletePostIntegration(t *testing.T) {
 	s := NewPostService(db, uploader)
 	alice, bob := addMember(t, db, "Alice"), addMember(t, db, "Bob")
 
-	post := mustCreatePost(t, s, alice, CreatePostParams{Caption: "x", Tags: "a,b", Media: bytes.NewReader(testutil.PlainJPEG(t, 8, 8))})
-	other := mustCreatePost(t, s, alice, CreatePostParams{Caption: "stays"})
+	readers, _ := photos(t, MaxPostPhotos)
+	post := mustCreatePost(t, s, alice, CreatePostParams{Caption: "x", Tags: "a,b", Media: readers})
+	kept, _ := photos(t, 1)
+	other := mustCreatePost(t, s, alice, CreatePostParams{Caption: "stays", Media: kept})
 	s.ToggleLike(ctx, bob, post.ID)
 	s.ToggleBookmark(ctx, bob, post.ID)
 	s.ToggleBookmark(ctx, bob, other.ID)
@@ -402,7 +510,8 @@ func TestDeletePostIntegration(t *testing.T) {
 	if _, err := s.Get(ctx, alice, post.ID); !errors.Is(err, ErrPostNotFound) {
 		t.Fatalf("get after delete: %v", err)
 	}
-	// Dependent rows went with it, and the stored image was deleted.
+	// Dependent rows went with it, and every stored image of the post was
+	// deleted. The other post keeps its photo.
 	for _, model := range []any{&models.PostMedia{}, &models.PostTag{}, &models.Like{}} {
 		var n int64
 		db.Model(model).Where("post_id = ?", post.ID).Count(&n)
@@ -410,8 +519,13 @@ func TestDeletePostIntegration(t *testing.T) {
 			t.Fatalf("%T still has %d rows of the deleted post", model, n)
 		}
 	}
-	if uploader.stored[url] || len(uploader.deleted) != 1 || uploader.deleted[0] != url {
-		t.Fatalf("stored image not deleted: %v", uploader.deleted)
+	if len(uploader.deleted) != MaxPostPhotos || len(uploader.stored) != 1 || !uploader.stored[other.Media[0].URL] {
+		t.Fatalf("stored images after the delete: %v, deleted %v", uploader.stored, uploader.deleted)
+	}
+	for _, m := range post.Media {
+		if uploader.stored[m.URL] {
+			t.Fatalf("%s was not deleted", m.URL)
+		}
 	}
 
 	// Listings that referred to it keep working.

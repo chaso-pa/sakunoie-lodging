@@ -8,15 +8,16 @@ import {
   NumberInput,
   Textarea,
   TextInput,
-  UnstyledButton
+  UnstyledButton,
+  VisuallyHidden
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import shared from '@/components/Community.module.scss';
 import { paths } from '@/config/paths';
-import { captionMaxLength, tagsMaxLength, useCreatePost } from '@/features/post/api/create-post';
+import { captionMaxLength, postPhotoLimit, tagsMaxLength, useCreatePost } from '@/features/post/api/create-post';
 import { useLinkedSpot } from '@/features/post/api/get-linked-spot';
 import { useWeather } from '@/features/post/api/get-weather';
 import { useRegisterPlace } from '@/features/post/api/register-place';
@@ -25,11 +26,20 @@ import classes from '@/features/post/components/Post.module.scss';
 import { WeatherCard } from '@/features/post/components/WeatherCard';
 import type { PlaceSelection } from '@/features/post/types/place';
 import { useCommunityLabels } from '@/hooks/use-community-labels';
-import { getApiErrorStatus, isUploadTooLarge } from '@/lib/api-client';
+import { getApiErrorStatus, getPostPhotoProblem } from '@/lib/api-client';
 import { allWeatherValues, areaValues, isKnownArea, todayIsoDate } from '@/utils/community-labels';
-import { downscaleImage, ImageError } from '@/utils/downscale-image';
+import {
+  downscaleImage,
+  ImageError,
+  type ImageProblem,
+  postPhotoMaxBytes,
+  uploadMaxBytes
+} from '@/utils/downscale-image';
 
-/** Composer: one photo, a caption, an optional place, and the weather filled in from the API. */
+/** A chosen photo, already downscaled, with the object URL of its thumbnail. */
+type ComposerPhoto = { id: number; file: File; url: string };
+
+/** Composer: up to five photos, a caption, an optional place, and the weather filled in from the API. */
 export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
   const t = useTranslations('community.compose');
   const tCommon = useTranslations('community.common');
@@ -42,10 +52,19 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
   const createPost = useCreatePost();
   const registerPlace = useRegisterPlace();
 
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
+  const [photos, setPhotos] = useState<ComposerPhoto[]>([]);
+  // Set while chosen files are being downscaled: how many of them are done.
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [photoError, setPhotoError] = useState('');
+  // Read out by screen readers when photos are added, moved or removed.
+  const [photoStatus, setPhotoStatus] = useState('');
+  const nextPhotoId = useRef(0);
+  const resetPicker = useRef<() => void>(null);
+  const pickerButton = useRef<HTMLButtonElement>(null);
+  const thumbs = useRef<HTMLOListElement>(null);
+  // The control to focus once the list has been drawn again: an arrow of the photo that moved, or the
+  // picker after a removal.
+  const focusAfterChange = useRef<{ id: number; action: 'earlier' | 'later' } | 'picker' | null>(null);
   const [caption, setCaption] = useState('');
   // undefined = untouched: the place then follows the `?spot=` link, once that spot has loaded.
   const [placeChoice, setPlaceChoice] = useState<PlaceSelection | null | undefined>(undefined);
@@ -59,15 +78,36 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
   const [temperatureChoice, setTemperatureChoice] = useState<number | string | null>(null);
   const [formError, setFormError] = useState('');
 
+  // Each thumbnail's object URL is revoked when its photo is removed, and the rest when the composer
+  // goes away (after sharing, or on leaving the page).
+  const photosRef = useRef(photos);
   useEffect(() => {
-    if (!photo) {
-      setPreview(null);
-      return;
+    photosRef.current = photos;
+  }, [photos]);
+  useEffect(
+    () => () => {
+      for (const photo of photosRef.current) {
+        URL.revokeObjectURL(photo.url);
+      }
+    },
+    []
+  );
+
+  // Moving or removing a photo redraws the list, and the button that was pressed may be gone or disabled.
+  // Keep the keyboard on the photo that moved (the same arrow, or the opposite one at an end); after a
+  // removal hand it to the picker, which is enabled again by then.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs after every change of the list
+  useEffect(() => {
+    const target = focusAfterChange.current;
+    focusAfterChange.current = null;
+    if (target === 'picker') {
+      pickerButton.current?.focus();
+    } else if (target && thumbs.current) {
+      const controls = thumbs.current.querySelectorAll<HTMLButtonElement>(`[data-photo="${target.id}"][data-move]`);
+      const enabled = [...controls].filter((control) => !control.disabled);
+      (enabled.find((control) => control.dataset.move === target.action) ?? enabled[0])?.focus();
     }
-    const url = URL.createObjectURL(photo);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
+  }, [photos]);
 
   // A spot whose details could not be loaded has no name to show; the link is then ignored.
   const linkedSpot = linked.data?.details_available ? linked.data : undefined;
@@ -97,26 +137,97 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
   const temperatureValue = temperatureChoice ?? auto?.temperature ?? '';
   const weatherOptions = [...new Set<string>([...allWeatherValues, ...(weatherValue ? [weatherValue] : [])])];
 
-  const selectPhoto = async (file: File | null) => {
-    if (!file) {
+  const processing = progress !== null;
+  const full = photos.length >= postPhotoLimit;
+
+  const imageProblemMessage = (problem: ImageProblem) =>
+    problem === 'type'
+      ? tCommon('imageType')
+      : problem === 'tooLarge'
+        ? tCommon('fileTooLarge')
+        : tCommon('imageUnreadable');
+
+  /**
+   * Adds the chosen files in the order the picker gave them, until the post is full. A file that cannot
+   * be used does not take a slot. They are downscaled one after another: one decoded phone photo in
+   * memory at a time, and the page stays responsive and shows each thumbnail as soon as it is ready.
+   */
+  const addPhotos = async (files: File[]) => {
+    // Lets the same file be picked again later, after it was removed.
+    resetPicker.current?.();
+    const room = postPhotoLimit - photos.length;
+    if (files.length === 0 || room <= 0) {
       return;
     }
+    const expected = Math.min(files.length, room);
     setPhotoError('');
-    setProcessing(true);
-    try {
-      setPhoto(await downscaleImage(file));
-    } catch (error) {
-      const problem = error instanceof ImageError ? error.problem : 'unreadable';
-      setPhotoError(
-        problem === 'type'
-          ? tCommon('imageType')
-          : problem === 'tooLarge'
-            ? tCommon('fileTooLarge')
-            : tCommon('imageUnreadable')
-      );
-    } finally {
-      setProcessing(false);
+    setProgress({ current: 1, total: expected });
+
+    let totalBytes = photos.reduce((sum, photo) => sum + photo.file.size, 0);
+    let added = 0;
+    let leftOut = 0;
+    let overTotal = false;
+    const problems: ImageProblem[] = [];
+    for (const [index, file] of files.entries()) {
+      if (added >= room) {
+        leftOut = files.length - index;
+        break;
+      }
+      setProgress({ current: Math.min(added + 1, expected), total: expected });
+      try {
+        const prepared = await downscaleImage(file, postPhotoMaxBytes);
+        if (totalBytes + prepared.size > uploadMaxBytes) {
+          overTotal = true;
+          break;
+        }
+        totalBytes += prepared.size;
+        added += 1;
+        const photo = { id: nextPhotoId.current++, file: prepared, url: URL.createObjectURL(prepared) };
+        setPhotos((current) => [...current, photo]);
+      } catch (error) {
+        problems.push(error instanceof ImageError ? error.problem : 'unreadable');
+      }
     }
+    setProgress(null);
+
+    const notices: string[] = [];
+    if (leftOut > 0) {
+      notices.push(t('photosTrimmed', { max: postPhotoLimit, added }));
+    }
+    if (overTotal) {
+      notices.push(t('errors.totalTooLarge'));
+    }
+    if (problems.length > 0) {
+      // One file chosen: just say what is wrong with it. Several: say how many were left out, and why.
+      if (files.length > 1) {
+        notices.push(t('photosSkipped', { count: problems.length }));
+      }
+      notices.push(...[...new Set(problems)].map(imageProblemMessage));
+    }
+    setPhotoError(notices.join(' '));
+    if (added > 0) {
+      setPhotoStatus(t('photosAdded', { count: added, total: photos.length + added }));
+    }
+  };
+
+  const movePhoto = (index: number, action: 'earlier' | 'later') => {
+    const target = action === 'earlier' ? index - 1 : index + 1;
+    if (target < 0 || target >= photos.length) {
+      return;
+    }
+    const next = [...photos];
+    [next[index], next[target]] = [next[target], next[index]];
+    focusAfterChange.current = { id: photos[index].id, action };
+    setPhotos(next);
+    setPhotoStatus(t('photoMoved', { position: target + 1, total: photos.length }));
+  };
+
+  const removePhoto = (photo: ComposerPhoto) => {
+    URL.revokeObjectURL(photo.url);
+    focusAfterChange.current = 'picker';
+    setPhotos((current) => current.filter((item) => item.id !== photo.id));
+    setPhotoError('');
+    setPhotoStatus(t('photoRemoved', { count: photos.length - 1 }));
   };
 
   const refreshWeather = async () => {
@@ -131,8 +242,15 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
 
   const showFailure = (error: unknown, limitMessage: string) => {
     const status = getApiErrorStatus(error);
-    if (isUploadTooLarge(error)) {
-      setFormError(tCommon('fileTooLarge'));
+    const photoProblem = getPostPhotoProblem(error);
+    if (photoProblem?.kind === 'tooMany') {
+      setFormError(t('errors.tooManyPhotos', { max: postPhotoLimit }));
+    } else if (photoProblem?.kind === 'photoTooLarge') {
+      setFormError(t('errors.photoTooLarge', { index: photoProblem.index + 1 }));
+    } else if (photoProblem?.kind === 'unsupportedImage') {
+      setFormError(t('errors.photoUnsupported', { index: photoProblem.index + 1 }));
+    } else if (photoProblem?.kind === 'totalTooLarge') {
+      setFormError(t('errors.totalTooLarge'));
     } else if (status === undefined) {
       setFormError(tErrors('network'));
     } else if (status === 422 || status === 400) {
@@ -148,7 +266,7 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
     createPost.mutate(
       {
         caption,
-        media: photo,
+        media: photos.map((photo) => photo.file),
         spot_id: spotId,
         language: locale,
         weather: weatherValue,
@@ -168,7 +286,7 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!photo && !caption.trim()) {
+    if (photos.length === 0 && !caption.trim()) {
       setFormError(t('errors.empty'));
       return;
     }
@@ -222,36 +340,87 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
 
       <form onSubmit={submit} noValidate>
         <div className={shared.fieldLabel} id='post-photo-label'>
-          {t('photoLabel')}
+          {t('photoLabel')}{' '}
+          <span className={classes.photoCount}>{t('photoCountOf', { count: photos.length, max: postPhotoLimit })}</span>
         </div>
-        <div className={classes.preview}>
-          {preview ? (
-            // biome-ignore lint/performance/noImgElement: a local object URL preview, nothing for next/image to optimise
-            <img src={preview} alt={t('previewAlt')} />
-          ) : (
+        {photos.length === 0 ? (
+          <div className={classes.preview}>
             <span>
               ＋<br />
-              {processing ? t('photoProcessing') : t('photoHint')}
+              {progress ? t('photosProcessing', progress) : t('photoHint', { max: postPhotoLimit })}
             </span>
-          )}
-        </div>
+          </div>
+        ) : (
+          <ol className={classes.thumbs} ref={thumbs} aria-labelledby='post-photo-label'>
+            {photos.map((photo, index) => (
+              <li key={photo.id} className={classes.thumb}>
+                {/* biome-ignore lint/performance/noImgElement: a local object URL preview, nothing for next/image to optimise */}
+                <img src={photo.url} alt={t('previewAlt', { index: index + 1, total: photos.length })} />
+                <span className={classes.thumbIndex} aria-hidden>
+                  {index + 1}
+                </span>
+                <div className={classes.thumbControls}>
+                  <UnstyledButton
+                    className={classes.thumbButton}
+                    data-photo={photo.id}
+                    data-move='earlier'
+                    aria-label={t('movePhotoEarlier', { index: index + 1 })}
+                    disabled={index === 0}
+                    onClick={() => movePhoto(index, 'earlier')}
+                  >
+                    ←
+                  </UnstyledButton>
+                  <UnstyledButton
+                    className={classes.thumbButton}
+                    data-photo={photo.id}
+                    data-move='later'
+                    aria-label={t('movePhotoLater', { index: index + 1 })}
+                    disabled={index === photos.length - 1}
+                    onClick={() => movePhoto(index, 'later')}
+                  >
+                    →
+                  </UnstyledButton>
+                  <UnstyledButton
+                    className={classes.thumbButton}
+                    data-danger
+                    aria-label={t('removePhotoAt', { index: index + 1 })}
+                    onClick={() => removePhoto(photo)}
+                  >
+                    ✕
+                  </UnstyledButton>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
         <div className={classes.photoButtons}>
-          <FileButton onChange={selectPhoto} accept='image/*'>
+          <FileButton onChange={addPhotos} accept='image/*' multiple resetRef={resetPicker} disabled={full}>
             {(props) => (
-              <Button {...props} variant='light' size='sm' loading={processing} aria-describedby='post-photo-label'>
-                {photo ? t('changePhoto') : t('choosePhoto')}
+              <Button
+                {...props}
+                ref={pickerButton}
+                variant='light'
+                size='sm'
+                loading={processing}
+                disabled={full}
+                aria-describedby='post-photo-label'
+              >
+                {photos.length > 0 ? t('addPhotos') : t('choosePhoto')}
               </Button>
             )}
           </FileButton>
-          {photo && (
-            <Button variant='default' size='sm' onClick={() => setPhoto(null)}>
-              {t('removePhoto')}
-            </Button>
-          )}
+          <span className={classes.photoNote}>
+            {progress && photos.length > 0
+              ? t('photosProcessing', progress)
+              : full
+                ? t('photoLimitReached', { max: postPhotoLimit })
+                : ''}
+          </span>
         </div>
         <p className={shared.formError} role='alert'>
           {photoError}
         </p>
+        <VisuallyHidden aria-live='polite'>{photoStatus}</VisuallyHidden>
 
         <Textarea
           className={shared.field}

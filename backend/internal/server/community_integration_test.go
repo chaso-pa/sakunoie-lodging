@@ -34,6 +34,9 @@ import (
 type memStore struct {
 	mu      sync.Mutex
 	objects map[string][]byte
+	// failPut makes the nth Put (1 based) fail, and only that one.
+	failPut int
+	puts    int
 }
 
 func newMemStore() *memStore { return &memStore{objects: map[string][]byte{}} }
@@ -43,6 +46,10 @@ const memStoreBase = "http://storage.test/bucket/"
 func (m *memStore) Put(_ context.Context, key, _ string, data []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.puts++
+	if m.puts == m.failPut {
+		return fmt.Errorf("connection reset")
+	}
 	m.objects[key] = data
 	return nil
 }
@@ -459,6 +466,148 @@ func TestPostFlowIntegration(t *testing.T) {
 	_ = bobID
 }
 
+// decodeStored returns the stored object behind a media URL as an image.
+func decodeStored(t *testing.T, store *memStore, url string) image.Image {
+	t.Helper()
+	data := store.get(url)
+	if data == nil {
+		t.Fatalf("no object stored for %s", url)
+	}
+	if testutil.HasExif(data) {
+		t.Fatalf("%s still carries EXIF", url)
+	}
+	img, format, err := image.Decode(bytes.NewReader(data))
+	if err != nil || format != "jpeg" {
+		t.Fatalf("%s: format %q, err %v", url, format, err)
+	}
+	return img
+}
+
+// mediaURLs reads the media list of a post as the API returned it.
+func mediaURLs(t *testing.T, post map[string]any) []string {
+	t.Helper()
+	media := list(t, post, "media")
+	urls := make([]string, len(media))
+	for i, m := range media {
+		if m["type"] != "photo" {
+			t.Fatalf("media %d = %v", i, m)
+		}
+		urls[i] = m["url"].(string)
+	}
+	return urls
+}
+
+// A post with five photos: every one is stored without EXIF, they come back
+// in the order they were sent wherever the post is read, and deleting the
+// post removes all five objects.
+func TestMultiPhotoPostIntegration(t *testing.T) {
+	a, store := newCommunityApp(t)
+	spotID := a.addSpot(t, "白駒の池", "東信", "自然", true)
+	alice, bob := a.client(t), a.client(t)
+	alice.signup("Alice")
+	bob.signup("Bob")
+
+	// Each photo carries GPS EXIF and has its own width. With
+	// Orientation=6 they are stored a quarter turn round, 20 wide and 40,
+	// 41, ... high. They are sent in the order 3, 1, 5, 2, 4 so that the
+	// order that comes back cannot be any natural one.
+	heights := []int{42, 40, 44, 41, 43}
+	files := make([]filePart, len(heights))
+	for i, h := range heights {
+		files[i] = filePart{"media", "image/jpeg", testutil.JPEGWithGPSExif(t, h, 20)}
+	}
+	r := alice.multipart(http.MethodPost, "/api/posts", map[string]string{"spot_id": spotID}, files...)
+	wantStatus(t, r, http.StatusOK)
+	post := obj(t, r.json(t), "post")
+	postID := post["id"].(string)
+	urls := mediaURLs(t, post)
+	if len(urls) != 5 || store.count() != 5 {
+		t.Fatalf("%d media, %d stored objects, want 5 and 5", len(urls), store.count())
+	}
+	for i, url := range urls {
+		if b := decodeStored(t, store, url).Bounds(); b.Dx() != 20 || b.Dy() != heights[i] {
+			t.Fatalf("photo %d is %dx%d, want 20x%d", i+1, b.Dx(), b.Dy(), heights[i])
+		}
+	}
+
+	// The same five in the same order for another member, in every place
+	// a post is read.
+	sameOrder := func(name string, got []string) {
+		t.Helper()
+		if fmt.Sprint(got) != fmt.Sprint(urls) {
+			t.Fatalf("%s: media = %v, want %v", name, got, urls)
+		}
+	}
+	sameOrder("by id", mediaURLs(t, obj(t, bob.get("/api/posts/"+postID).json(t), "post")))
+	sameOrder("feed", mediaURLs(t, list(t, bob.get("/api/posts").json(t), "posts")[0]))
+	sameOrder("own posts", mediaURLs(t, list(t, alice.get("/api/posts/mine").json(t), "posts")[0]))
+	sameOrder("spot detail", mediaURLs(t, list(t, bob.get("/api/spots/"+spotID).json(t), "posts")[0]))
+	wantStatus(t, bob.postJSON("/api/posts/"+postID+"/bookmark", nil), http.StatusOK)
+	sameOrder("bookmarks", mediaURLs(t, list(t, bob.get("/api/posts/bookmarked").json(t), "posts")[0]))
+
+	// Posts with no photo and with one are unchanged, and each keeps its
+	// own photos when the five-photo post goes.
+	r = alice.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "写真なし"})
+	wantStatus(t, r, http.StatusOK)
+	if media := list(t, obj(t, r.json(t), "post"), "media"); len(media) != 0 {
+		t.Fatalf("media of a post without a photo = %v", media)
+	}
+	r = alice.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "1枚"}, files[0])
+	wantStatus(t, r, http.StatusOK)
+	single := mediaURLs(t, obj(t, r.json(t), "post"))
+	if len(single) != 1 || store.count() != 6 {
+		t.Fatalf("one-photo post: media %v, %d stored objects", single, store.count())
+	}
+
+	wantStatus(t, bob.del("/api/posts/"+postID), http.StatusForbidden)
+	if store.count() != 6 {
+		t.Fatal("a refused delete removed photos")
+	}
+	wantStatus(t, alice.del("/api/posts/"+postID), http.StatusOK)
+	for i, url := range urls {
+		if store.get(url) != nil {
+			t.Fatalf("photo %d is still stored after its post was deleted", i+1)
+		}
+	}
+	if store.count() != 1 || store.get(single[0]) == nil {
+		t.Fatalf("%d objects left, want only the other post's photo", store.count())
+	}
+	var rows int64
+	a.db.Gorm.Model(&models.PostMedia{}).Count(&rows)
+	if rows != 1 {
+		t.Fatalf("post_media has %d rows, want 1", rows)
+	}
+}
+
+// The store fails on the third of five photos: the request fails, the two
+// photos already written are deleted again, and there is no post.
+func TestMultiPhotoUploadFailureIntegration(t *testing.T) {
+	a, store := newCommunityApp(t)
+	c := a.client(t)
+	c.signup("Mika")
+	store.failPut = 3
+
+	photo := filePart{"media", "image/jpeg", testutil.PlainJPEG(t, 8, 8)}
+	r := c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x", "tags": "a,b"}, photo, photo, photo, photo, photo)
+	wantDetail(t, r, http.StatusServiceUnavailable, "image storage is unavailable")
+	if store.puts != 3 || store.count() != 0 {
+		t.Fatalf("%d writes, %d objects left, want 3 and 0", store.puts, store.count())
+	}
+	for _, model := range []any{&models.Post{}, &models.PostMedia{}, &models.PostTag{}} {
+		var n int64
+		a.db.Gorm.Model(model).Count(&n)
+		if n != 0 {
+			t.Fatalf("%T has %d rows after a failed upload", model, n)
+		}
+	}
+
+	// The store is back: the same request goes through.
+	wantStatus(t, c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"}, photo, photo, photo, photo, photo), http.StatusOK)
+	if store.count() != 5 {
+		t.Fatalf("%d objects stored, want 5", store.count())
+	}
+}
+
 func TestPostUploadRejectionsIntegration(t *testing.T) {
 	a, store := newCommunityApp(t)
 	c := a.client(t)
@@ -494,16 +643,58 @@ func TestPostUploadRejectionsIntegration(t *testing.T) {
 		assertNothingCreated("gif as " + contentType)
 	}
 
-	// More than one photo.
-	r = c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"},
-		filePart{"media", "image/jpeg", jpeg}, filePart{"media", "image/jpeg", jpeg})
-	wantStatus(t, r, http.StatusUnprocessableEntity)
-	if !strings.Contains(r.Body.String(), "only one was expected") {
-		t.Fatalf("two photos: body = %s", r.Body)
+	// wantCode checks the single entry of the 422's "errors" list, which
+	// is what tells the app why the photos were refused.
+	wantCode := func(name string, r response, detail, code, location string) {
+		t.Helper()
+		wantDetail(t, r, http.StatusUnprocessableEntity, detail)
+		errs := list(t, r.json(t), "errors")
+		if len(errs) != 1 || errs[0]["message"] != code || errs[0]["location"] != location {
+			t.Fatalf("%s: errors = %v, want %s at %s", name, errs, code, location)
+		}
+		assertNothingCreated(name)
 	}
-	assertNothingCreated("two photos")
+	photo := filePart{"media", "image/jpeg", jpeg}
 
-	// Over 10MB.
+	// A sixth photo.
+	r = c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"}, photo, photo, photo, photo, photo, photo)
+	wantCode("six photos", r, "at most 5 photos are allowed", "too_many_photos", "body.media")
+
+	// One file that is not an image among good ones, labelled image/jpeg.
+	// Nothing is stored, not even the photos before it.
+	r = c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"},
+		photo, photo, filePart{"media", "image/jpeg", []byte("#!/bin/sh\necho pwned\n")}, photo)
+	wantCode("script among photos", r, "photo 3 is not a supported image (JPEG, PNG or WebP)", "unsupported_image", "body.media[2]")
+	if store.puts != 0 {
+		t.Fatalf("%d photos were written to storage before the post was refused", store.puts)
+	}
+
+	// The same file with an honest label is refused by Huma, which names
+	// the part too.
+	r = c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"},
+		photo, filePart{"media", "text/plain", []byte("hello")})
+	wantStatus(t, r, http.StatusUnprocessableEntity)
+	if errs := list(t, r.json(t), "errors"); len(errs) != 1 || errs[0]["location"] != "media[1]" {
+		t.Fatalf("text file among photos: body = %s", r.Body)
+	}
+	assertNothingCreated("text file among photos")
+
+	// One photo over 4MB among good ones: the request as a whole is under
+	// the 10MB cap, so it is this photo that is refused.
+	r = c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"},
+		photo, filePart{"media", "image/jpeg", append(testutil.PlainJPEG(t, 8, 8), make([]byte, services.MaxPostPhotoBytes)...)}, photo)
+	wantCode("5MB photo", r, "photo 2 is too large (at most 4MB each)", "photo_too_large", "body.media[1]")
+
+	// Photos that are each allowed but together over 10MB.
+	almost := filePart{"media", "image/jpeg", append(testutil.PlainJPEG(t, 8, 8), make([]byte, services.MaxPostPhotoBytes-1024)...)}
+	r = c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"}, almost, almost, almost)
+	wantStatus(t, r, http.StatusUnprocessableEntity)
+	if !strings.Contains(r.Body.String(), "request body too large") {
+		t.Fatalf("three 4MB photos: body = %s", r.Body)
+	}
+	assertNothingCreated("three 4MB photos")
+
+	// One file over 10MB.
 	r = c.multipart(http.MethodPost, "/api/posts", map[string]string{"caption": "x"},
 		filePart{"media", "image/jpeg", append(jpeg, make([]byte, 11<<20)...)})
 	wantStatus(t, r, http.StatusUnprocessableEntity)
@@ -1426,6 +1617,29 @@ func TestPostImageOnS3Integration(t *testing.T) {
 	wantStatus(t, c.del("/api/posts/"+postID), http.StatusOK)
 	if status, _ := fetch(url); status != http.StatusNotFound {
 		t.Fatalf("GET after the post was deleted = %d, want 404", status)
+	}
+
+	// Five photos in one post: five objects without EXIF, all of them gone
+	// with the post. The bucket must be empty for the cleanup to remove it.
+	photo := filePart{"media", "image/jpeg", testutil.JPEGWithGPSExif(t, 64, 32)}
+	r = c.multipart(http.MethodPost, "/api/posts", nil, photo, photo, photo, photo, photo)
+	wantStatus(t, r, http.StatusOK)
+	post := obj(t, r.json(t), "post")
+	urls := mediaURLs(t, post)
+	if len(urls) != 5 {
+		t.Fatalf("media = %v, want 5 photos", urls)
+	}
+	for _, url := range urls {
+		status, body := fetch(url)
+		if status != http.StatusOK || testutil.HasExif(body) {
+			t.Fatalf("GET %s = %d, EXIF %v", url, status, testutil.HasExif(body))
+		}
+	}
+	wantStatus(t, c.del("/api/posts/"+post["id"].(string)), http.StatusOK)
+	for _, url := range urls {
+		if status, _ := fetch(url); status != http.StatusNotFound {
+			t.Fatalf("GET %s after the post was deleted = %d, want 404", url, status)
+		}
 	}
 }
 
