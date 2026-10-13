@@ -25,6 +25,9 @@ func NewRouter(deps *routes.Deps) (*gin.Engine, error) {
 		logger = slog.Default()
 	}
 	release := deps.Config != nil && deps.Config.IsRelease()
+	if deps.Places == nil {
+		deps.Places = routes.NewPlaces(deps)
+	}
 	r := gin.New()
 	// gin.Logger and gin.Recovery are not used: the first logs query strings
 	// (search text, coordinates) and the second dumps request headers,
@@ -68,6 +71,10 @@ func NewRouter(deps *routes.Deps) (*gin.Engine, error) {
 		middlewares.ForRoute(http.MethodPost, apiPrefix+"/ai/plan", limits.AI),
 		middlewares.ForRoute(http.MethodPost, apiPrefix+"/translate", limits.Translate),
 		middlewares.ForRoute(http.MethodPost, apiPrefix+"/posts", limits.Post),
+		middlewares.ForRoute(http.MethodPost, apiPrefix+"/places/search", limits.PlaceSearch),
+		middlewares.ForRoute(http.MethodPost, apiPrefix+"/places/nearby", limits.PlaceNearby),
+		middlewares.ForRoute(http.MethodPost, apiPrefix+"/places/reverse", limits.PlaceReverse),
+		middlewares.ForRoute(http.MethodPost, apiPrefix+"/spots", limits.SpotRegister),
 	)
 
 	// Two Huma APIs on the same /api prefix: public and auth-required. Their
@@ -79,6 +86,7 @@ func NewRouter(deps *routes.Deps) (*gin.Engine, error) {
 	routes.SetupStaticRoutes(r) // /health (raw Gin)
 	routes.SetupAuthRoutes(publicAPI, authAPI, deps)
 	routes.SetupSpotRoutes(publicAPI, authAPI, deps)
+	routes.SetupPlaceRoutes(publicAPI, authAPI, deps)
 	routes.SetupPostRoutes(publicAPI, authAPI, deps)
 	routes.SetupGpsVisitRoutes(publicAPI, authAPI, deps)
 	routes.SetupMemberRoutes(publicAPI, authAPI, deps)

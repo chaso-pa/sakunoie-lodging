@@ -46,14 +46,20 @@ var seedMembers = []seedMember{
 	{"Mina · Korea", "ko"},
 }
 
+// Positions of the public landmarks, from OpenStreetMap (© OpenStreetMap
+// contributors), so the place picker can draw the curated spots on its map.
+// 佐久の家 has none on purpose: it is a home the host lives in, GET /spots is
+// public, and whether to publish its position is the host's decision.
 var seedSpots = []models.Spot{
-	{Name: "白駒の池", Area: "東信", Category: "自然", Emoji: "🌲", Description: "苔の森に囲まれた、静かな湖。朝の散策がおすすめ。"},
-	{Name: "軽井沢・雲場池", Area: "東信", Category: "自然", Emoji: "🍁", Description: "水面に映る木々が美しい散策スポット。"},
+	{Name: "白駒の池", Area: "東信", Category: "自然", Emoji: "🌲", Description: "苔の森に囲まれた、静かな湖。朝の散策がおすすめ。", Latitude: at(36.0512), Longitude: at(138.3617)},
+	{Name: "軽井沢・雲場池", Area: "東信", Category: "自然", Emoji: "🍁", Description: "水面に映る木々が美しい散策スポット。", Latitude: at(36.3521), Longitude: at(138.6269)},
 	{Name: "佐久の家", Area: "東信", Category: "宿泊", Emoji: "🏡", Description: "長野県佐久市にある、旅の拠点になる家主居住型の宿。"},
-	{Name: "松本城", Area: "中信", Category: "歴史", Emoji: "🏯", Description: "黒い天守が印象的な国宝。城下町さんぽも楽しめます。"},
-	{Name: "諏訪湖", Area: "南信", Category: "自然", Emoji: "🌅", Description: "湖畔の散歩や夕景を楽しめるスポット。"},
-	{Name: "善光寺", Area: "北信", Category: "歴史", Emoji: "⛩️", Description: "門前町の食べ歩きと合わせて訪れたい名所。"},
+	{Name: "松本城", Area: "中信", Category: "歴史", Emoji: "🏯", Description: "黒い天守が印象的な国宝。城下町さんぽも楽しめます。", Latitude: at(36.2386), Longitude: at(137.9689)},
+	{Name: "諏訪湖", Area: "南信", Category: "自然", Emoji: "🌅", Description: "湖畔の散歩や夕景を楽しめるスポット。", Latitude: at(36.0479), Longitude: at(138.0833)},
+	{Name: "善光寺", Area: "北信", Category: "歴史", Emoji: "⛩️", Description: "門前町の食べ歩きと合わせて訪れたい名所。", Latitude: at(36.6614), Longitude: at(138.1877)},
 }
+
+func at(v float64) *float64 { return &v }
 
 type seedPost struct {
 	key      string
@@ -170,8 +176,18 @@ func seed(tx *gorm.DB) error {
 	for _, s := range seedSpots {
 		s.ID = seedID("spot", s.Name)
 		s.IsSample = true
+		s.Source = models.SpotSourceSeed
 		if err := tx.Create(&s).Error; err != nil {
 			return err
+		}
+		// Rows seeded before spots had positions get theirs here. A position
+		// already on the row is left alone.
+		if s.Latitude != nil && s.Longitude != nil {
+			if err := tx.Model(&models.Spot{}).
+				Where("id = ? AND source = ? AND latitude IS NULL AND longitude IS NULL", s.ID, models.SpotSourceSeed).
+				Updates(map[string]any{"latitude": *s.Latitude, "longitude": *s.Longitude}).Error; err != nil {
+				return err
+			}
 		}
 	}
 

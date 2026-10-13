@@ -8,6 +8,7 @@ import { MemberAvatar } from '@/components/MemberAvatar';
 import { EmptyState, ErrorState, LoadingState } from '@/components/QueryState';
 import { SampleBadge } from '@/components/SampleBadge';
 import { SpotArt } from '@/components/SpotArt';
+import { SpotCredit } from '@/components/SpotCredit';
 import { TranslatableText } from '@/components/TranslatableText';
 import { paths } from '@/config/paths';
 import { type SpotPost, useSpot } from '@/features/map/api/get-spot';
@@ -96,13 +97,17 @@ export function SpotDetailPage({ spotId }: { spotId: string }) {
         <SpotArt emoji={spot.emoji} title={spot.name} />
       </div>
       <div style={{ padding: '1px 2px 0' }}>
-        <span className={shared.pill}>
-          {areaLabel(spot.area)} · {spot.category}
-        </span>{' '}
+        <span className={shared.pill}>{[areaLabel(spot.area), spot.category].filter(Boolean).join(' · ')}</span>{' '}
         {spot.is_sample && <SampleBadge />}
         <h1 className={shared.h1} style={{ marginTop: 10 }}>
           {spot.emoji} {spot.name}
         </h1>
+        {spot.address && (
+          <p className={shared.muted} translate='no'>
+            {spot.address}
+          </p>
+        )}
+        <SpotCredit source={spot.source} />
         <p className={shared.body} style={{ fontSize: 14 }}>
           {spot.description}
         </p>

@@ -27,7 +27,7 @@ func (h *SpotHandlers) ListSpots(ctx context.Context, input *models.ListSpotsInp
 }
 
 func (h *SpotHandlers) GetSpot(ctx context.Context, input *models.GetSpotInput) (*models.GetSpotOutput, error) {
-	detail, err := h.spots.Get(ctx, input.ID)
+	detail, err := h.spots.Get(ctx, middlewares.GetMemberID(ctx), input.ID)
 	if err != nil {
 		return nil, serviceError(ctx, "get spot", err)
 	}

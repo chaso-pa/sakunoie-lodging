@@ -8,9 +8,32 @@ import (
 
 type PostSpotResponse struct {
 	ID    string `json:"id" doc:"スポット ID"`
-	Name  string `json:"name" doc:"スポット名"`
+	Name  string `json:"name" doc:"スポット名（google のスポットで詳細を取得できなかったときは空文字）"`
 	Emoji string `json:"emoji" doc:"絵文字"`
-	Area  string `json:"area" doc:"地域"`
+	Area  string `json:"area" doc:"地域（なければ空文字）"`
+
+	Source           string   `json:"source" enum:"seed,osm,google,manual" doc:"取得元"`
+	Address          *string  `json:"address" doc:"住所（不明なら null）"`
+	Latitude         *float64 `json:"latitude" doc:"緯度（不明なら null）"`
+	Longitude        *float64 `json:"longitude" doc:"経度（不明なら null）"`
+	MapURL           *string  `json:"map_url" doc:"地図サービスの URL（なければ null）"`
+	DetailsAvailable bool     `json:"details_available" doc:"google のスポットで詳細の取得に失敗したときだけ false"`
+}
+
+// NewPostSpotResponse is the part of a spot a post carries.
+func NewPostSpotResponse(s *SpotResponse) *PostSpotResponse {
+	return &PostSpotResponse{
+		ID:               s.ID,
+		Name:             s.Name,
+		Emoji:            s.Emoji,
+		Area:             s.Area,
+		Source:           s.Source,
+		Address:          s.Address,
+		Latitude:         s.Latitude,
+		Longitude:        s.Longitude,
+		MapURL:           s.MapURL,
+		DetailsAvailable: s.DetailsAvailable,
+	}
 }
 
 // PostResponse is a post as one member sees it: is_liked, is_bookmarked and
@@ -22,7 +45,7 @@ type PostResponse struct {
 	Caption      string            `json:"caption" doc:"キャプション"`
 	Media        []MediaResponse   `json:"media" doc:"写真"`
 	Language     string            `json:"language" doc:"投稿言語"`
-	Area         *string           `json:"area" doc:"地域（スポットの地域、なければ投稿時に選んだ地域）"`
+	Area         *string           `json:"area" doc:"地域（スポットの地域、スポットに地域がなければ投稿時に選んだ地域）"`
 	Weather      *string           `json:"weather" doc:"天気"`
 	Temperature  *float64          `json:"temperature" doc:"気温（℃）"`
 	VisitedAt    *string           `json:"visited_at" doc:"訪問日（YYYY-MM-DD）"`
@@ -77,7 +100,7 @@ type CreatePostFormData struct {
 	Weather     string        `form:"weather" maxLength:"20" doc:"天気" required:"false"`
 	Temperature string        `form:"temperature" maxLength:"10" doc:"気温（数値文字列）" required:"false"`
 	VisitedAt   string        `form:"visited_at" maxLength:"10" doc:"訪問日（YYYY-MM-DD）" required:"false"`
-	Area        string        `form:"area" maxLength:"20" doc:"地域（スポット未指定のとき使う）" required:"false"`
+	Area        string        `form:"area" maxLength:"20" doc:"地域（スポット未指定、またはスポットに地域がないとき使う）" required:"false"`
 	Tags        string        `form:"tags" maxLength:"300" doc:"タグ（カンマ区切り）" required:"false"`
 }
 

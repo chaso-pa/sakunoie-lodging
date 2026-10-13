@@ -22,6 +22,12 @@ type ExternalEndpoints struct {
 	OpenRouterBaseURL string
 	MyMemoryBaseURL   string
 	OpenMeteoBaseURL  string
+	// The place providers. For these an empty field means the configured
+	// base URL (NOMINATIM_BASE_URL and so on), then the real service.
+	NominatimBaseURL       string
+	PhotonBaseURL          string
+	GooglePlacesBaseURL    string
+	GoogleGeocodingBaseURL string
 }
 
 func orDefault(value, fallback string) string {

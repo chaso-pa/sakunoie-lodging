@@ -3,6 +3,7 @@ package middlewares
 import (
 	"net/http"
 	"net/netip"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -46,15 +47,33 @@ const (
 //
 // Invite and Transfer are keyed by client IP (c.ClientIP(), which is only
 // trustworthy after gin.Engine.SetTrustedProxies), or share one bucket when
-// no client address was forwarded. AI, Translate and Post are keyed by
-// member id and must run after RequireAuth.
+// no client address was forwarded. The rest are keyed by member id and
+// must run after RequireAuth.
+//
+// The place limits protect two things: the member-generated list of spots
+// from being filled by one account, and the upstream services, which the
+// whole application shares at about one request per second (see
+// services.OSMPlaceProvider) or pays for per request (Google).
 type RateLimiters struct {
 	Invite    gin.HandlerFunc // POST /api/auth/verify-invite: 5/min per IP, or 30/min shared
 	Transfer  gin.HandlerFunc // POST /api/auth/transfer: 3/min per IP, or 30/min shared
 	AI        gin.HandlerFunc // POST /api/ai/plan: 10/min per member
 	Translate gin.HandlerFunc // POST /api/translate: 30/min per member
 	Post      gin.HandlerFunc // POST /api/posts: 20/day per member
+
+	PlaceSearch  gin.HandlerFunc // POST /api/places/search: 20/min per member
+	PlaceNearby  gin.HandlerFunc // POST /api/places/nearby: 10/min per member
+	PlaceReverse gin.HandlerFunc // POST /api/places/reverse: 20/min per member
+	SpotRegister gin.HandlerFunc // POST /api/spots: 40/day per member
 }
+
+// Per-member limits of the place endpoints.
+const (
+	PlaceSearchLimitPerMinute  = 20
+	PlaceNearbyLimitPerMinute  = 10
+	PlaceReverseLimitPerMinute = 20
+	SpotRegisterLimitPerDay    = 40
+)
 
 // NewRateLimiters builds the limiters on in-memory stores, which is enough
 // for a single instance. Counters reset when the process restarts.
@@ -92,6 +111,11 @@ func NewRateLimiters() *RateLimiters {
 		AI:        perMember("ai", limiter.Rate{Period: time.Minute, Limit: 10}),
 		Translate: perMember("translate", limiter.Rate{Period: time.Minute, Limit: 30}),
 		Post:      perMember("post", limiter.Rate{Period: 24 * time.Hour, Limit: 20}),
+
+		PlaceSearch:  perMember("place-search", limiter.Rate{Period: time.Minute, Limit: PlaceSearchLimitPerMinute}),
+		PlaceNearby:  perMember("place-nearby", limiter.Rate{Period: time.Minute, Limit: PlaceNearbyLimitPerMinute}),
+		PlaceReverse: perMember("place-reverse", limiter.Rate{Period: time.Minute, Limit: PlaceReverseLimitPerMinute}),
+		SpotRegister: perMember("spot-register", limiter.Rate{Period: 24 * time.Hour, Limit: SpotRegisterLimitPerDay}),
 	}
 }
 
@@ -102,7 +126,12 @@ var memberKey = mgin.WithKeyGetter(func(c *gin.Context) string {
 	return c.ClientIP() // runs after RequireAuth, so normally unreachable
 })
 
+// limitReached answers 429 with Retry-After: the seconds until the window
+// resets, from the X-RateLimit-Reset time the limiter has already set.
 var limitReached = mgin.WithLimitReachedHandler(func(c *gin.Context) {
+	if reset, err := strconv.ParseInt(c.Writer.Header().Get("X-RateLimit-Reset"), 10, 64); err == nil {
+		c.Header("Retry-After", strconv.FormatInt(max(reset-time.Now().Unix(), 1), 10))
+	}
 	abortWithProblem(c, http.StatusTooManyRequests, "rate limit exceeded")
 })
 

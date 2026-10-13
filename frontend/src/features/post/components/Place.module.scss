@@ -1,0 +1,390 @@
+// Place picker of the composer. Colours, radii and type sizes follow components/Community.module.scss.
+
+.picker {
+  margin: 12px 0;
+  // Focusing the search box scrolls it to the top so the results below stay above the on-screen keyboard;
+  // this keeps it clear of the sticky header.
+  scroll-margin-top: 78px;
+}
+
+.helper {
+  margin-top: 6px;
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+// Buttons whose text differs a lot in length between languages: let it wrap instead of clipping.
+.wrapButton {
+  height: auto;
+  min-height: 44px;
+  padding-block: 8px;
+  padding-inline: 10px;
+}
+
+.wrapLabel {
+  white-space: normal;
+  line-height: 1.35;
+  overflow: visible;
+}
+
+.status {
+  display: block;
+  margin-top: 8px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.groupTitle {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: var(--saku-green);
+  margin: 12px 0 6px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--saku-line);
+  border-radius: 15px;
+  overflow: hidden;
+  background: #fff;
+
+  > li + li {
+    border-top: 1px solid var(--saku-line);
+  }
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px 10px 12px;
+  min-height: 60px;
+  text-align: left;
+  color: var(--saku-ink);
+
+  &:focus-visible {
+    outline: 2px solid var(--saku-green);
+    outline-offset: -2px;
+  }
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.name {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.address {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--saku-muted);
+  overflow-wrap: anywhere;
+}
+
+.originalName {
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #3d5a4b;
+  overflow-wrap: anywhere;
+}
+
+.rowTags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.distance {
+  font-size: 11px;
+  color: var(--saku-muted);
+}
+
+.thumb {
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.rowMap {
+  flex: 0 0 56px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  align-content: center;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 750;
+  color: var(--saku-green);
+  text-decoration: none;
+  text-align: center;
+  border-left: 1px solid var(--saku-line);
+  padding: 4px 2px;
+  overflow-wrap: anywhere;
+
+  span {
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--saku-green);
+    outline-offset: -2px;
+  }
+}
+
+.stateBox {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #5d6b64;
+  background: #f5f8f6;
+  border-radius: 12px;
+  padding: 11px 12px;
+  margin-top: 8px;
+
+  &[data-error] {
+    background: #fbf1f1;
+    color: #8a3a3a;
+  }
+}
+
+.searching {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attribution {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--saku-muted);
+  margin: 6px 2px 0;
+  text-align: right;
+
+  a {
+    color: inherit;
+  }
+
+  // Google requires its name next to Places data shown without a Google map.
+  &[data-google] {
+    font-size: 12px;
+    font-weight: 500;
+    color: #5e5e5e;
+    letter-spacing: 0.2px;
+  }
+}
+
+.linkButton {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--saku-green);
+  text-decoration: underline;
+  padding: 10px 2px;
+  min-height: 44px;
+
+  &:focus-visible {
+    outline: 2px solid var(--saku-green);
+    outline-offset: 2px;
+  }
+}
+
+.suggestion {
+  min-height: 40px;
+  padding: 10px 14px;
+}
+
+// Chosen place
+.selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #eef5ef;
+  border: 1px solid #d7e5d9;
+  border-radius: 14px;
+}
+
+.selectedNote {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #3d5a4b;
+  margin-top: 2px;
+}
+
+.selectedActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+// Map sheet
+.sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.mapWrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 260px;
+  background: #e5eee1;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  // Leaflet's panes use z-indexes up to 1000; keep them inside this box, under the modal's own layers.
+  isolation: isolate;
+  font-family: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--saku-green);
+    outline-offset: -2px;
+  }
+}
+
+.mapLoading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.mapTools {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+    box-shadow: 0 3px 10px #23402a22;
+  }
+}
+
+.marker {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+  background: #fff;
+  border: 2px solid var(--saku-green);
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  box-shadow: 0 3px 10px #23402a33;
+
+  // The pin is a rotated square with one sharp corner; its content is turned back upright.
+  > span {
+    transform: rotate(45deg);
+  }
+
+  &[data-selected] {
+    background: var(--saku-green);
+    transform: rotate(-45deg) scale(1.15);
+  }
+}
+
+.meDot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2a7de1;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px #2a7de133;
+}
+
+.panel {
+  flex: 0 0 auto;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: var(--saku-paper);
+  border-top: 1px solid var(--saku-line);
+  max-height: 55%;
+  overflow-y: auto;
+}
+
+.panelPlace {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  align-content: center;
+}
+
+.panelActions {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.positionRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+// Mantine Modal parts of the map sheet: the body fills what the header leaves, so the map can flex.
+.mapModal {
+  display: flex;
+  flex-direction: column;
+  height: min(86dvh, 760px);
+  overflow: hidden;
+
+  &[data-full-screen] {
+    height: 100dvh;
+  }
+}
+
+.mapModalHeader {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--saku-line);
+}
+
+.mapModalBody {
+  flex: 1 1 auto;
+  min-height: 0;
+}

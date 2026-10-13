@@ -474,6 +474,43 @@
   }
 }
 
+.place {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.placeLink {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--saku-green);
+  padding: 2px 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--saku-green);
+    outline-offset: 2px;
+  }
+}
+
+.credit {
+  display: block;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--saku-muted);
+
+  // Google's attribution rules: its name in a neutral colour, not smaller than the surrounding credit text.
+  &[data-google] {
+    font-size: 12px;
+    font-weight: 500;
+    color: #5e5e5e;
+    letter-spacing: 0.2px;
+  }
+}
+
 .weather {
   display: inline-flex;
   align-items: center;

@@ -125,9 +125,7 @@ export function TripsPage() {
                   <div className={classes.spotText}>
                     <strong>{spot.name}</strong>
                     <br />
-                    <small>
-                      {areaLabel(spot.area)} · {spot.category}
-                    </small>
+                    <small>{[areaLabel(spot.area), spot.category].filter(Boolean).join(' · ')}</small>
                   </div>
                 </Link>
               ))}

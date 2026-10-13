@@ -238,7 +238,7 @@ func TestRankingsIntegration(t *testing.T) {
 	}
 	s.ToggleLike(ctx, alice, freePost.ID)
 
-	spots, err := s.SpotRanking(ctx, 3)
+	spots, err := s.SpotRanking(ctx, "", 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,11 +255,11 @@ func TestRankingsIntegration(t *testing.T) {
 	if spots[1].Score != 3 || spots[1].Rank != 2 || spots[2].Score != 0 || spots[2].Rank != 3 {
 		t.Fatalf("scores = %d, %d", spots[1].Score, spots[2].Score)
 	}
-	if two, _ := s.SpotRanking(ctx, 2); len(two) != 2 {
+	if two, _ := s.SpotRanking(ctx, "", 2); len(two) != 2 {
 		t.Fatalf("limit 2 returned %d", len(two))
 	}
 
-	posts, err := s.PostRanking(ctx, 3)
+	posts, err := s.PostRanking(ctx, "", 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestDeletePostIntegration(t *testing.T) {
 	if feed, total, err := s.List(ctx, bob, PostFilter{}); err != nil || total != 1 || len(feed) != 1 {
 		t.Fatalf("feed = %d of %d, %v", len(feed), total, err)
 	}
-	if _, err := s.PostRanking(ctx, 3); err != nil {
+	if _, err := s.PostRanking(ctx, "", 3); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Delete(ctx, alice, post.ID); !errors.Is(err, ErrPostNotFound) {

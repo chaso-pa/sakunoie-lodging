@@ -204,6 +204,10 @@ var protectedRoutes = []struct{ method, path string }{
 	{http.MethodPost, "/api/translate"},
 	{http.MethodPost, "/api/ai/plan"},
 	{http.MethodGet, "/api/weather"},
+	{http.MethodPost, "/api/places/search"},
+	{http.MethodPost, "/api/places/nearby"},
+	{http.MethodPost, "/api/places/reverse"},
+	{http.MethodPost, "/api/spots"},
 }
 
 func TestProtectedRoutesRequireAuthIntegration(t *testing.T) {
