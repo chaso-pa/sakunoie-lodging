@@ -1,12 +1,13 @@
 'use client';
 
-import { Button, Group, Image, Modal, UnstyledButton } from '@mantine/core';
+import { Button, Group, Modal, UnstyledButton } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import classes from '@/components/Community.module.scss';
 import { MemberAvatar } from '@/components/MemberAvatar';
+import { PostPhotos } from '@/components/PostPhotos';
 import { SampleBadge } from '@/components/SampleBadge';
 import { SpotArt } from '@/components/SpotArt';
 import { SpotCredit } from '@/components/SpotCredit';
@@ -22,21 +23,11 @@ export const getPostDate = (post: Post) => post.visited_at ?? post.created_at.sl
 
 export function PostMedia({ post, compact }: { post: Post; compact?: boolean }) {
   const t = useTranslations('community');
-  const photo = post.media.find((media) => media.type === 'photo');
+  const photos = post.media.filter((media) => media.type === 'photo');
   const placeName = post.spot?.name ?? t('common.unknownSpot');
 
-  if (photo) {
-    return (
-      <div className={classes.mediaBox} style={compact ? { height: '100%' } : undefined}>
-        <Image
-          src={photo.url}
-          alt={t('post.photoAlt', { nickname: post.member.nickname })}
-          loading='lazy'
-          h='100%'
-          fit='cover'
-        />
-      </div>
-    );
+  if (photos.length > 0) {
+    return <PostPhotos photos={photos} nickname={post.member.nickname} compact={compact} />;
   }
   return <SpotArt emoji={post.spot?.emoji ?? '📍'} title={placeName} compact={compact} />;
 }

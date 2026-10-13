@@ -4,20 +4,29 @@ import { locales } from '@/i18n/config';
 import { api } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { postSchema } from '@/types/community';
-import { uploadMaxBytes } from '@/utils/downscale-image';
+import { postPhotoMaxBytes, uploadMaxBytes } from '@/utils/downscale-image';
 
 export const captionMaxLength = 2000;
 export const tagsMaxLength = 300;
+/** Photos one post can carry. The API refuses a sixth. */
+export const postPhotoLimit = 5;
 
 export const createPostInputSchema = z
   .object({
     caption: z.string().trim().max(captionMaxLength),
-    /** Already downscaled to a JPEG (see utils/downscale-image). The API accepts one photo per post. */
+    /**
+     * Already downscaled to JPEGs (see utils/downscale-image), in the order they are shown. The API takes
+     * up to five, 4MB each, in a request of at most 10MB.
+     */
     media: z
-      .instanceof(File)
-      .refine((file) => file.type === 'image/jpeg')
-      .refine((file) => file.size <= uploadMaxBytes)
-      .nullable(),
+      .array(
+        z
+          .instanceof(File)
+          .refine((file) => file.type === 'image/jpeg')
+          .refine((file) => file.size <= postPhotoMaxBytes)
+      )
+      .max(postPhotoLimit)
+      .refine((files) => files.reduce((total, file) => total + file.size, 0) <= uploadMaxBytes),
     spot_id: z.string(),
     language: z.enum(locales),
     weather: z.string().max(20),
@@ -27,7 +36,7 @@ export const createPostInputSchema = z
     area: z.string(),
     tags: z.string().max(tagsMaxLength)
   })
-  .refine((value) => value.caption !== '' || value.media !== null);
+  .refine((value) => value.caption !== '' || value.media.length > 0);
 export type CreatePostInput = z.infer<typeof createPostInputSchema>;
 
 export const createPostResponseSchema = z.object({ post: postSchema });
@@ -56,8 +65,9 @@ const createPost = async (data: CreatePostInput) => {
   if (input.tags.trim()) {
     form.append('tags', input.tags.trim());
   }
-  if (input.media) {
-    form.append('media', input.media);
+  // One `media` part per photo: the API keeps the order of the parts.
+  for (const photo of input.media) {
+    form.append('media', photo);
   }
   const response = await api.post('/posts', form);
   return createPostResponseSchema.parse(response.data).post;

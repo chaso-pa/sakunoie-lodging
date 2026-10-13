@@ -1,10 +1,11 @@
 'use client';
 
-import { Button, Image } from '@mantine/core';
+import { Button } from '@mantine/core';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import shared from '@/components/Community.module.scss';
 import { MemberAvatar } from '@/components/MemberAvatar';
+import { PostPhotos } from '@/components/PostPhotos';
 import { EmptyState, ErrorState, LoadingState } from '@/components/QueryState';
 import { SampleBadge } from '@/components/SampleBadge';
 import { SpotArt } from '@/components/SpotArt';
@@ -18,21 +19,12 @@ import { useCommunityLabels } from '@/hooks/use-community-labels';
 import { getApiErrorStatus } from '@/lib/api-client';
 
 function SpotPostCard({ post, emoji, spotName }: { post: SpotPost; emoji: string; spotName: string }) {
-  const t = useTranslations('community');
-  const photo = post.media.find((media) => media.type === 'photo');
+  const photos = post.media.filter((media) => media.type === 'photo');
 
   return (
     <article className={shared.card}>
-      {photo ? (
-        <div className={shared.mediaBox}>
-          <Image
-            src={photo.url}
-            alt={t('post.photoAlt', { nickname: post.member.nickname })}
-            loading='lazy'
-            h='100%'
-            fit='cover'
-          />
-        </div>
+      {photos.length > 0 ? (
+        <PostPhotos photos={photos} nickname={post.member.nickname} />
       ) : (
         <SpotArt emoji={emoji} title={spotName} />
       )}

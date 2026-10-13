@@ -48,13 +48,14 @@ func (h *PostHandlers) GetPost(ctx context.Context, input *models.PostIDInput) (
 }
 
 func (h *PostHandlers) CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.PostOutput, error) {
-	// One photo per post: "media" is a single huma.FormFile, and Huma
-	// answers 422 when a request carries more than one part of that name.
+	// "media" is a []huma.FormFile: the form repeats the part once per
+	// photo, and Huma hands them over in the order they were sent. Their
+	// number is checked by the service, before anything is stored.
 	data := input.RawBody.Data()
-	var media io.Reader
-	if data.Media.IsSet {
-		defer data.Media.Close()
-		media = data.Media
+	media := make([]io.Reader, len(data.Media))
+	for i, file := range data.Media {
+		defer file.Close()
+		media[i] = file
 	}
 	post, err := h.posts.Create(ctx, middlewares.GetMemberID(ctx), services.CreatePostParams{
 		Caption:     data.Caption,

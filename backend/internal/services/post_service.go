@@ -21,6 +21,8 @@ import (
 
 const (
 	maxCaptionLength = 2000
+	// MaxPostPhotos is how many photos one post can carry.
+	MaxPostPhotos    = 5
 	maxTags          = 10
 	maxTagLength     = 50
 	maxWeatherLength = 20
@@ -307,7 +309,8 @@ func memberPostSet(db *gorm.DB, model any, memberID string, postIDs []string) (m
 	return set, nil
 }
 
-// CreatePostParams is the post form as the handler read it. Media may be nil.
+// CreatePostParams is the post form as the handler read it. Media holds the
+// photos in the order the member put them, and may be empty.
 type CreatePostParams struct {
 	Caption     string
 	SpotID      string
@@ -317,7 +320,7 @@ type CreatePostParams struct {
 	VisitedAt   string
 	Area        string
 	Tags        string
-	Media       io.Reader
+	Media       []io.Reader
 }
 
 // ParseTags splits a comma separated tag list ("自然, カフェ、秋旅"),
@@ -342,18 +345,22 @@ func ParseTags(input string) ([]string, error) {
 	return tags, nil
 }
 
-// Create validates the form, stores the photo and inserts the post with its
+// Create validates the form, stores the photos and inserts the post with its
 // media and tag rows in one transaction.
 //
-// The photo is uploaded before the transaction, because an invalid image
-// must reject the request without leaving a post behind. If the insert then
-// fails, the stored object is removed again.
+// The photos are uploaded before the transaction, because an invalid image
+// must reject the request without leaving a post behind. The upload is all
+// or nothing (storage.ImageUploader.UploadImages), and if the insert then
+// fails, the stored objects are removed again.
 func (s *PostService) Create(ctx context.Context, memberID string, p CreatePostParams) (*models.PostResponse, error) {
 	caption := strings.TrimSpace(p.Caption)
 	if utf8.RuneCountInString(caption) > maxCaptionLength {
 		return nil, invalid("caption must be at most 2000 characters")
 	}
-	if caption == "" && p.Media == nil {
+	if len(p.Media) > MaxPostPhotos {
+		return nil, ErrTooManyPhotos
+	}
+	if caption == "" && len(p.Media) == 0 {
 		return nil, invalid("a caption or a photo is required")
 	}
 	language, err := ValidateLanguage(p.Language)
@@ -411,11 +418,11 @@ func (s *PostService) Create(ctx context.Context, memberID string, p CreatePostP
 		post.Area = &area
 	}
 
-	var mediaURL string
-	if p.Media != nil {
-		mediaURL, err = s.images.UploadImage(ctx, storage.KindPost, p.Media)
+	var mediaURLs []string
+	if len(p.Media) > 0 {
+		mediaURLs, err = s.images.UploadImages(ctx, storage.KindPost, p.Media)
 		if err != nil {
-			return nil, fmt.Errorf("upload post image: %w", err)
+			return nil, fmt.Errorf("upload post images: %w", err)
 		}
 	}
 
@@ -423,8 +430,9 @@ func (s *PostService) Create(ctx context.Context, memberID string, p CreatePostP
 		if err := tx.Omit(clause.Associations).Create(&post).Error; err != nil {
 			return err
 		}
-		if mediaURL != "" {
-			media := models.PostMedia{PostID: post.ID, MediaURL: mediaURL, MediaType: "photo"}
+		// sort_order is the position the member gave the photo.
+		for i, url := range mediaURLs {
+			media := models.PostMedia{PostID: post.ID, MediaURL: url, MediaType: "photo", SortOrder: i}
 			if err := tx.Create(&media).Error; err != nil {
 				return err
 			}
@@ -442,7 +450,7 @@ func (s *PostService) Create(ctx context.Context, memberID string, p CreatePostP
 		return nil
 	})
 	if err != nil {
-		s.removeImages(ctx, []string{mediaURL})
+		s.removeImages(ctx, mediaURLs)
 		return nil, fmt.Errorf("create post: %w", err)
 	}
 	return s.Get(ctx, memberID, post.ID)

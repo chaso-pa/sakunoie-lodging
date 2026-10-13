@@ -93,15 +93,15 @@ type PostOutput struct {
 }
 
 type CreatePostFormData struct {
-	Caption     string        `form:"caption" maxLength:"2000" doc:"キャプション（写真がなければ必須）" required:"false"`
-	SpotID      string        `form:"spot_id" maxLength:"36" doc:"スポットID（任意）" required:"false"`
-	Media       huma.FormFile `form:"media" contentType:"image/jpeg,image/png,image/webp" doc:"写真（任意、1枚）" required:"false"`
-	Language    string        `form:"language" default:"ja" enum:"ja,en,ko,zh" doc:"投稿言語" required:"false"`
-	Weather     string        `form:"weather" maxLength:"20" doc:"天気" required:"false"`
-	Temperature string        `form:"temperature" maxLength:"10" doc:"気温（数値文字列）" required:"false"`
-	VisitedAt   string        `form:"visited_at" maxLength:"10" doc:"訪問日（YYYY-MM-DD）" required:"false"`
-	Area        string        `form:"area" maxLength:"20" doc:"地域（スポット未指定、またはスポットに地域がないとき使う）" required:"false"`
-	Tags        string        `form:"tags" maxLength:"300" doc:"タグ（カンマ区切り）" required:"false"`
+	Caption     string          `form:"caption" maxLength:"2000" doc:"キャプション（写真がなければ必須）" required:"false"`
+	SpotID      string          `form:"spot_id" maxLength:"36" doc:"スポットID（任意）" required:"false"`
+	Media       []huma.FormFile `form:"media" contentType:"image/jpeg,image/png,image/webp" doc:"写真（任意、最大5枚、1枚4MBまで）。media を枚数分くり返して送る。送った順が表示順になる" required:"false"`
+	Language    string          `form:"language" default:"ja" enum:"ja,en,ko,zh" doc:"投稿言語" required:"false"`
+	Weather     string          `form:"weather" maxLength:"20" doc:"天気" required:"false"`
+	Temperature string          `form:"temperature" maxLength:"10" doc:"気温（数値文字列）" required:"false"`
+	VisitedAt   string          `form:"visited_at" maxLength:"10" doc:"訪問日（YYYY-MM-DD）" required:"false"`
+	Area        string          `form:"area" maxLength:"20" doc:"地域（スポット未指定、またはスポットに地域がないとき使う）" required:"false"`
+	Tags        string          `form:"tags" maxLength:"300" doc:"タグ（カンマ区切り）" required:"false"`
 }
 
 type CreatePostInput struct {

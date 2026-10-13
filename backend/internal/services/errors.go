@@ -9,6 +9,8 @@ var (
 	ErrPostNotFound  = errors.New("post not found")
 	ErrSpotNotFound  = errors.New("spot not found")
 	ErrVisitNotFound = errors.New("visit not found")
+	// ErrTooManyPhotos means a post was sent with more than MaxPostPhotos.
+	ErrTooManyPhotos = errors.New("too many photos")
 	// ErrForbidden means the row exists but belongs to another member.
 	ErrForbidden = errors.New("not the owner")
 )

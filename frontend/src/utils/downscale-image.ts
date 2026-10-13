@@ -1,7 +1,9 @@
-/** Longest side of an uploaded photo. The API resizes again; this keeps phone photos under its 10MB cap. */
+/** Longest side of an uploaded photo. The API resizes again; this keeps phone photos far under its caps. */
 export const uploadMaxSide = 1600;
 /** The API rejects request bodies over 10MB. Leave room for the other form fields. */
 export const uploadMaxBytes = 9.5 * 1024 * 1024;
+/** The API rejects a post photo over 4MB. A post's photos together must also fit in `uploadMaxBytes`. */
+export const postPhotoMaxBytes = 4 * 1024 * 1024;
 /** Refuse to even decode files beyond this size. */
 export const sourceMaxBytes = 40 * 1024 * 1024;
 
@@ -17,23 +19,28 @@ const loadImage = (file: File) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const image = new Image();
+    const settle = (done: () => void) => {
+      URL.revokeObjectURL(url);
+      done();
+    };
     image.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(image);
+      // decode() does the expensive part off the main thread, so drawing a 12-megapixel phone photo
+      // afterwards does not freeze the page. Where it fails the draw decodes as before.
+      image
+        .decode()
+        .catch(() => undefined)
+        .then(() => settle(() => resolve(image)));
     };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new ImageError('unreadable'));
-    };
+    image.onerror = () => settle(() => reject(new ImageError('unreadable')));
     image.src = url;
   });
 
 /**
  * Re-encodes a chosen photo as a JPEG whose longest side is at most `uploadMaxSide`. Drawing to a canvas
  * also drops the metadata the file carried; the API strips EXIF again on its side regardless.
- * Throws ImageError when the file is not an image, cannot be decoded, or is still too large.
+ * Throws ImageError when the file is not an image, cannot be decoded, or is still larger than `maxBytes`.
  */
-export const downscaleImage = async (file: File): Promise<File> => {
+export const downscaleImage = async (file: File, maxBytes = uploadMaxBytes): Promise<File> => {
   if (!file.type.startsWith('image/')) {
     throw new ImageError('type');
   }
@@ -59,7 +66,10 @@ export const downscaleImage = async (file: File): Promise<File> => {
   if (!blob) {
     throw new ImageError('unreadable');
   }
-  if (blob.size > uploadMaxBytes) {
+  // Free the bitmap now instead of at the next garbage collection: several photos are prepared in a row.
+  canvas.width = 0;
+  canvas.height = 0;
+  if (blob.size > maxBytes) {
     throw new ImageError('tooLarge');
   }
   return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
