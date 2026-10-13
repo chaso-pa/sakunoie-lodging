@@ -21,12 +21,31 @@ export const mediaSchema = z.object({
 });
 export type Media = z.infer<typeof mediaSchema>;
 
+/** seed, osm, google or manual today. Left open so a source added later does not fail every list. */
+export const spotSourceSchema = z.string();
+
+/**
+ * Where a spot is, when known. A `google` spot keeps only its place id on the server: the rest is fetched
+ * when it is read, and `details_available` is false (with an empty `name`) when that failed.
+ */
+const spotPlaceFields = {
+  source: spotSourceSchema,
+  address: z.string().nullable(),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
+  map_url: z.string().nullable(),
+  details_available: z.boolean()
+};
+
 export const postSpotSchema = z.object({
   id: z.string(),
   name: z.string(),
   emoji: z.string(),
-  area: z.string()
+  /** Empty for a member-registered spot outside the four regions. */
+  area: z.string(),
+  ...spotPlaceFields
 });
+export type PostSpot = z.infer<typeof postSpotSchema>;
 
 /** A post as the signed-in member sees it (`is_liked`, `is_bookmarked` and `is_mine` are per viewer). */
 export const postSchema = z.object({
@@ -59,7 +78,13 @@ export const spotSchema = z.object({
   area: z.string(),
   category: z.string(),
   description: z.string(),
-  is_sample: z.boolean()
+  is_sample: z.boolean(),
+  ...spotPlaceFields,
+  external_id: z.string().nullable(),
+  /** The local-language name, when it differs from `name`. */
+  original_name: z.string().nullable(),
+  is_mine: z.boolean(),
+  created_at: z.string()
 });
 export type Spot = z.infer<typeof spotSchema>;
 

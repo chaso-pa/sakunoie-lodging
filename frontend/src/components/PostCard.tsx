@@ -9,6 +9,7 @@ import classes from '@/components/Community.module.scss';
 import { MemberAvatar } from '@/components/MemberAvatar';
 import { SampleBadge } from '@/components/SampleBadge';
 import { SpotArt } from '@/components/SpotArt';
+import { SpotCredit } from '@/components/SpotCredit';
 import { TranslatableText } from '@/components/TranslatableText';
 import { paths } from '@/config/paths';
 import { useCommunityLabels } from '@/hooks/use-community-labels';
@@ -81,6 +82,26 @@ export function PostCard({ post }: { post: Post }) {
             {post.is_bookmarked ? t('post.saved') : t('post.save')}
           </UnstyledButton>
         </div>
+        {post.spot && (
+          <div className={classes.place}>
+            <span aria-hidden>{post.spot.emoji || '📍'}</span>
+            <span className={classes.grow}>
+              {/* The place's own name and address, as registered: never translated. */}
+              <strong translate='no'>{post.spot.name || t('post.placeUnavailable')}</strong>
+              {post.spot.address && (
+                <span className={classes.muted} translate='no' style={{ display: 'block' }}>
+                  {post.spot.address}
+                </span>
+              )}
+              <SpotCredit source={post.spot.source} />
+            </span>
+            {post.spot.map_url && (
+              <a className={classes.placeLink} href={post.spot.map_url} target='_blank' rel='noreferrer'>
+                {t('post.viewOnMap')} ↗
+              </a>
+            )}
+          </div>
+        )}
         {post.caption && <TranslatableText text={post.caption} sourceLang={post.language} />}
         {(post.weather || post.temperature !== null) && (
           <div className={classes.weather}>

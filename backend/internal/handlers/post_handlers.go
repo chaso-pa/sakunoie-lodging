@@ -129,9 +129,9 @@ func (h *PostHandlers) GetRankings(ctx context.Context, input *models.RankingsIn
 		err   error
 	)
 	if input.Type == "posts" {
-		items, err = h.posts.PostRanking(ctx, input.Limit)
+		items, err = h.posts.PostRanking(ctx, middlewares.GetMemberID(ctx), input.Limit)
 	} else {
-		items, err = h.posts.SpotRanking(ctx, input.Limit)
+		items, err = h.posts.SpotRanking(ctx, middlewares.GetMemberID(ctx), input.Limit)
 	}
 	if err != nil {
 		return nil, serviceError(ctx, "get rankings", err)

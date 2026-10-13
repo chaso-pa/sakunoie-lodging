@@ -46,6 +46,9 @@ export const paths = {
   external: {
     googleMapsSearch: {
       getHref: (query: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+    },
+    osmCopyright: {
+      getHref: () => 'https://www.openstreetmap.org/copyright'
     }
   }
 } as const;

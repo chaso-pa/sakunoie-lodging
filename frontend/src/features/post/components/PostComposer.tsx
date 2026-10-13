@@ -6,7 +6,6 @@ import {
   FileButton,
   NativeSelect,
   NumberInput,
-  Select,
   Textarea,
   TextInput,
   UnstyledButton
@@ -18,16 +17,19 @@ import { useEffect, useState } from 'react';
 import shared from '@/components/Community.module.scss';
 import { paths } from '@/config/paths';
 import { captionMaxLength, tagsMaxLength, useCreatePost } from '@/features/post/api/create-post';
+import { useLinkedSpot } from '@/features/post/api/get-linked-spot';
 import { useWeather } from '@/features/post/api/get-weather';
+import { useRegisterPlace } from '@/features/post/api/register-place';
+import { PlacePicker } from '@/features/post/components/PlacePicker';
 import classes from '@/features/post/components/Post.module.scss';
 import { WeatherCard } from '@/features/post/components/WeatherCard';
+import type { PlaceSelection } from '@/features/post/types/place';
 import { useCommunityLabels } from '@/hooks/use-community-labels';
-import { useSpots } from '@/hooks/use-spots';
 import { getApiErrorStatus, isUploadTooLarge } from '@/lib/api-client';
-import { allWeatherValues, areaValues, todayIsoDate } from '@/utils/community-labels';
+import { allWeatherValues, areaValues, isKnownArea, todayIsoDate } from '@/utils/community-labels';
 import { downscaleImage, ImageError } from '@/utils/downscale-image';
 
-/** Composer: one photo, a caption, an optional spot, and the weather filled in from the API. */
+/** Composer: one photo, a caption, an optional place, and the weather filled in from the API. */
 export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
   const t = useTranslations('community.compose');
   const tCommon = useTranslations('community.common');
@@ -35,19 +37,22 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
   const { areaLabel, weatherLabel } = useCommunityLabels();
   const locale = useLocale();
   const router = useRouter();
-  const spots = useSpots();
+  const linked = useLinkedSpot(initialSpotId);
   const weather = useWeather();
   const createPost = useCreatePost();
+  const registerPlace = useRegisterPlace();
 
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [caption, setCaption] = useState('');
-  const [spotId, setSpotId] = useState<string | null>(initialSpotId ?? null);
+  // undefined = untouched: the place then follows the `?spot=` link, once that spot has loaded.
+  const [placeChoice, setPlaceChoice] = useState<PlaceSelection | null | undefined>(undefined);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [visitedAt, setVisitedAt] = useState(todayIsoDate);
-  const [area, setArea] = useState<string>(areaValues[0]);
+  // null = not chosen by the member.
+  const [areaChoice, setAreaChoice] = useState<string | null>(null);
   const [tags, setTags] = useState('');
   // null = "follow the automatic weather"; a value means the member chose it.
   const [weatherChoice, setWeatherChoice] = useState<string | null>(null);
@@ -63,6 +68,29 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [photo]);
+
+  // A spot whose details could not be loaded has no name to show; the link is then ignored.
+  const linkedSpot = linked.data?.details_available ? linked.data : undefined;
+  const place: PlaceSelection | null =
+    placeChoice !== undefined
+      ? placeChoice
+      : linkedSpot
+        ? {
+            kind: 'spot',
+            id: linkedSpot.id,
+            name: linkedSpot.name,
+            originalName: linkedSpot.original_name,
+            address:
+              linkedSpot.address || [areaLabel(linkedSpot.area), linkedSpot.category].filter(Boolean).join(' · '),
+            emoji: linkedSpot.emoji,
+            area: linkedSpot.area,
+            source: linkedSpot.source
+          }
+        : null;
+
+  // A spot inside the four regions brings its own area. Any other place has none unless the member picks one.
+  const placeArea = place?.kind === 'spot' ? place.area : '';
+  const area = placeArea || (areaChoice ?? (place ? '' : areaValues[0]));
 
   const auto = weather.isError ? undefined : weather.data;
   const weatherValue = weatherChoice ?? auto?.weather ?? '';
@@ -101,18 +129,27 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
     }
   };
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!photo && !caption.trim()) {
-      setFormError(t('errors.empty'));
-      return;
+  const showFailure = (error: unknown, limitMessage: string) => {
+    const status = getApiErrorStatus(error);
+    if (isUploadTooLarge(error)) {
+      setFormError(tCommon('fileTooLarge'));
+    } else if (status === undefined) {
+      setFormError(tErrors('network'));
+    } else if (status === 422 || status === 400) {
+      setFormError(t('errors.invalid'));
+    } else if (status === 429) {
+      setFormError(limitMessage);
+    } else {
+      setFormError(tErrors('generic'));
     }
-    setFormError('');
+  };
+
+  const sharePost = (spotId: string) =>
     createPost.mutate(
       {
         caption,
         media: photo,
-        spot_id: spotId ?? '',
+        spot_id: spotId,
         language: locale,
         weather: weatherValue,
         temperature: typeof temperatureValue === 'number' ? temperatureValue : null,
@@ -125,20 +162,52 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
           notifications.show({ message: t('shared') });
           router.push(paths.community.feed.getHref());
         },
-        onError: (error) => {
-          const status = getApiErrorStatus(error);
-          if (isUploadTooLarge(error)) {
-            setFormError(tCommon('fileTooLarge'));
-          } else if (status === undefined) {
-            setFormError(tErrors('network'));
-          } else if (status === 422 || status === 400) {
-            setFormError(t('errors.invalid'));
-          } else if (status === 429) {
-            setFormError(t('errors.dailyLimit'));
-          } else {
-            setFormError(tErrors('generic'));
-          }
-        }
+        onError: (error) => showFailure(error, t('errors.dailyLimit'))
+      }
+    );
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!photo && !caption.trim()) {
+      setFormError(t('errors.empty'));
+      return;
+    }
+    setFormError('');
+    if (!place || place.kind === 'spot') {
+      sharePost(place?.id ?? '');
+      return;
+    }
+    // A place that is not a spot yet becomes one now, not when it was picked, so a place the member
+    // changed their mind about is never created.
+    registerPlace.mutate(
+      place.kind === 'candidate'
+        ? { source: place.place.source, external_id: place.place.external_id, language: locale }
+        : {
+            source: 'manual',
+            language: locale,
+            name: place.name,
+            ...(place.address && { address: place.address }),
+            ...(place.position && { latitude: place.position.latitude, longitude: place.position.longitude })
+          },
+      {
+        onSuccess: (spot) => {
+          // Keep the spot, so sharing again after a failed post does not register the place twice.
+          setPlaceChoice({
+            kind: 'spot',
+            id: spot.id,
+            name: spot.name || (place.kind === 'candidate' ? place.place.name : place.name),
+            originalName: spot.original_name,
+            address: spot.address || (place.kind === 'candidate' ? place.place.address : place.address),
+            emoji: spot.emoji,
+            area: spot.area,
+            source: spot.source
+          });
+          sharePost(spot.id);
+        },
+        onError: (error) =>
+          getApiErrorStatus(error) === 422 || getApiErrorStatus(error) === 400
+            ? setFormError(t('place.errors.registerInvalid'))
+            : showFailure(error, tErrors('rateLimited'))
       }
     );
   };
@@ -197,21 +266,7 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
           value={caption}
           onChange={(event) => setCaption(event.currentTarget.value)}
         />
-        <Select
-          className={shared.field}
-          label={`📍 ${t('spotLabel')}`}
-          placeholder={spots.isError ? t('spotsUnavailable') : t('spotPlaceholder')}
-          nothingFoundMessage={t('noSpotMatch')}
-          size='md'
-          radius='sm'
-          classNames={{ label: shared.fieldLabel }}
-          searchable
-          clearable
-          disabled={spots.isPending}
-          data={(spots.data ?? []).map((spot) => ({ value: spot.id, label: `${spot.emoji} ${spot.name}` }))}
-          value={spotId}
-          onChange={setSpotId}
-        />
+        <PlacePicker value={place} onChange={setPlaceChoice} />
 
         <div className={classes.details}>
           <UnstyledButton
@@ -236,14 +291,18 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
               />
               <NativeSelect
                 label={t('areaLabel')}
-                description={spotId ? t('areaFromSpot') : undefined}
+                description={placeArea ? t('areaFromSpot') : undefined}
                 size='md'
                 radius='sm'
                 classNames={{ label: shared.fieldLabel }}
-                disabled={Boolean(spotId)}
+                disabled={Boolean(placeArea)}
                 value={area}
-                onChange={(event) => setArea(event.currentTarget.value)}
-                data={areaValues.map((value) => ({ value, label: areaLabel(value) }))}
+                onChange={(event) => setAreaChoice(event.currentTarget.value)}
+                data={[
+                  ...(place && !placeArea ? [{ value: '', label: t('areaUnset') }] : []),
+                  ...(isKnownArea(area) || !area ? [] : [{ value: area, label: area }]),
+                  ...areaValues.map((value) => ({ value, label: areaLabel(value) }))
+                ]}
               />
             </div>
             <div className={shared.grid2} style={{ marginTop: 12 }}>
@@ -290,7 +349,13 @@ export function PostComposer({ initialSpotId }: { initialSpotId?: string }) {
         <p className={shared.formError} role='alert'>
           {formError}
         </p>
-        <Button type='submit' fullWidth size='lg' loading={createPost.isPending} disabled={processing}>
+        <Button
+          type='submit'
+          fullWidth
+          size='lg'
+          loading={createPost.isPending || registerPlace.isPending}
+          disabled={processing}
+        >
           {t('submit')}
         </Button>
       </form>

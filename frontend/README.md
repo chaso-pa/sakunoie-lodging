@@ -7,6 +7,7 @@ Frontend for the 佐久の家 service pages (lodging information and the guest c
 - **Next.js** (App Router) — framework
 - **Mantine v9** — UI component library
 - **SCSS Modules** + PostCSS — styling
+- **Leaflet** — map of the place picker (OpenStreetMap tiles by default, configurable)
 - **TanStack Query + axios + zod** — API layer (no direct DB access; data comes from the Go API)
 - **next-intl** — UI strings in ja / en / ko / zh (`messages/*.json`), locale stored in a cookie
 - **Biome** — linting & formatting
@@ -40,6 +41,14 @@ Because `src/proxy.ts` handles `/api/*`, Next.js buffers those request bodies. T
 (`experimental.proxyClientMaxBodySize` in `next.config.ts`), above the API's 10MB upload cap, so that the
 API is the one that rejects an oversized upload with a proper error. A body over 12MB is answered with a
 plain 500 by Next.js and does not reach the API.
+
+### Place picker map
+
+The post composer's place picker draws its map with [Leaflet](https://leafletjs.com) and raster tiles. With
+no configuration it uses the public openstreetmap.org tile server, which needs no key or account. Set
+`NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_TILE_ATTRIBUTION` and `NEXT_PUBLIC_MAP_TILE_MAX_ZOOM` (see
+`.env.example`) to use another tile source; they are fixed at build time. The tile policy, the required
+attribution and how the picker talks to the API are described in `../docs/spot-search.md`.
 
 ## Project Structure
 

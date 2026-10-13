@@ -23,17 +23,35 @@ const (
 )
 
 type SpotService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	places *PlaceService
 }
 
 func NewSpotService(db *gorm.DB) *SpotService {
-	return &SpotService{db: db}
+	return &SpotService{db: db, places: NewPlaceService(db, nil)}
 }
 
-// List returns the spots, optionally of one area, with their review and
-// post counts.
+// WithPlaces sets the service that shows Google spots, whose names are not
+// stored. Without it they are returned with details_available false.
+func (s *SpotService) WithPlaces(places *PlaceService) *SpotService {
+	if places != nil {
+		s.places = places
+	}
+	return s
+}
+
+// List returns the curated spots, optionally of one area, with their
+// review and post counts.
+//
+// The endpoint is public, so it lists the operator's own spots (source
+// seed) and nothing a member registered. A member-registered spot carries
+// member-generated content (a hand-typed name and address, or simply the
+// fact that a guest picked that place), which is for guests only; a Google
+// spot would also cost a billed lookup for every anonymous visitor. Those
+// spots are reached through posts, GET /spots/{id} and place search, all
+// of which need a session.
 func (s *SpotService) List(ctx context.Context, area string) ([]models.SpotListItem, error) {
-	q := s.db.WithContext(ctx).Order("created_at, name")
+	q := s.db.WithContext(ctx).Where("source = ?", models.SpotSourceSeed).Order("created_at, name")
 	if area != "" {
 		q = q.Where("area = ?", area)
 	}
@@ -90,8 +108,13 @@ type SpotDetail struct {
 	Posts   []models.SpotPostResponse
 }
 
-func (s *SpotService) Get(ctx context.Context, id string) (*SpotDetail, error) {
+// Get returns the spot as viewerID sees it.
+func (s *SpotService) Get(ctx context.Context, viewerID, id string) (*SpotDetail, error) {
 	spot, err := s.find(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	view, err := s.places.PresentOne(ctx, viewerID, spot)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +141,7 @@ func (s *SpotService) Get(ctx context.Context, id string) (*SpotDetail, error) {
 	}
 
 	detail := &SpotDetail{
-		Spot:    models.NewSpotResponse(spot),
+		Spot:    view,
 		Reviews: make([]models.ReviewResponse, len(reviews)),
 		Posts:   make([]models.SpotPostResponse, len(posts)),
 	}

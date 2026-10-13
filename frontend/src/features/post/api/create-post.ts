@@ -23,7 +23,7 @@ export const createPostInputSchema = z
     weather: z.string().max(20),
     temperature: z.number().min(-60).max(60).nullable(),
     visited_at: z.string().regex(/^$|^\d{4}-\d{2}-\d{2}$/),
-    /** Used by the API only when no spot is chosen. */
+    /** Used by the API only when no spot is chosen or the spot has no area of its own. */
     area: z.string(),
     tags: z.string().max(tagsMaxLength)
   })
@@ -40,7 +40,8 @@ const createPost = async (data: CreatePostInput) => {
   form.append('language', input.language);
   if (input.spot_id) {
     form.append('spot_id', input.spot_id);
-  } else if (input.area) {
+  }
+  if (input.area) {
     form.append('area', input.area);
   }
   if (input.weather) {

@@ -13,7 +13,7 @@ import (
 // members' posts, nicknames and reviews, which are for guests only, so it
 // needs a session like the review endpoint.
 func SetupSpotRoutes(publicAPI, authAPI huma.API, deps *Deps) {
-	h := handlers.NewSpotHandlers(services.NewSpotService(deps.DB))
+	h := handlers.NewSpotHandlers(services.NewSpotService(deps.DB).WithPlaces(deps.Places))
 
 	huma.Get(publicAPI, "/spots", h.ListSpots, withTag("spots"))
 	huma.Get(publicAPI, "/ai-spots", h.ListAiSpots, withTag("spots"))
@@ -22,9 +22,24 @@ func SetupSpotRoutes(publicAPI, authAPI huma.API, deps *Deps) {
 	huma.Post(authAPI, "/spots/{id}/reviews", h.CreateReview, withTag("spots"))
 }
 
+// SetupPlaceRoutes registers place search and the registration of a chosen
+// place as a spot. All of it needs a session.
+//
+// These are POST with a JSON body although three of them only read: the
+// search text and the positions then never appear in a URL, where proxies
+// and browsers would keep them.
+func SetupPlaceRoutes(_, authAPI huma.API, deps *Deps) {
+	h := handlers.NewPlaceHandlers(deps.Places)
+
+	huma.Post(authAPI, "/places/search", h.SearchPlaces, withTag("places"))
+	huma.Post(authAPI, "/places/nearby", h.NearbyPlaces, withTag("places"))
+	huma.Post(authAPI, "/places/reverse", h.ReversePlace, withTag("places"))
+	huma.Post(authAPI, "/spots", h.RegisterSpot, withTag("spots"))
+}
+
 // SetupPostRoutes registers the feed, likes, bookmarks and rankings.
 func SetupPostRoutes(_, authAPI huma.API, deps *Deps) {
-	h := handlers.NewPostHandlers(services.NewPostService(deps.DB, deps.Images))
+	h := handlers.NewPostHandlers(services.NewPostService(deps.DB, deps.Images).WithPlaces(deps.Places))
 
 	huma.Get(authAPI, "/posts", h.ListPosts, withTag("posts"))
 	huma.Get(authAPI, "/posts/bookmarked", h.ListBookmarkedPosts, withTag("posts"))

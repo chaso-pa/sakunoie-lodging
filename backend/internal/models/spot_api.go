@@ -4,23 +4,45 @@ import "time"
 
 type SpotResponse struct {
 	ID          string `json:"id" doc:"スポット ID"`
-	Name        string `json:"name" doc:"スポット名"`
+	Name        string `json:"name" doc:"スポット名（source が google で詳細を取得できなかったときは空文字）"`
 	Emoji       string `json:"emoji" doc:"絵文字"`
-	Area        string `json:"area" doc:"地域（東信・北信・中信・南信）"`
+	Area        string `json:"area" doc:"地域（東信・北信・中信・南信。会員が登録したスポットでは空文字のことがある）"`
 	Category    string `json:"category" doc:"カテゴリ"`
 	Description string `json:"description" doc:"説明"`
 	IsSample    bool   `json:"is_sample" doc:"サンプルデータなら true"`
+
+	Source           string    `json:"source" enum:"seed,osm,google,manual" doc:"取得元（seed: 運営が用意、osm / google: 検索結果から登録、manual: 会員の手入力）"`
+	ExternalID       *string   `json:"external_id" doc:"取得元での ID（seed と manual は null）"`
+	OriginalName     *string   `json:"original_name" doc:"現地語の名前（name と同じ、または不明なら null）"`
+	Address          *string   `json:"address" doc:"住所（不明なら null）"`
+	Latitude         *float64  `json:"latitude" doc:"緯度（不明なら null）"`
+	Longitude        *float64  `json:"longitude" doc:"経度（不明なら null）"`
+	MapURL           *string   `json:"map_url" doc:"地図サービスの URL（なければ null）"`
+	DetailsAvailable bool      `json:"details_available" doc:"名前などの表示用の情報がそろっていれば true。google のスポットで取得に失敗したときだけ false"`
+	IsMine           bool      `json:"is_mine" doc:"自分が登録したスポットなら true"`
+	CreatedAt        time.Time `json:"created_at" doc:"登録日時"`
 }
 
+// NewSpotResponse copies what the row itself holds. For a Google spot that
+// is the place ID only: services.PlaceService fills in the rest.
 func NewSpotResponse(s *Spot) SpotResponse {
 	return SpotResponse{
-		ID:          s.ID,
-		Name:        s.Name,
-		Emoji:       s.Emoji,
-		Area:        s.Area,
-		Category:    s.Category,
-		Description: s.Description,
-		IsSample:    s.IsSample,
+		ID:               s.ID,
+		Name:             s.Name,
+		Emoji:            s.Emoji,
+		Area:             s.Area,
+		Category:         s.Category,
+		Description:      s.Description,
+		IsSample:         s.IsSample,
+		Source:           s.Source,
+		ExternalID:       s.ExternalID,
+		OriginalName:     s.OriginalName,
+		Address:          s.Address,
+		Latitude:         s.Latitude,
+		Longitude:        s.Longitude,
+		MapURL:           s.MapURL,
+		DetailsAvailable: s.Source != SpotSourceGoogle,
+		CreatedAt:        s.CreatedAt,
 	}
 }
 

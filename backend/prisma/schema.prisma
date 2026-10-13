@@ -25,6 +25,7 @@ model Member {
   bookmarks Bookmark[]
   reviews   Review[]
   gpsVisits GpsVisit[]
+  spots     Spot[]
 
   // 引き継ぎコードの復元は WHERE transfer_code_hash = ? の 1 件検索（計画 4.7）。
   @@unique([transferCodeHash], map: "uq_members_transfer_code_hash")
@@ -45,20 +46,42 @@ model Session {
 }
 
 model Spot {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(100)
-  emoji       String   @db.VarChar(10)
-  area        String   @db.VarChar(20)
-  category    String   @db.VarChar(30)
-  description String   @db.Text
-  isSample    Boolean  @default(false) @map("is_sample")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(uuid())
+  name              String   @db.VarChar(100)
+  emoji             String   @db.VarChar(10)
+  area              String   @db.VarChar(20)
+  category          String   @db.VarChar(30)
+  description       String   @db.Text
+  isSample          Boolean  @default(false) @map("is_sample")
+  // どこから来たスポットか: seed（運営が用意）/ osm / google / manual（会員の手入力）。
+  source            String   @default("seed") @db.VarChar(10)
+  // 外部サービス上の ID（osm: N123 / W123 / R123、google: place ID）。seed と manual は NULL。
+  externalId        String?  @map("external_id") @db.VarChar(512)
+  // SHA-256(source + ":" + external_id) の hex。同じ外部の場所を 2 行にしないための一意キー。
+  // external_id を直接一意にしないのは、照合順序が大文字小文字を区別しないため
+  // （Google の place ID は区別する）。
+  externalKey       String?  @map("external_key") @db.Char(64)
+  // 取得元が返した現地語の名前（name は登録した会員の言語での名前）。
+  originalName      String?  @map("original_name") @db.VarChar(200)
+  address           String?  @db.VarChar(300)
+  latitude          Float?
+  longitude         Float?
+  mapUrl            String?  @map("map_url") @db.VarChar(500)
+  // 登録した会員。seed は NULL。
+  createdByMemberId String?  @map("created_by_member_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
+  createdBy Member?    @relation(fields: [createdByMemberId], references: [id])
   posts     Post[]
   reviews   Review[]
   gpsVisits GpsVisit[]
 
+  // source = google の行には place ID 以外の Google のコンテンツ（名前・住所・座標）を保存しない。
+  // name / emoji / area / category / description は空または既定値のままにする（docs/spot-search.md）。
+  @@unique([externalKey], map: "uq_spots_external_key")
+  @@index([createdByMemberId], map: "idx_spots_created_by_member_id")
+  @@index([source], map: "idx_spots_source")
   @@map("spots")
 }
 

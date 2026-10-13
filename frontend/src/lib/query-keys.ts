@@ -16,12 +16,18 @@ export const queryKeys = {
   spots: {
     all: ['spots'] as const,
     list: ['spots', 'list'] as const,
-    detail: (id: string) => ['spots', 'detail', id] as const
+    detail: (id: string) => ['spots', 'detail', id] as const,
+    linked: (id: string) => ['spots', 'linked', id] as const
   },
   gpsVisits: {
     all: ['gps-visits'] as const,
     mine: ['gps-visits', 'mine'] as const,
     public: ['gps-visits', 'public'] as const
+  },
+  places: {
+    search: (query: string, language: string) => ['places', 'search', query, language] as const,
+    reverse: (latitude: number, longitude: number, language: string) =>
+      ['places', 'reverse', latitude, longitude, language] as const
   },
   weather: ['weather'] as const,
   aiSpots: (filters: Record<string, string>) => ['ai-spots', filters] as const

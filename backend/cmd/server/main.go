@@ -47,7 +47,7 @@ func main() {
 	gin.SetMode(cfg.GinMode)
 	logger := logging.Setup(os.Stdout, slog.LevelInfo)
 	if cfg.IsRelease() {
-		for _, warning := range cfg.InviteCodeWarnings() {
+		for _, warning := range append(cfg.InviteCodeWarnings(), cfg.PlaceWarnings()...) {
 			log.Println("WARNING: " + warning)
 		}
 	}

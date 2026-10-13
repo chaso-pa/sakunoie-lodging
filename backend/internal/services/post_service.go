@@ -46,11 +46,26 @@ var postAreas = map[string]bool{"東信": true, "北信": true, "中信": true, 
 type PostService struct {
 	db     *gorm.DB
 	images storage.ImageUploader
+	places *PlaceService
 }
 
 func NewPostService(db *gorm.DB, images storage.ImageUploader) *PostService {
-	return &PostService{db: db, images: images}
+	return &PostService{db: db, images: images, places: NewPlaceService(db, nil)}
 }
+
+// WithPlaces sets the service that shows Google spots, whose names are not
+// stored. Without it they are returned with details_available false.
+func (s *PostService) WithPlaces(places *PlaceService) *PostService {
+	if places != nil {
+		s.places = places
+	}
+	return s
+}
+
+// postAreaSQL is the region a post is filed under: its spot's, or the one
+// chosen in the form when there is no spot or the spot has no region (a
+// member-registered place outside Nagano, or a Google place).
+const postAreaSQL = "COALESCE(NULLIF(spots.area, ''), posts.area)"
 
 // PostFilter narrows the feed. Empty fields do not filter.
 type PostFilter struct {
@@ -70,7 +85,7 @@ func (s *PostService) List(ctx context.Context, viewerID string, f PostFilter) (
 		Joins("LEFT JOIN spots ON spots.id = posts.spot_id").
 		Joins("JOIN members ON members.id = posts.member_id")
 	if f.Area != "" {
-		q = q.Where("COALESCE(spots.area, posts.area) = ?", f.Area)
+		q = q.Where(postAreaSQL+" = ?", f.Area)
 	}
 	if f.Weather != "" {
 		q = q.Where("posts.weather = ?", f.Weather)
@@ -93,7 +108,7 @@ func (s *PostService) List(ctx context.Context, viewerID string, f PostFilter) (
 	if query := strings.TrimSpace(f.Query); query != "" {
 		like := containsPattern(query)
 		q = q.Where(`(posts.caption LIKE ? OR spots.name LIKE ? OR members.nickname LIKE ? OR posts.weather LIKE ?
-			OR COALESCE(spots.area, posts.area) LIKE ?
+			OR `+postAreaSQL+` LIKE ?
 			OR EXISTS (SELECT 1 FROM post_tags WHERE post_tags.post_id = posts.id AND post_tags.tag LIKE ?))`,
 			like, like, like, like, like, like)
 	}
@@ -183,6 +198,10 @@ func (s *PostService) hydrate(ctx context.Context, viewerID string, ids []string
 	if err != nil {
 		return nil, err
 	}
+	spots, err := s.places.Present(ctx, viewerID, postSpots(rows))
+	if err != nil {
+		return nil, err
+	}
 	liked, err := memberPostSet(db, &models.Like{}, viewerID, ids)
 	if err != nil {
 		return nil, err
@@ -219,13 +238,27 @@ func (s *PostService) hydrate(ctx context.Context, viewerID string, ids []string
 			resp.Tags[i] = t.Tag
 		}
 		if p.Spot != nil {
-			resp.Spot = &models.PostSpotResponse{ID: p.Spot.ID, Name: p.Spot.Name, Emoji: p.Spot.Emoji, Area: p.Spot.Area}
-			area := p.Spot.Area
-			resp.Area = &area
+			spot := spots[p.Spot.ID]
+			resp.Spot = models.NewPostSpotResponse(&spot)
+			if p.Spot.Area != "" {
+				area := p.Spot.Area
+				resp.Area = &area
+			}
 		}
 		out = append(out, resp)
 	}
 	return out, nil
+}
+
+// postSpots collects the spots the posts point at.
+func postSpots(posts []models.Post) []*models.Spot {
+	var spots []*models.Spot
+	for i := range posts {
+		if posts[i].Spot != nil {
+			spots = append(spots, posts[i].Spot)
+		}
+	}
+	return spots
 }
 
 func mediaResponses(media []models.PostMedia) []models.MediaResponse {
@@ -362,8 +395,13 @@ func (s *PostService) Create(ctx context.Context, memberID string, p CreatePostP
 			return nil, fmt.Errorf("get spot: %w", err)
 		}
 		post.SpotID = &spot.ID
-		post.Area = &spot.Area
-	} else if area := strings.TrimSpace(p.Area); area != "" {
+		if spot.Area != "" {
+			post.Area = &spot.Area
+		}
+	}
+	// The form's region is used when there is no spot, and when the spot
+	// has none of its own.
+	if area := strings.TrimSpace(p.Area); area != "" && post.Area == nil {
 		if !postAreas[area] {
 			return nil, invalid("area must be one of 東信, 北信, 中信, 南信")
 		}
@@ -574,57 +612,98 @@ func RankingTitle(caption string) string {
 // Visits are the footprints recorded at the spot with is_public set. Private
 // footprints are not counted: with few members, a score moving by one would
 // tell everyone that somebody was there.
-func (s *PostService) SpotRanking(ctx context.Context, limit int) ([]models.RankingItem, error) {
+//
+// Curated spots are always candidates. A member-registered spot becomes
+// one with its first post or public footprint: a place that was picked in
+// the composer and never posted about is not a ranking entry, however many
+// of those accumulate. Among equal scores curated spots come first.
+func (s *PostService) SpotRanking(ctx context.Context, viewerID string, limit int) ([]models.RankingItem, error) {
 	var rows []struct {
-		ID         string
-		Name       string
-		Emoji      string
-		Area       string
-		Category   string
-		IsSample   bool
+		models.Spot
 		PostCount  int
 		LikeCount  int
 		SaveCount  int
 		VisitCount int
 	}
-	err := s.db.WithContext(ctx).Table("spots").Select(`spots.id, spots.name, spots.emoji, spots.area, spots.category, spots.is_sample,
+	err := s.db.WithContext(ctx).Table("spots").Select(`spots.*,
 		(SELECT COUNT(*) FROM posts WHERE posts.spot_id = spots.id) AS post_count,
 		(SELECT COUNT(*) FROM likes JOIN posts ON posts.id = likes.post_id WHERE posts.spot_id = spots.id) AS like_count,
 		(SELECT COUNT(*) FROM bookmarks JOIN posts ON posts.id = bookmarks.post_id WHERE posts.spot_id = spots.id) AS save_count,
 		(SELECT COUNT(*) FROM gps_visits WHERE gps_visits.spot_id = spots.id AND gps_visits.is_public = TRUE) AS visit_count`).
 		Where("spots.category <> ?", lodgingCategory).
+		Where(`spots.source = ?
+			OR EXISTS (SELECT 1 FROM posts WHERE posts.spot_id = spots.id)
+			OR EXISTS (SELECT 1 FROM gps_visits WHERE gps_visits.spot_id = spots.id AND gps_visits.is_public = TRUE)`, models.SpotSourceSeed).
 		Scan(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("rank spots: %w", err)
 	}
 
-	items := make([]models.RankingItem, len(rows))
-	for i, r := range rows {
+	// Order by what the rows hold, so that only the spots that make the
+	// list are looked up at Google.
+	score := func(i int) int { return SpotScore(rows[i].VisitCount, rows[i].LikeCount, rows[i].SaveCount) }
+	order := make([]int, len(rows))
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(a, b int) bool {
+		i, j := order[a], order[b]
+		if score(i) != score(j) {
+			return score(i) > score(j)
+		}
+		if seedI, seedJ := rows[i].Source == models.SpotSourceSeed, rows[j].Source == models.SpotSourceSeed; seedI != seedJ {
+			return seedI
+		}
+		if rows[i].Name != rows[j].Name {
+			return rows[i].Name < rows[j].Name
+		}
+		return rows[i].ID < rows[j].ID
+	})
+	if limit > 0 && len(order) > limit {
+		order = order[:limit]
+	}
+	shown := make([]*models.Spot, len(order))
+	for n, i := range order {
+		shown[n] = &rows[i].Spot
+	}
+	views, err := s.places.Present(ctx, viewerID, shown)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]models.RankingItem, len(order))
+	for n, i := range order {
+		r := rows[i]
 		id := r.ID
-		items[i] = models.RankingItem{
+		view := views[r.ID]
+		items[n] = models.RankingItem{
 			ID:        r.ID,
-			Name:      r.Name,
-			Score:     SpotScore(r.VisitCount, r.LikeCount, r.SaveCount),
-			Detail:    r.Area + " · " + r.Category,
-			Emoji:     r.Emoji,
-			Area:      r.Area,
+			Name:      view.Name,
+			Score:     score(i),
+			Detail:    joinNonEmpty(" · ", view.Area, view.Category),
+			Emoji:     view.Emoji,
+			Area:      view.Area,
 			PostCount: r.PostCount,
 			LikeCount: r.LikeCount,
 			SpotID:    &id,
 			IsSample:  r.IsSample,
 		}
 	}
-	sort.SliceStable(items, func(i, j int) bool {
-		if items[i].Score != items[j].Score {
-			return items[i].Score > items[j].Score
-		}
-		return items[i].Name < items[j].Name
-	})
 	return numbered(items, limit), nil
 }
 
+func joinNonEmpty(separator string, parts ...string) string {
+	var kept []string
+	for _, part := range parts {
+		if part != "" {
+			kept = append(kept, part)
+		}
+	}
+	return strings.Join(kept, separator)
+}
+
 // PostRanking orders the posts by like count, newest first among equals.
-func (s *PostService) PostRanking(ctx context.Context, limit int) ([]models.RankingItem, error) {
+func (s *PostService) PostRanking(ctx context.Context, viewerID string, limit int) ([]models.RankingItem, error) {
 	var ranked []struct {
 		ID        string
 		LikeCount int
@@ -655,6 +734,11 @@ func (s *PostService) PostRanking(ctx context.Context, limit int) ([]models.Rank
 		byID[posts[i].ID] = &posts[i]
 	}
 
+	spots, err := s.places.Present(ctx, viewerID, postSpots(posts))
+	if err != nil {
+		return nil, err
+	}
+
 	items := make([]models.RankingItem, 0, len(ranked))
 	for _, r := range ranked {
 		p, ok := byID[r.ID]
@@ -673,12 +757,15 @@ func (s *PostService) PostRanking(ctx context.Context, limit int) ([]models.Rank
 			item.Area = *p.Area
 		}
 		if p.Spot != nil {
-			item.Detail = p.Spot.Name + " · " + p.Member.Nickname
-			item.Emoji = p.Spot.Emoji
-			item.Area = p.Spot.Area
+			spot := spots[p.Spot.ID]
+			item.Detail = joinNonEmpty(" · ", spot.Name, p.Member.Nickname)
+			item.Emoji = spot.Emoji
+			if spot.Area != "" {
+				item.Area = spot.Area
+			}
 			item.SpotID = &p.Spot.ID
 			if item.Name == "" {
-				item.Name = p.Spot.Name
+				item.Name = spot.Name
 			}
 		}
 		items = append(items, item)
