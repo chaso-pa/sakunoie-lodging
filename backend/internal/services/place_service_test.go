@@ -403,7 +403,7 @@ func TestRegisterOSMSpotIntegration(t *testing.T) {
 	if _, err := unconfigured.Nearby(ctx, alice, PlaceNearbyParams{Latitude: 36, Longitude: 138}); !errors.Is(err, ErrPlaceNotConfigured) {
 		t.Fatalf("err = %v", err)
 	}
-	if _, _, err := unconfigured.Reverse(ctx, alice, 36, 138, ""); !errors.Is(err, ErrPlaceNotConfigured) {
+	if _, _, err := unconfigured.Reverse(ctx, alice, 36, 138, "", false); !errors.Is(err, ErrPlaceNotConfigured) {
 		t.Fatalf("err = %v", err)
 	}
 	if _, _, err := unconfigured.Register(ctx, alice, RegisterSpotParams{Source: "manual", Name: "設定なしでも登録できる"}); err != nil {
@@ -704,7 +704,7 @@ func TestSearchIncludesRegisteredSpotsIntegration(t *testing.T) {
 			t.Errorf("nearby %s: err = %v, want a validation error", name, err)
 		}
 	}
-	if _, _, err := places.Reverse(ctx, alice, 0, 181, ""); !errors.As(err, &validation) {
+	if _, _, err := places.Reverse(ctx, alice, 0, 181, "", false); !errors.As(err, &validation) {
 		t.Fatalf("reverse out of range: err = %v", err)
 	}
 
@@ -713,12 +713,12 @@ func TestSearchIncludesRegisteredSpotsIntegration(t *testing.T) {
 	if err != nil || len(near.Results) != 1 || near.Results[0].DistanceM == nil || *near.Results[0].DistanceM != 0 {
 		t.Fatalf("nearby = %+v, err = %v", near, err)
 	}
-	result, meta, err := places.Reverse(ctx, alice, 36.27801, 138.4646828, "en")
+	result, meta, err := places.Reverse(ctx, alice, 36.27801, 138.4646828, "en", false)
 	if err != nil || result == nil || result.Name != "Cosmos Café" || meta.Provider != "osm" || *result.SpotID != registered.ID {
 		t.Fatalf("reverse = %+v, %+v, err = %v", result, meta, err)
 	}
 	osm.places = nil
-	if result, meta, err := places.Reverse(ctx, alice, 30, 150, ""); err != nil || result != nil || meta == nil {
+	if result, meta, err := places.Reverse(ctx, alice, 30, 150, "", false); err != nil || result != nil || meta == nil {
 		t.Fatalf("reverse of nowhere = %+v, %+v, %v", result, meta, err)
 	}
 }

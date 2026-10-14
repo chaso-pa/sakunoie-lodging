@@ -6,22 +6,30 @@ import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import shared from '@/components/Community.module.scss';
+import { env } from '@/config/env';
 import { useReversePlace } from '@/features/post/api/reverse-place';
 import classes from '@/features/post/components/Place.module.scss';
-import type { MapMarker } from '@/features/post/components/PlaceMap';
 import { PlaceAttribution } from '@/features/post/components/PlaceRows';
 import type { LocateStatus } from '@/features/post/hooks/use-current-position';
+import { type MapKind, useGoogleMapsFailure, useMapKind } from '@/features/post/hooks/use-map-kind';
+import type { MapMarker } from '@/features/post/types/map';
 import { googleSource, type LatLng, type Place, placeKey } from '@/features/post/types/place';
 import { getPlaceProblem } from '@/features/post/utils/place-problem';
 
+const mapLoading = () => (
+  <div className={classes.mapLoading}>
+    <Loader />
+  </div>
+);
 const PlaceMap = dynamic(() => import('@/features/post/components/PlaceMap').then((module) => module.PlaceMap), {
   ssr: false,
-  loading: () => (
-    <div className={classes.mapLoading}>
-      <Loader />
-    </div>
-  )
+  loading: mapLoading
 });
+// A separate chunk: the browser key and the Maps JavaScript API loader are fetched only when this map opens.
+const GooglePlaceMap = dynamic(
+  () => import('@/features/post/components/GooglePlaceMap').then((module) => module.GooglePlaceMap),
+  { ssr: false, loading: mapLoading }
+);
 
 /** A community spot that has a position, ready to be drawn. */
 export type MapSpot = LatLng & { id: string; name: string; detail: string; emoji: string };
@@ -55,9 +63,11 @@ const spotMarkerId = (id: string) => `spot:${id}`;
 const isPlace = (value: Place | MapSpot): value is Place => 'source' in value;
 
 type DrawablePlace = Place & LatLng;
-/** Google's terms keep its results off any map but its own, so those stay in the list. */
-const isDrawable = (place: Place): place is DrawablePlace =>
-  place.source !== googleSource && place.latitude !== null && place.longitude !== null;
+/** Google's terms keep its results off any map but its own, so on the Leaflet map those stay in the list. */
+const isDrawable =
+  (kind: MapKind) =>
+  (place: Place): place is DrawablePlace =>
+    (kind === 'google' || place.source !== googleSource) && place.latitude !== null && place.longitude !== null;
 
 const wrapButton = { root: classes.wrapButton, label: classes.wrapLabel };
 
@@ -82,6 +92,8 @@ function MapSheet({
   const tCommon = useTranslations('community.common');
   const tErrors = useTranslations('errors');
   const locale = useLocale();
+  const mapKind = useMapKind();
+  const googleFailure = useGoogleMapsFailure();
 
   const focused = request.mode === 'pick' ? request.focus : null;
   const [pending, setPending] = useState<Pending | null>(() => {
@@ -105,7 +117,7 @@ function MapSheet({
   const drawable = useMemo(() => {
     const all = focused && isPlace(focused) ? [focused, ...places] : places;
     const seen = new Set(spots.map((spot) => spot.id));
-    return all.filter(isDrawable).filter((place) => {
+    return all.filter(isDrawable(mapKind)).filter((place) => {
       // A result that is already a spot is drawn once, as that spot.
       const id = place.spot_id ?? placeMarkerId(place);
       if (seen.has(id)) {
@@ -114,8 +126,8 @@ function MapSheet({
       seen.add(id);
       return true;
     });
-  }, [places, focused, spots]);
-  const hiddenCount = places.filter((place) => place.source === googleSource).length;
+  }, [places, focused, spots, mapKind]);
+  const hiddenCount = mapKind === 'google' ? 0 : places.filter((place) => place.source === googleSource).length;
 
   const markers = useMemo<MapMarker[]>(
     () =>
@@ -141,7 +153,7 @@ function MapSheet({
   );
 
   const tapped = pending?.kind === 'position' ? pending.position : null;
-  const reverse = useReversePlace(request.mode === 'pick' ? tapped : null, locale);
+  const reverse = useReversePlace(request.mode === 'pick' ? tapped : null, locale, mapKind === 'google');
 
   const pendingSpot =
     pending?.kind === 'marker' ? spots.find((spot) => spotMarkerId(spot.id) === pending.id) : undefined;
@@ -164,11 +176,12 @@ function MapSheet({
   const canConfirm = Boolean(pendingSpot || pendingPlace || (tapped && (request.mode === 'position' || found)));
 
   const reverseProblem = reverse.isError ? getPlaceProblem(reverse.error) : null;
+  const MapView = mapKind === 'google' ? GooglePlaceMap : PlaceMap;
 
   return (
     <div className={classes.sheet}>
       <div className={classes.mapWrap}>
-        <PlaceMap
+        <MapView
           label={t('map.label')}
           markers={markers}
           selectedId={pending?.kind === 'marker' ? pending.id : null}
@@ -206,6 +219,8 @@ function MapSheet({
               {shown.original_name && <span className={classes.originalName}>{shown.original_name}</span>}
               {shown.address && <span className={classes.address}>{shown.address}</span>}
             </span>
+          ) : tapped && reverse.data?.needs_google_map ? (
+            <span className={classes.address}>{t('map.lookupNeedsGoogleMap')}</span>
           ) : tapped ? (
             <span className={classes.address}>
               {reverseProblem === null
@@ -228,6 +243,11 @@ function MapSheet({
         {request.mode === 'pick' && !tapped && nearbyMessage && (
           <output className={classes.status} aria-live='polite'>
             {nearbyMessage}
+          </output>
+        )}
+        {env.googleMapsEnabled && googleFailure && (
+          <output className={classes.status} aria-live='polite'>
+            {t('map.googleUnavailable')}
           </output>
         )}
         {request.mode === 'pick' && hiddenCount > 0 && <p className={classes.status}>{t('map.googleNotOnMap')}</p>}

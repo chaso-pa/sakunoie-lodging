@@ -398,6 +398,8 @@
           "nothingHere": "没有找到此位置的名称。可以输入名称后登记。",
           "lookupFailed": "无法查询此位置的名称。可以输入名称后登记。",
           "lookupUnavailable": "目前无法根据位置查询名称。可以输入名称后登记。",
+          "lookupNeedsGoogleMap": "此地图无法根据位置查找名称。可以输入名称后登记。",
+          "googleUnavailable": "无法加载 Google 地图，现显示简易地图。Google 的搜索结果请从列表中选择。",
           "googleNotOnMap": "来自 Google 的搜索结果不会显示在此地图上，请从列表中选择。",
           "registerHere": "为此位置输入名称并登记",
           "confirm": "选择这个地点",

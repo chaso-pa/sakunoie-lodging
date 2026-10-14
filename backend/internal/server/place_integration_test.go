@@ -618,9 +618,16 @@ func TestGooglePlaceStorageRuleIntegration(t *testing.T) {
 		t.Fatalf("search = %s", r.Body)
 	}
 	wantStatus(t, alice.postJSON("/api/places/nearby", map[string]any{"latitude": 36.2123, "longitude": 138.4987}), http.StatusOK)
+	// A point picked on another map is not looked up: Google's content may only be shown on a Google map.
+	before := google.calls.Load()
 	r = alice.postJSON("/api/places/reverse", map[string]any{"latitude": 36.212345, "longitude": 138.498765})
 	wantStatus(t, r, http.StatusOK)
-	if obj(t, r.json(t), "result")["external_id"] != gPlaceID {
+	if r.json(t)["result"] != nil || r.json(t)["needs_google_map"] != true || r.json(t)["provider"] != "google" || google.calls.Load() != before {
+		t.Fatalf("reverse off a Google map = %s (Google calls %d → %d)", r.Body, before, google.calls.Load())
+	}
+	r = alice.postJSON("/api/places/reverse", map[string]any{"latitude": 36.212345, "longitude": 138.498765, "google_map": true})
+	wantStatus(t, r, http.StatusOK)
+	if obj(t, r.json(t), "result")["external_id"] != gPlaceID || r.json(t)["needs_google_map"] != false {
 		t.Fatalf("reverse = %s", r.Body)
 	}
 
