@@ -35,8 +35,10 @@ const (
 	// every call below is a Pro call and nothing from the Enterprise tier
 	// (ratings, opening hours, phone numbers) is ever asked for. Photos are
 	// not requested either: each one shown would be a further billed call.
-	googlePlaceFields  = "id,displayName,formattedAddress,location,primaryType,googleMapsUri"
-	googleSearchFields = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.googleMapsUri"
+	// types (an Essentials field) backs up primaryType for the category, and
+	// tells a business from an address in Reverse.
+	googlePlaceFields  = "id,displayName,formattedAddress,location,primaryType,types,googleMapsUri"
+	googleSearchFields = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.types,places.googleMapsUri"
 )
 
 // googlePlaceID is the shape of a place ID. The ID becomes a path segment
@@ -111,6 +113,7 @@ type googlePlace struct {
 	FormattedAddress string        `json:"formattedAddress"`
 	Location         *googleLatLng `json:"location"`
 	PrimaryType      string        `json:"primaryType"`
+	Types            []string      `json:"types"`
 	GoogleMapsURI    string        `json:"googleMapsUri"`
 }
 
@@ -205,6 +208,13 @@ var (
 // "this spot on the map" means. Google lists the businesses at the point
 // first, so the first street address is taken, or failing that the first
 // result that is an area or a road rather than a business or a plus code.
+//
+// The address is then read through Place Details, the call that also names
+// the spot when it is registered and every time it is shown, so the name
+// and address the member confirms are the ones the spot ends up with. If
+// Place Details says the ID is a business after all, nothing is offered:
+// the member asked about a point, not about whatever is there. A tap thus
+// costs one Geocoding and one Place Details call.
 func (p *GooglePlaceProvider) Reverse(ctx context.Context, point PlacePoint, language string) (*Place, error) {
 	point = point.rounded(reversePositionDecimals)
 	query := url.Values{}
@@ -239,20 +249,21 @@ func (p *GooglePlaceProvider) Reverse(ctx context.Context, point PlacePoint, lan
 	if pick < 0 {
 		return nil, nil
 	}
-	r := parsed.Results[pick]
-	place := &Place{
-		Source:      PlaceProviderGoogle,
-		ExternalID:  r.PlaceID,
-		Name:        r.FormattedAddress,
-		CategoryKey: PlaceCategoryOther,
-		Latitude:    point.Latitude,
-		Longitude:   point.Longitude,
-		MapURL:      GoogleMapsPlaceURL(r.PlaceID),
+	details, err := p.details(ctx, parsed.Results[pick].PlaceID, language)
+	if errors.Is(err, ErrPlaceNotFound) {
+		return nil, nil
 	}
-	if r.Location != nil && validCoordinates(r.Location.Latitude, r.Location.Longitude) {
-		place.Latitude, place.Longitude = r.Location.Latitude, r.Location.Longitude
+	if err != nil {
+		return nil, err
 	}
-	return place, nil
+	if hasAnyType(details.Types, googleNonAddressTypes) {
+		return nil, nil
+	}
+	places := googlePlaces([]googlePlace{*details})
+	if len(places) == 0 {
+		return nil, nil
+	}
+	return &places[0], nil
 }
 
 func hasAnyType(types, wanted []string) bool {
@@ -266,6 +277,19 @@ func hasAnyType(types, wanted []string) bool {
 
 // Resolve calls Place Details (New).
 func (p *GooglePlaceProvider) Resolve(ctx context.Context, externalID, language string) (*Place, error) {
+	details, err := p.details(ctx, externalID, language)
+	if err != nil {
+		return nil, err
+	}
+	places := googlePlaces([]googlePlace{*details})
+	if len(places) == 0 {
+		return nil, ErrPlaceNotFound
+	}
+	return &places[0], nil
+}
+
+// details calls Place Details (New) and returns the answer as Google gave it.
+func (p *GooglePlaceProvider) details(ctx context.Context, externalID, language string) (*googlePlace, error) {
 	if !p.ValidExternalID(externalID) {
 		return nil, ErrPlaceNotFound
 	}
@@ -281,11 +305,7 @@ func (p *GooglePlaceProvider) Resolve(ctx context.Context, externalID, language 
 		}
 		return nil, err
 	}
-	places := googlePlaces([]googlePlace{parsed})
-	if len(places) == 0 {
-		return nil, ErrPlaceNotFound
-	}
-	return &places[0], nil
+	return &parsed, nil
 }
 
 // call sends one request and decodes a 200 answer into out. The key
@@ -341,8 +361,8 @@ func googlePlaces(rows []googlePlace) []Place {
 			Source:      PlaceProviderGoogle,
 			ExternalID:  r.ID,
 			Name:        strings.TrimSpace(r.DisplayName.Text),
-			Address:     strings.TrimSpace(r.FormattedAddress),
-			CategoryKey: googleCategory(r.PrimaryType),
+			Address:     trimGoogleCountry(r.FormattedAddress),
+			CategoryKey: googleCategory(r.PrimaryType, r.Types),
 			Latitude:    r.Location.Latitude,
 			Longitude:   r.Location.Longitude,
 			MapURL:      GoogleMapsPlaceURL(r.ID),
@@ -391,9 +411,31 @@ var googleNearbyTypes = map[string][]string{
 	PlaceCategoryTransport: {"train_station", "bus_station"},
 }
 
-// googleCategory maps a primary type to a category key.
-func googleCategory(primaryType string) string {
-	t := primaryType
+// trimGoogleCountry drops the country from an address: every result is in
+// Japan (regionCode JP), and Google writes it on some addresses and not on
+// others ("日本、〒385-0028 …" next to "〒385-0028 …").
+func trimGoogleCountry(address string) string {
+	address = strings.TrimSpace(address)
+	address = strings.TrimPrefix(address, "日本、")
+	return strings.TrimSuffix(address, ", Japan")
+}
+
+// googleCategory maps a place's primary type to a category key, or failing
+// that the first of its other types that maps to one: a type this table
+// does not know ("snack_bar") usually comes with one it does ("restaurant").
+func googleCategory(primaryType string, types []string) string {
+	if key := googleTypeCategory(primaryType); key != PlaceCategoryOther {
+		return key
+	}
+	for _, t := range types {
+		if key := googleTypeCategory(t); key != PlaceCategoryOther {
+			return key
+		}
+	}
+	return PlaceCategoryOther
+}
+
+func googleTypeCategory(t string) string {
 	switch {
 	case t == "":
 		return PlaceCategoryOther

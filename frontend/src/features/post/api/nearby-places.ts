@@ -15,6 +15,7 @@ const getNearbyPlaces = async ({ position, language }: { position: LatLng; langu
 /**
  * Places around a position. A mutation rather than a query on purpose: the member's position would
  * otherwise sit in a query key in the cache. It lives only in the variables of this one call, and
- * travels in the request body, not in a URL.
+ * travels in the request body, not in a URL. The answer is never reused, so it is not kept once the
+ * picker unmounts (`gcTime: 0`): neither the position nor, with Google, its places.
  */
-export const useNearbyPlaces = () => useMutation({ mutationFn: getNearbyPlaces });
+export const useNearbyPlaces = () => useMutation({ mutationFn: getNearbyPlaces, gcTime: 0 });

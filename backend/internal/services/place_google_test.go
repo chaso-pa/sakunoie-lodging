@@ -140,7 +140,7 @@ func TestGoogleSearch(t *testing.T) {
 	}
 	want := Place{
 		Source: "google", ExternalID: "ChIJ_test_SHIRAKOMA-1", Name: "Shirakoma Pond",
-		Address:     "Hata, Sakuho, Minamisaku District, Nagano 384-0701, Japan",
+		Address:     "Hata, Sakuho, Minamisaku District, Nagano 384-0701",
 		CategoryKey: PlaceCategorySight, Latitude: 36.0511, Longitude: 138.3597,
 		MapURL: "https://maps.google.com/?cid=1234567890",
 	}
@@ -159,7 +159,7 @@ func TestGoogleSearch(t *testing.T) {
 	assertGoogleAuth(t, req)
 	// Exactly these fields: all Pro tier or below, nothing from Enterprise,
 	// no photos.
-	if got := req.Header.Get("X-Goog-FieldMask"); got != "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.googleMapsUri" {
+	if got := req.Header.Get("X-Goog-FieldMask"); got != "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.types,places.googleMapsUri" {
 		t.Fatalf("field mask = %q", got)
 	}
 	var body map[string]any
@@ -244,50 +244,94 @@ func TestGoogleNearby(t *testing.T) {
 }
 
 func TestGoogleReverse(t *testing.T) {
-	answer := googleGeocodeAnswer
-	srv := newPlaceStub(t, func(w http.ResponseWriter, _ placeRequest) { w.Write([]byte(answer)) })
+	geocode := googleGeocodeAnswer
+	// Place Details of each ID, as Google reads it back: addresses come back
+	// as addresses, a business ID as the business.
+	details := map[string]string{
+		"ChIJ_test_ADDRESS-3": `{"id":"ChIJ_test_ADDRESS-3","displayName":{"text":"1 Sakudairaekihigashi"},
+			"formattedAddress":"1 Sakudairaekihigashi, Saku, Nagano 385-0028, Japan","location":{"latitude":36.278012,"longitude":138.464683},
+			"types":["street_address"],"googleMapsUri":"https://maps.google.com/?cid=3"}`,
+		"ChIJ_test_ROUTE-6": `{"id":"ChIJ_test_ROUTE-6","displayName":{"text":"Route 9"},"formattedAddress":"Route 9, Saku",
+			"location":{"latitude":36.2,"longitude":138.4},"types":["route"]}`,
+		"ChIJ_test_HIDDEN-8": `{"id":"ChIJ_test_HIDDEN-8","displayName":{"text":"Sakushi Union"},"formattedAddress":"3056 Nakagomi",
+			"location":{"latitude":36.2,"longitude":138.4},"primaryType":"association_or_organization","types":["point_of_interest","establishment"]}`,
+	}
+	srv := newPlaceStub(t, func(w http.ResponseWriter, r placeRequest) {
+		if r.Path == "/v4/geocode/location" {
+			w.Write([]byte(geocode))
+			return
+		}
+		answer, ok := details[strings.TrimPrefix(r.Path, "/v1/places/")]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Write([]byte(answer))
+	})
 	p := newGoogleForTest(t, srv)
 	ctx := context.Background()
 
+	// The business Google lists first is passed over, and the address is
+	// read back through Place Details: what the member sees is what
+	// registering the ID (Resolve) gives.
 	place, err := p.Reverse(ctx, PlacePoint{36.2780149, 138.4646851}, "en")
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := Place{
-		Source: "google", ExternalID: "ChIJ_test_ADDRESS-3", Name: "1 Sakudairaekihigashi, Saku, Nagano 385-0028, Japan",
-		CategoryKey: PlaceCategoryOther, Latitude: 36.278012, Longitude: 138.464683,
-		MapURL: "https://www.google.com/maps/place/?q=place_id:ChIJ_test_ADDRESS-3",
+		Source: "google", ExternalID: "ChIJ_test_ADDRESS-3", Name: "1 Sakudairaekihigashi",
+		Address: "1 Sakudairaekihigashi, Saku, Nagano 385-0028", CategoryKey: PlaceCategoryOther,
+		Latitude: 36.278012, Longitude: 138.464683, MapURL: "https://maps.google.com/?cid=3",
 	}
 	if place == nil || *place != want {
 		t.Fatalf("place = %+v\nwant    %+v", place, want)
 	}
-	req := srv.last()
-	if req.Method != http.MethodGet || req.Path != "/v4/geocode/location" || req.Query.Get("location.latitude") != "36.27801" ||
-		req.Query.Get("location.longitude") != "138.46469" || req.Query.Get("languageCode") != "en" || req.Query.Get("regionCode") != "JP" {
-		t.Fatalf("request = %s %s?%s", req.Method, req.Path, req.RawQuery)
+	if resolved, err := p.Resolve(ctx, "ChIJ_test_ADDRESS-3", "en"); err != nil || *resolved != *place {
+		t.Fatalf("registered as %+v (err %v), shown as %+v", resolved, err, place)
 	}
-	assertGoogleAuth(t, req)
+	srv.mu.Lock()
+	sent := append([]placeRequest(nil), srv.requests...)
+	srv.mu.Unlock()
+	geo, det := sent[0], sent[1]
+	if geo.Method != http.MethodGet || geo.Path != "/v4/geocode/location" || geo.Query.Get("location.latitude") != "36.27801" ||
+		geo.Query.Get("location.longitude") != "138.46469" || geo.Query.Get("languageCode") != "en" || geo.Query.Get("regionCode") != "JP" {
+		t.Fatalf("geocoding request = %s %s?%s", geo.Method, geo.Path, geo.RawQuery)
+	}
+	if det.Path != "/v1/places/ChIJ_test_ADDRESS-3" || det.Query.Get("languageCode") != "en" || det.Header.Get("X-Goog-FieldMask") != googlePlaceFields {
+		t.Fatalf("details request = %s?%s", det.Path, det.RawQuery)
+	}
+	assertGoogleAuth(t, geo)
+	assertGoogleAuth(t, det)
 
-	answer = `{"results":[]}`
+	geocode = `{"results":[]}`
 	if place, err := p.Reverse(ctx, PlacePoint{30, 150}, "ja"); err != nil || place != nil {
 		t.Fatalf("place = %+v, err = %v", place, err)
 	}
 
 	// Without a street address, an area or a road is better than nothing.
-	answer = `{"results":[
+	geocode = `{"results":[
 		{"placeId":"ChIJ_test_SHOP-7","formattedAddress":"Saku","types":["establishment","store"]},
 		{"placeId":"ChIJ_test_ROUTE-6","formattedAddress":"Route 9, Saku","types":["route"]},
 		{"placeId":"ChIJ_test_CITY-4","formattedAddress":"Saku, Nagano","types":["locality"]}]}`
-	if place, err := p.Reverse(ctx, PlacePoint{36.2, 138.4}, "ja"); err != nil || place == nil || place.ExternalID != "ChIJ_test_ROUTE-6" {
+	if place, err := p.Reverse(ctx, PlacePoint{36.2, 138.4}, "ja"); err != nil || place == nil || place.ExternalID != "ChIJ_test_ROUTE-6" || place.Name != "Route 9" {
 		t.Fatalf("place = %+v, err = %v", place, err)
 	}
 
 	// A point with only businesses and plus codes names nothing.
-	answer = `{"results":[
+	geocode = `{"results":[
 		{"placeId":"ChIJ_test_SHOP-7","formattedAddress":"Saku","types":["establishment","point_of_interest"]},
 		{"placeId":"GhIJ_test_PLUS","formattedAddress":"6FXG+HQ Saku","types":["plus_code"]}]}`
 	if place, err := p.Reverse(ctx, PlacePoint{36.2, 138.4}, "ja"); err != nil || place != nil {
 		t.Fatalf("place = %+v, err = %v", place, err)
+	}
+
+	// An address whose ID Place Details reads as a business is not offered
+	// under that business's name, and one it does not know is not offered.
+	for _, id := range []string{"ChIJ_test_HIDDEN-8", "ChIJ_test_GONE-9"} {
+		geocode = `{"results":[{"placeId":"` + id + `","formattedAddress":"3056 Nakagomi","types":["street_address"]}]}`
+		if place, err := p.Reverse(ctx, PlacePoint{36.2, 138.4}, "ja"); err != nil || place != nil {
+			t.Fatalf("%s: place = %+v, err = %v", id, place, err)
+		}
 	}
 }
 
@@ -305,7 +349,7 @@ func TestGoogleResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := Place{
-		Source: "google", ExternalID: "ChIJ_test_SHIRAKOMA-1", Name: "白駒の池", Address: "日本、〒384-0701 長野県南佐久郡佐久穂町畑",
+		Source: "google", ExternalID: "ChIJ_test_SHIRAKOMA-1", Name: "白駒の池", Address: "〒384-0701 長野県南佐久郡佐久穂町畑",
 		CategoryKey: PlaceCategorySight, Latitude: 36.0511, Longitude: 138.3597, MapURL: "https://maps.google.com/?cid=1234567890",
 	}
 	if *place != want {
@@ -316,7 +360,7 @@ func TestGoogleResolve(t *testing.T) {
 		t.Fatalf("request = %s %s?%s", req.Method, req.Path, req.RawQuery)
 	}
 	assertGoogleAuth(t, req)
-	if got := req.Header.Get("X-Goog-FieldMask"); got != "id,displayName,formattedAddress,location,primaryType,googleMapsUri" {
+	if got := req.Header.Get("X-Goog-FieldMask"); got != "id,displayName,formattedAddress,location,primaryType,types,googleMapsUri" {
 		t.Fatalf("field mask = %q", got)
 	}
 	// No cache: reading the same spot again asks Google again.
@@ -390,8 +434,24 @@ func TestGoogleCategory(t *testing.T) {
 		"convenience_store": PlaceCategoryShop, "gift_shop": PlaceCategoryShop, "spa": PlaceCategoryOnsen,
 		"historical_landmark": PlaceCategoryHistory, "": PlaceCategoryOther, "street_address": PlaceCategoryOther,
 	} {
-		if got := googleCategory(primaryType); got != want {
+		if got := googleCategory(primaryType, nil); got != want {
 			t.Errorf("googleCategory(%q) = %q, want %q", primaryType, got, want)
+		}
+	}
+	// A primary type the table does not know falls back to the other types.
+	if got := googleCategory("snack_bar", []string{"snack_bar", "meal_takeaway", "restaurant", "food", "point_of_interest"}); got != PlaceCategoryFood {
+		t.Errorf("snack bar = %q", got)
+	}
+	if got := googleCategory("", []string{"point_of_interest", "establishment"}); got != PlaceCategoryOther {
+		t.Errorf("no known type = %q", got)
+	}
+	for address, want := range map[string]string{
+		"日本、〒385-0028 長野県佐久市佐久平駅東":                             "〒385-0028 長野県佐久市佐久平駅東",
+		"〒385-0028 長野県佐久市佐久平駅東１−１":                             "〒385-0028 長野県佐久市佐久平駅東１−１",
+		"Karuizawa, Kitasaku District, Nagano 389-0102, Japan": "Karuizawa, Kitasaku District, Nagano 389-0102",
+	} {
+		if got := trimGoogleCountry(address); got != want {
+			t.Errorf("trimGoogleCountry(%q) = %q", address, got)
 		}
 	}
 	for language, want := range map[string]string{"ja": "ja", "en": "en", "ko": "ko", "zh": "zh-CN", "": "ja"} {

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useDropUnusedQuery } from '@/hooks/use-drop-unused-query';
 import { api } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { listOf, mediaSchema, memberSummarySchema, reviewSchema, spotSchema } from '@/types/community';
@@ -28,4 +29,12 @@ const getSpot = async (id: string): Promise<SpotDetail> => {
   return spotDetailSchema.parse(response.data);
 };
 
-export const useSpot = (id: string) => useQuery({ queryKey: queryKeys.spots.detail(id), queryFn: () => getSpot(id) });
+// A Google spot's name and address are read from Google on every request; they may not be kept.
+const isGoogleSpot = (detail: SpotDetail | undefined) => detail?.spot.source === 'google';
+
+/** A spot's page. A Google spot is dropped from the cache when the page is left. */
+export const useSpot = (id: string) => {
+  const queryKey = queryKeys.spots.detail(id);
+  useDropUnusedQuery(queryKey, isGoogleSpot);
+  return useQuery({ queryKey, queryFn: () => getSpot(id) });
+};

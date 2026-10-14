@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useDropUnusedQuery } from '@/hooks/use-drop-unused-query';
 import { api } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { type Spot, spotSchema } from '@/types/community';
@@ -12,13 +13,16 @@ const getLinkedSpot = async (id: string): Promise<Spot> => {
   return linkedSpotResponseSchema.parse(response.data).spot;
 };
 
+// A Google spot's name and address are read from Google on every request; they may not be kept.
+const isGoogleSpot = (spot: Spot | undefined) => spot?.source === 'google';
+
 /**
  * The spot a `?spot=` link names. It is fetched by id because the public spot list holds only the
- * curated spots, while a link can point at one a member registered.
+ * curated spots, while a link can point at one a member registered. A Google spot is dropped from the
+ * cache when the composer closes.
  */
-export const useLinkedSpot = (id: string | undefined) =>
-  useQuery({
-    queryKey: queryKeys.spots.linked(id ?? ''),
-    queryFn: () => getLinkedSpot(id as string),
-    enabled: Boolean(id)
-  });
+export const useLinkedSpot = (id: string | undefined) => {
+  const queryKey = queryKeys.spots.linked(id ?? '');
+  useDropUnusedQuery(queryKey, isGoogleSpot);
+  return useQuery({ queryKey, queryFn: () => getLinkedSpot(id as string), enabled: Boolean(id) });
+};
