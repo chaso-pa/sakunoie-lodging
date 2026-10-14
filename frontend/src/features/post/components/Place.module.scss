@@ -197,12 +197,14 @@
     color: inherit;
   }
 
-  // Google requires its name next to Places data shown without a Google map.
+  // Google requires its logo next to Places data shown without a Google map, with clear space around it
+  // (10px above and to the sides, 5px below).
   &[data-google] {
-    font-size: 12px;
-    font-weight: 500;
-    color: #5e5e5e;
-    letter-spacing: 0.2px;
+    display: flex;
+    justify-content: flex-end;
+    margin: 10px 0 5px;
+    padding-inline: 10px;
+    line-height: 0;
   }
 }
 
@@ -322,6 +324,18 @@
     background: var(--saku-green);
     transform: rotate(-45deg) scale(1.15);
   }
+}
+
+// The Google map anchors a marker at the bottom centre of its box; the pin's point reaches about 6px below
+// its square, so the box is made that much taller to put the point on the position.
+.googleMarker {
+  display: block;
+  padding-bottom: 6px;
+}
+
+// Centres the "me" dot on the position on the Google map, as Leaflet does.
+.googleCentered {
+  transform: translateY(50%);
 }
 
 .meDot {

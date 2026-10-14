@@ -59,14 +59,16 @@ type ReversePlaceInput struct {
 		Latitude  float64 `json:"latitude" minimum:"-90" maximum:"90" doc:"地図で選んだ位置の緯度"`
 		Longitude float64 `json:"longitude" minimum:"-180" maximum:"180" doc:"地図で選んだ位置の経度"`
 		Language  string  `json:"language,omitempty" enum:"ja,en,ko,zh" doc:"結果の言語（省略時は会員の表示言語）"`
+		GoogleMap bool    `json:"google_map,omitempty" doc:"結果を Google の地図の上に表示するとき true。プロバイダーが google で false なら Google には問い合わせない"`
 	}
 }
 
 type ReversePlaceOutput struct {
 	Body struct {
-		Result      *PlaceResult     `json:"result" doc:"その位置の場所（何も分からなければ null）"`
-		Provider    string           `json:"provider" enum:"osm,google" doc:"検索に使ったサービス"`
-		Attribution PlaceAttribution `json:"attribution" doc:"結果のそばに表示する帰属表記"`
+		Result         *PlaceResult     `json:"result" doc:"その位置の場所（何も分からなければ null）"`
+		Provider       string           `json:"provider" enum:"osm,google" doc:"検索に使ったサービス"`
+		Attribution    PlaceAttribution `json:"attribution" doc:"結果のそばに表示する帰属表記"`
+		NeedsGoogleMap bool             `json:"needs_google_map" doc:"true なら、Google の結果は Google の地図の上でしか表示できないため問い合わせなかった（result は null）"`
 	}
 }
 

@@ -9,9 +9,9 @@ import (
 	"testing"
 )
 
-// These tests are the only verification the Google provider has: it has
-// not been run against the real Places or Geocoding API. The stub answers
-// follow the response formats published in Google's documentation.
+// The stub answers follow the response formats published in Google's
+// documentation and, for Geocoding, the order the real service answered in
+// on 2026-10-14: businesses at the point first, then addresses.
 
 const (
 	googleTestKey = "AIza-test-SERVER-KEY-0123456789"
@@ -34,6 +34,10 @@ const (
 		"primaryType":"tourist_attraction","googleMapsUri":"https://maps.google.com/?cid=1234567890"}`
 
 	googleGeocodeAnswer = `{"results":[
+		{"placeId":"ChIJ_test_UNION-5","formattedAddress":"1-2 Sakudairaekihigashi, Saku, Nagano 385-0028, Japan",
+		 "location":{"latitude":36.27802,"longitude":138.46469},"types":["establishment","point_of_interest"]},
+		{"placeId":"GhIJ_test_PLUS","formattedAddress":"6FXG+HQ Saku, Nagano, Japan","types":["plus_code"]},
+		{"placeId":"ChIJ_test_ROUTE-6","formattedAddress":"Route 9, Saku, Nagano, Japan","types":["route"]},
 		{"place":"//places.googleapis.com/places/ChIJ_test_ADDRESS-3","placeId":"ChIJ_test_ADDRESS-3",
 		 "location":{"latitude":36.278012,"longitude":138.464683},"granularity":"ROOFTOP",
 		 "formattedAddress":"1 Sakudairaekihigashi, Saku, Nagano 385-0028, Japan","types":["street_address"]},
@@ -266,6 +270,23 @@ func TestGoogleReverse(t *testing.T) {
 
 	answer = `{"results":[]}`
 	if place, err := p.Reverse(ctx, PlacePoint{30, 150}, "ja"); err != nil || place != nil {
+		t.Fatalf("place = %+v, err = %v", place, err)
+	}
+
+	// Without a street address, an area or a road is better than nothing.
+	answer = `{"results":[
+		{"placeId":"ChIJ_test_SHOP-7","formattedAddress":"Saku","types":["establishment","store"]},
+		{"placeId":"ChIJ_test_ROUTE-6","formattedAddress":"Route 9, Saku","types":["route"]},
+		{"placeId":"ChIJ_test_CITY-4","formattedAddress":"Saku, Nagano","types":["locality"]}]}`
+	if place, err := p.Reverse(ctx, PlacePoint{36.2, 138.4}, "ja"); err != nil || place == nil || place.ExternalID != "ChIJ_test_ROUTE-6" {
+		t.Fatalf("place = %+v, err = %v", place, err)
+	}
+
+	// A point with only businesses and plus codes names nothing.
+	answer = `{"results":[
+		{"placeId":"ChIJ_test_SHOP-7","formattedAddress":"Saku","types":["establishment","point_of_interest"]},
+		{"placeId":"GhIJ_test_PLUS","formattedAddress":"6FXG+HQ Saku","types":["plus_code"]}]}`
+	if place, err := p.Reverse(ctx, PlacePoint{36.2, 138.4}, "ja"); err != nil || place != nil {
 		t.Fatalf("place = %+v, err = %v", place, err)
 	}
 }

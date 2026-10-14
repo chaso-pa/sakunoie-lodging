@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -52,9 +53,9 @@ var ErrGooglePlacesKeyMissing = errors.New("google places: API key is not config
 // and nothing else from a result. This type therefore has no cache, and
 // PlaceService stores only the ID of a spot registered from it.
 //
-// It was written against the published request and response formats and
-// is tested against stub servers only; it has not been run against the
-// real services.
+// It is tested against stub servers that follow the published request and
+// response formats, and was checked against the real services on
+// 2026-10-14 (docs/spot-search.md, section 10).
 type GooglePlaceProvider struct {
 	placesURL    string
 	geocodingURL string
@@ -189,9 +190,21 @@ func (p *GooglePlaceProvider) Nearby(ctx context.Context, q PlaceNearbyQuery) ([
 	return places, nil
 }
 
+// googleAddressTypes are the Geocoding result types that name an address.
+// googleNonAddressTypes are the ones that do not: an establishment's
+// formattedAddress is only where the business is, and Place Details of its
+// place ID returns the business's name, so offering it under its address
+// would register a spot named after something the member never saw.
+var (
+	googleAddressTypes    = []string{"street_address", "premise", "subpremise"}
+	googleNonAddressTypes = []string{"establishment", "point_of_interest", "plus_code"}
+)
+
 // Reverse calls Geocoding API v4 for the point. What comes back is an
 // address with a place ID rather than a shop or a sight, which is what
-// "this spot on the map" means.
+// "this spot on the map" means. Google lists the businesses at the point
+// first, so the first street address is taken, or failing that the first
+// result that is an area or a road rather than a business or a plus code.
 func (p *GooglePlaceProvider) Reverse(ctx context.Context, point PlacePoint, language string) (*Place, error) {
 	point = point.rounded(reversePositionDecimals)
 	query := url.Values{}
@@ -204,30 +217,51 @@ func (p *GooglePlaceProvider) Reverse(ctx context.Context, point PlacePoint, lan
 			PlaceID          string        `json:"placeId"`
 			FormattedAddress string        `json:"formattedAddress"`
 			Location         *googleLatLng `json:"location"`
+			Types            []string      `json:"types"`
 		} `json:"results"`
 	}
 	if _, err := p.call(ctx, http.MethodGet, p.geocodingURL+"/v4/geocode/location", query, "", nil, &parsed); err != nil {
 		return nil, err
 	}
-	for _, r := range parsed.Results {
-		if !p.ValidExternalID(r.PlaceID) || strings.TrimSpace(r.FormattedAddress) == "" {
+	pick := -1
+	for i, r := range parsed.Results {
+		if !p.ValidExternalID(r.PlaceID) || strings.TrimSpace(r.FormattedAddress) == "" || hasAnyType(r.Types, googleNonAddressTypes) {
 			continue
 		}
-		place := &Place{
-			Source:      PlaceProviderGoogle,
-			ExternalID:  r.PlaceID,
-			Name:        r.FormattedAddress,
-			CategoryKey: PlaceCategoryOther,
-			Latitude:    point.Latitude,
-			Longitude:   point.Longitude,
-			MapURL:      GoogleMapsPlaceURL(r.PlaceID),
+		if hasAnyType(r.Types, googleAddressTypes) {
+			pick = i
+			break
 		}
-		if r.Location != nil && validCoordinates(r.Location.Latitude, r.Location.Longitude) {
-			place.Latitude, place.Longitude = r.Location.Latitude, r.Location.Longitude
+		if pick < 0 {
+			pick = i
 		}
-		return place, nil
 	}
-	return nil, nil
+	if pick < 0 {
+		return nil, nil
+	}
+	r := parsed.Results[pick]
+	place := &Place{
+		Source:      PlaceProviderGoogle,
+		ExternalID:  r.PlaceID,
+		Name:        r.FormattedAddress,
+		CategoryKey: PlaceCategoryOther,
+		Latitude:    point.Latitude,
+		Longitude:   point.Longitude,
+		MapURL:      GoogleMapsPlaceURL(r.PlaceID),
+	}
+	if r.Location != nil && validCoordinates(r.Location.Latitude, r.Location.Longitude) {
+		place.Latitude, place.Longitude = r.Location.Latitude, r.Location.Longitude
+	}
+	return place, nil
+}
+
+func hasAnyType(types, wanted []string) bool {
+	for _, t := range types {
+		if slices.Contains(wanted, t) {
+			return true
+		}
+	}
+	return false
 }
 
 // Resolve calls Place Details (New).
