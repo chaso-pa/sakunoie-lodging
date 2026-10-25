@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -34,8 +35,10 @@ const (
 	// every call below is a Pro call and nothing from the Enterprise tier
 	// (ratings, opening hours, phone numbers) is ever asked for. Photos are
 	// not requested either: each one shown would be a further billed call.
-	googlePlaceFields  = "id,displayName,formattedAddress,location,primaryType,googleMapsUri"
-	googleSearchFields = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.googleMapsUri"
+	// types (an Essentials field) backs up primaryType for the category, and
+	// tells a business from an address in Reverse.
+	googlePlaceFields  = "id,displayName,formattedAddress,location,primaryType,types,googleMapsUri"
+	googleSearchFields = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.types,places.googleMapsUri"
 )
 
 // googlePlaceID is the shape of a place ID. The ID becomes a path segment
@@ -52,9 +55,9 @@ var ErrGooglePlacesKeyMissing = errors.New("google places: API key is not config
 // and nothing else from a result. This type therefore has no cache, and
 // PlaceService stores only the ID of a spot registered from it.
 //
-// It was written against the published request and response formats and
-// is tested against stub servers only; it has not been run against the
-// real services.
+// It is tested against stub servers that follow the published request and
+// response formats, and was checked against the real services on
+// 2026-10-14 (docs/spot-search.md, section 10).
 type GooglePlaceProvider struct {
 	placesURL    string
 	geocodingURL string
@@ -110,6 +113,7 @@ type googlePlace struct {
 	FormattedAddress string        `json:"formattedAddress"`
 	Location         *googleLatLng `json:"location"`
 	PrimaryType      string        `json:"primaryType"`
+	Types            []string      `json:"types"`
 	GoogleMapsURI    string        `json:"googleMapsUri"`
 }
 
@@ -189,9 +193,28 @@ func (p *GooglePlaceProvider) Nearby(ctx context.Context, q PlaceNearbyQuery) ([
 	return places, nil
 }
 
+// googleAddressTypes are the Geocoding result types that name an address.
+// googleNonAddressTypes are the ones that do not: an establishment's
+// formattedAddress is only where the business is, and Place Details of its
+// place ID returns the business's name, so offering it under its address
+// would register a spot named after something the member never saw.
+var (
+	googleAddressTypes    = []string{"street_address", "premise", "subpremise"}
+	googleNonAddressTypes = []string{"establishment", "point_of_interest", "plus_code"}
+)
+
 // Reverse calls Geocoding API v4 for the point. What comes back is an
 // address with a place ID rather than a shop or a sight, which is what
-// "this spot on the map" means.
+// "this spot on the map" means. Google lists the businesses at the point
+// first, so the first street address is taken, or failing that the first
+// result that is an area or a road rather than a business or a plus code.
+//
+// The address is then read through Place Details, the call that also names
+// the spot when it is registered and every time it is shown, so the name
+// and address the member confirms are the ones the spot ends up with. If
+// Place Details says the ID is a business after all, nothing is offered:
+// the member asked about a point, not about whatever is there. A tap thus
+// costs one Geocoding and one Place Details call.
 func (p *GooglePlaceProvider) Reverse(ctx context.Context, point PlacePoint, language string) (*Place, error) {
 	point = point.rounded(reversePositionDecimals)
 	query := url.Values{}
@@ -204,34 +227,69 @@ func (p *GooglePlaceProvider) Reverse(ctx context.Context, point PlacePoint, lan
 			PlaceID          string        `json:"placeId"`
 			FormattedAddress string        `json:"formattedAddress"`
 			Location         *googleLatLng `json:"location"`
+			Types            []string      `json:"types"`
 		} `json:"results"`
 	}
 	if _, err := p.call(ctx, http.MethodGet, p.geocodingURL+"/v4/geocode/location", query, "", nil, &parsed); err != nil {
 		return nil, err
 	}
-	for _, r := range parsed.Results {
-		if !p.ValidExternalID(r.PlaceID) || strings.TrimSpace(r.FormattedAddress) == "" {
+	pick := -1
+	for i, r := range parsed.Results {
+		if !p.ValidExternalID(r.PlaceID) || strings.TrimSpace(r.FormattedAddress) == "" || hasAnyType(r.Types, googleNonAddressTypes) {
 			continue
 		}
-		place := &Place{
-			Source:      PlaceProviderGoogle,
-			ExternalID:  r.PlaceID,
-			Name:        r.FormattedAddress,
-			CategoryKey: PlaceCategoryOther,
-			Latitude:    point.Latitude,
-			Longitude:   point.Longitude,
-			MapURL:      GoogleMapsPlaceURL(r.PlaceID),
+		if hasAnyType(r.Types, googleAddressTypes) {
+			pick = i
+			break
 		}
-		if r.Location != nil && validCoordinates(r.Location.Latitude, r.Location.Longitude) {
-			place.Latitude, place.Longitude = r.Location.Latitude, r.Location.Longitude
+		if pick < 0 {
+			pick = i
 		}
-		return place, nil
 	}
-	return nil, nil
+	if pick < 0 {
+		return nil, nil
+	}
+	details, err := p.details(ctx, parsed.Results[pick].PlaceID, language)
+	if errors.Is(err, ErrPlaceNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if hasAnyType(details.Types, googleNonAddressTypes) {
+		return nil, nil
+	}
+	places := googlePlaces([]googlePlace{*details})
+	if len(places) == 0 {
+		return nil, nil
+	}
+	return &places[0], nil
+}
+
+func hasAnyType(types, wanted []string) bool {
+	for _, t := range types {
+		if slices.Contains(wanted, t) {
+			return true
+		}
+	}
+	return false
 }
 
 // Resolve calls Place Details (New).
 func (p *GooglePlaceProvider) Resolve(ctx context.Context, externalID, language string) (*Place, error) {
+	details, err := p.details(ctx, externalID, language)
+	if err != nil {
+		return nil, err
+	}
+	places := googlePlaces([]googlePlace{*details})
+	if len(places) == 0 {
+		return nil, ErrPlaceNotFound
+	}
+	return &places[0], nil
+}
+
+// details calls Place Details (New) and returns the answer as Google gave it.
+func (p *GooglePlaceProvider) details(ctx context.Context, externalID, language string) (*googlePlace, error) {
 	if !p.ValidExternalID(externalID) {
 		return nil, ErrPlaceNotFound
 	}
@@ -247,11 +305,7 @@ func (p *GooglePlaceProvider) Resolve(ctx context.Context, externalID, language 
 		}
 		return nil, err
 	}
-	places := googlePlaces([]googlePlace{parsed})
-	if len(places) == 0 {
-		return nil, ErrPlaceNotFound
-	}
-	return &places[0], nil
+	return &parsed, nil
 }
 
 // call sends one request and decodes a 200 answer into out. The key
@@ -307,8 +361,8 @@ func googlePlaces(rows []googlePlace) []Place {
 			Source:      PlaceProviderGoogle,
 			ExternalID:  r.ID,
 			Name:        strings.TrimSpace(r.DisplayName.Text),
-			Address:     strings.TrimSpace(r.FormattedAddress),
-			CategoryKey: googleCategory(r.PrimaryType),
+			Address:     trimGoogleCountry(r.FormattedAddress),
+			CategoryKey: googleCategory(r.PrimaryType, r.Types),
 			Latitude:    r.Location.Latitude,
 			Longitude:   r.Location.Longitude,
 			MapURL:      GoogleMapsPlaceURL(r.ID),
@@ -357,9 +411,31 @@ var googleNearbyTypes = map[string][]string{
 	PlaceCategoryTransport: {"train_station", "bus_station"},
 }
 
-// googleCategory maps a primary type to a category key.
-func googleCategory(primaryType string) string {
-	t := primaryType
+// trimGoogleCountry drops the country from an address: every result is in
+// Japan (regionCode JP), and Google writes it on some addresses and not on
+// others ("日本、〒385-0028 …" next to "〒385-0028 …").
+func trimGoogleCountry(address string) string {
+	address = strings.TrimSpace(address)
+	address = strings.TrimPrefix(address, "日本、")
+	return strings.TrimSuffix(address, ", Japan")
+}
+
+// googleCategory maps a place's primary type to a category key, or failing
+// that the first of its other types that maps to one: a type this table
+// does not know ("snack_bar") usually comes with one it does ("restaurant").
+func googleCategory(primaryType string, types []string) string {
+	if key := googleTypeCategory(primaryType); key != PlaceCategoryOther {
+		return key
+	}
+	for _, t := range types {
+		if key := googleTypeCategory(t); key != PlaceCategoryOther {
+			return key
+		}
+	}
+	return PlaceCategoryOther
+}
+
+func googleTypeCategory(t string) string {
 	switch {
 	case t == "":
 		return PlaceCategoryOther

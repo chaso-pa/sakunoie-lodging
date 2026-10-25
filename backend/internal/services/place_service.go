@@ -127,6 +127,9 @@ type PlaceResults struct {
 	Results     []models.PlaceResult
 	Provider    string
 	Attribution models.PlaceAttribution
+	// NeedsGoogleMap is set by Reverse when it did not ask Google because
+	// the point is not on a Google map.
+	NeedsGoogleMap bool
 }
 
 func (s *PlaceService) provider() (PlaceProvider, error) {
@@ -295,7 +298,12 @@ func (s *PlaceService) Nearby(ctx context.Context, memberID string, p PlaceNearb
 
 // Reverse names what is at a point picked on the map. The result is nil
 // when the provider knows nothing there.
-func (s *PlaceService) Reverse(ctx context.Context, memberID string, latitude, longitude float64, requestedLanguage string) (*models.PlaceResult, *PlaceResults, error) {
+//
+// onGoogleMap tells whether the point was picked on a Google map. Google's
+// terms forbid showing its content on any other map, so with the Google
+// provider and another map nothing is asked and the result is nil with
+// NeedsGoogleMap set; the member can still register the point by hand.
+func (s *PlaceService) Reverse(ctx context.Context, memberID string, latitude, longitude float64, requestedLanguage string, onGoogleMap bool) (*models.PlaceResult, *PlaceResults, error) {
 	if !validCoordinates(latitude, longitude) {
 		return nil, nil, invalid("latitude or longitude is out of range")
 	}
@@ -308,6 +316,10 @@ func (s *PlaceService) Reverse(ctx context.Context, memberID string, latitude, l
 		return nil, nil, err
 	}
 	meta := &PlaceResults{Provider: provider.Name(), Attribution: provider.Attribution()}
+	if provider.Name() == PlaceProviderGoogle && !onGoogleMap {
+		meta.NeedsGoogleMap = true
+		return nil, meta, nil
+	}
 	place, err := provider.Reverse(ctx, PlacePoint{latitude, longitude}, language)
 	if err != nil {
 		return nil, nil, err

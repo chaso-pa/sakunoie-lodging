@@ -3,6 +3,7 @@
 import { UnstyledButton } from '@mantine/core';
 import { useTranslations } from 'next-intl';
 import shared from '@/components/Community.module.scss';
+import { GoogleMapsLogo } from '@/components/GoogleMapsLogo';
 import classes from '@/features/post/components/Place.module.scss';
 import { type PlaceAttribution as Attribution, googleSource } from '@/features/post/types/place';
 
@@ -89,13 +90,23 @@ export function PlaceRows({ rows, label }: { rows: PlaceRow[]; label: string }) 
   );
 }
 
-/** Credit for the data in a result list, as the provider's terms require. */
+/**
+ * Credit for the data in a result list, as the provider's terms require. Google's is its logo rather than
+ * the text the API sends.
+ */
 export function PlaceAttribution({ provider, attribution }: { provider: string; attribution: Attribution }) {
+  if (provider === googleSource) {
+    return (
+      <p className={classes.attribution} data-google>
+        <GoogleMapsLogo />
+      </p>
+    );
+  }
   if (!attribution.text) {
     return null;
   }
   return (
-    <p className={classes.attribution} data-google={provider === googleSource || undefined} translate='no'>
+    <p className={classes.attribution} translate='no'>
       {attribution.url ? (
         <a href={attribution.url} target='_blank' rel='noreferrer'>
           {attribution.text}

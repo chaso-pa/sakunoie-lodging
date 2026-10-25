@@ -502,12 +502,16 @@
   line-height: 1.6;
   color: var(--saku-muted);
 
-  // Google's attribution rules: its name in a neutral colour, not smaller than the surrounding credit text.
+  // Google's logo, with the clear space its attribution policy asks for (10px above, 5px below; it stands
+  // alone on its line, so nothing comes near its sides).
   &[data-google] {
-    font-size: 12px;
-    font-weight: 500;
-    color: #5e5e5e;
-    letter-spacing: 0.2px;
+    width: fit-content;
+    margin: 10px 0 5px;
+    line-height: 0;
+
+    svg {
+      display: block;
+    }
   }
 }
 

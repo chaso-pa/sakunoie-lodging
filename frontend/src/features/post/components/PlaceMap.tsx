@@ -6,33 +6,7 @@ import L from 'leaflet';
 import { useEffect, useRef } from 'react';
 import { env } from '@/config/env';
 import classes from '@/features/post/components/Place.module.scss';
-import type { LatLng } from '@/features/post/types/place';
-
-export type MapMarker = LatLng & {
-  id: string;
-  /** Read by screen readers and shown as the marker's tooltip. */
-  label: string;
-  emoji: string;
-};
-
-type PlaceMapProps = {
-  label: string;
-  markers: MapMarker[];
-  selectedId: string | null;
-  /** A position the member tapped that is not a marker. */
-  pin: LatLng | null;
-  /** The member's own position, when they asked for places near them. Drawn only; never sent anywhere from here. */
-  me: LatLng | null;
-  /** The map moves here whenever this object changes. */
-  focus: (LatLng & { zoom?: number }) | null;
-  onMarkerSelect: (id: string) => void;
-  onPositionSelect: (position: LatLng) => void;
-};
-
-// Saku City Hall. The picker opens on the area the lodging is in, wide enough to take in the towns around it.
-export const sakuCenter: LatLng = { latitude: 36.2489, longitude: 138.4769 };
-const defaultZoom = 10;
-const focusZoom = 16;
+import { defaultZoom, focusZoom, type PlaceMapProps, sakuCenter } from '@/features/post/types/map';
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 

@@ -4,7 +4,7 @@
 見つからなければ手入力で登録する、という 4 つの方法で場所を付けられるようにする機能の説明。
 場所を付けるのは任意で、付けない投稿はこれまでどおり動く。
 
-最終確認日: 2026-10-13（各サービスの規約・料金はこの日に読んだ内容。変わりうるので本番投入前に読み直すこと）
+最終確認日: 2026-10-14（各サービスの規約・料金はこの日に読んだ内容。変わりうるので本番投入前に読み直すこと）
 
 ## 1. まず決めること（運営者の判断が必要）
 
@@ -17,8 +17,10 @@
 2. **Google に切り替えるなら、フィードを読むたびに課金対象の呼び出しが発生する**（5 章）。
    Google のスポットは名前を保存できないため、フィード 1 ページに Google のスポットが 20 個あれば
    Place Details Pro が 20 回呼ばれる。無料枠（月 5,000 回）は 250 ページ表示で尽きる計算になる。
-3. **Google の場所を Google 以外の地図に表示してはいけない**（6 章）。`PLACE_PROVIDER=google` のときは
-   地図も Google のものにするか、地図なしの一覧にする。
+3. **Google の場所を Google 以外の地図に表示してはいけない**（6 章）。`PLACE_PROVIDER=google` にするなら、
+   フロントエンドにブラウザ用のキー（`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`）と Map ID も設定して、場所選びの地図を
+   Google の地図にする（9 章）。設定しなければ地図は OpenStreetMap のタイルのままで、Google の結果は一覧にだけ出し、
+   地図で指した位置の名前は調べない（手入力での登録だけになる）。
 
 ## 2. 使っているサービスと選んだ理由
 
@@ -26,7 +28,7 @@
 |------|------------------------------|--------------------------|
 | キーワード検索（店名・観光地・住所・郵便番号） | Nominatim `/search` | Places API (New) Text Search |
 | 周辺検索 | Photon `/reverse`（半径とタグで絞り込み） | Places API (New) Nearby Search |
-| 地図で選んだ位置の逆引き | Nominatim `/reverse` | Geocoding API v4（逆ジオコーディング） |
+| 地図で選んだ位置の逆引き | Nominatim `/reverse` | Geocoding API v4（逆ジオコーディング）で住所を選び、Place Details で読み直す。Google の地図で選んだときだけ（4 章） |
 | 登録時・表示時の 1 件の取得 | Nominatim `/lookup` | Places API (New) Place Details |
 | キー | 不要 | サーバー側のキーが必要 |
 | 結果の保存 | 名前・住所・座標を保存する（帰属表示が条件） | place ID だけ保存する |
@@ -105,10 +107,26 @@ Nominatim と同じ間隔（1.1 秒）・同じキャッシュ・同じ User-Age
 |----------------|------|------------------|
 | `POST /api/places/search` | `query`（必須、1〜100 文字）, `language`, `latitude` + `longitude`（任意、近くを優先）, `limit`（1〜10、既定 8） | 20 回/分 |
 | `POST /api/places/nearby` | `latitude`, `longitude`（必須）, `radius_m`（100〜2000、既定 800）, `category`（`all` `food` `cafe` `shop` `sight` `nature` `onsen` `lodging` `transport`）, `language`, `limit`（1〜20、既定 15） | 10 回/分 |
-| `POST /api/places/reverse` | `latitude`, `longitude`（必須）, `language` | 20 回/分 |
+| `POST /api/places/reverse` | `latitude`, `longitude`（必須）, `language`, `google_map`（Google の地図で選んだ位置なら true。既定 false） | 20 回/分 |
 | `POST /api/spots` | 検索結果: `source`（`osm` / `google`）, `external_id`, `language`。手入力: `source: "manual"`, `name`（必須、1〜100 文字）, `address`（〜200 文字）, `latitude` + `longitude`, `category`, `area` | 40 回/日 |
 
 - `language` を省略すると会員の表示言語を使う。
+- `POST /api/places/reverse` は、プロバイダーが `google` で `google_map` が true でないとき、Google に問い合わせずに
+  `result: null`, `needs_google_map: true` を返す（200）。Google の内容を Google 以外の地図の上に出さないため（6 章）。
+  OSM のときは `google_map` を見ない。`needs_google_map` は常に応答に入る（OSM なら false）。
+- Google の逆引きは、Geocoding の結果のうち最初の住所（`street_address` `premise` `subpremise`）を選ぶ。なければ
+  店・施設（`establishment` `point_of_interest`）と Plus Code 以外の最初の結果（道路・地域など）。選んだ place ID を
+  **Place Details で読み直し**、その名前・住所・位置・カテゴリを返す。登録時と表示時に使うのも同じ Place Details
+  なので、会員が確定前に見た名前と住所が、そのままスポットの名前と住所になる。Place Details がその ID を店・施設と
+  答えた場合と、ID を知らない場合は「名前が見つからない」（`result: null`）として扱い、店の名前にはしない。
+  - 理由: Google は指した点にある店を先頭に返す。以前はその結果の住所を名前として見せ、登録すると Place Details が
+    店の名前を返していた（2026-10-14 に実サービスで確認: 住所を確認したのに「Sakushi Shokuin Workers Union」という
+    スポットになった）。
+  - 費用: 位置の確定ではなくタップのたびに Geocoding 1 回と Place Details Pro 1 回（5 章）。
+- Google の住所の先頭の「日本、」と末尾の「, Japan」は外して返す（すべて日本国内の結果で、Google の住所には国名が
+  付くものと付かないものが混ざるため）。カテゴリは `primaryType` で決め、対応表にない種別（例: `snack_bar`）なら
+  `types` の残りから対応表にある最初の種別（例: `restaurant`）で決める。`types` は Essentials のフィールドで、
+  料金の帯は変わらない。
 - 検索結果には、名前や住所が一致する登録済みスポット（運営のスポット、OSM から登録されたもの、手入力の
   もの）が先頭に入り、`spot_id` が付く。`spot_id` がある結果はそのまま `POST /api/posts` の `spot_id` に使える。
 - `POST /api/spots` は同じ外部の場所がすでに登録されていればその行を返す（`created: false`）。
@@ -170,9 +188,8 @@ Nominatim と同じ間隔（1.1 秒）・同じキャッシュ・同じ User-Age
 
 ## 5. Google Maps Platform の設定
 
-> **このリポジトリの Google 向け実装は、公開されているリクエスト・レスポンスの仕様に合わせて書き、スタブの
-> HTTP サーバーでのみ検証している。実際の Google のサービスに対しては一度も実行していない。**
-> 本番で有効にする前に、テスト用のキーで 7 章の確認を行うこと。
+> Google 向けの実装は、スタブの HTTP サーバーでの自動テストに加え、**2026-10-14 に運営者のキーで実際の Google の
+> サービスに対して確認した**（10 章）。本番で有効にする前に、本番のキーとドメインで 10 章の確認をもう一度行うこと。
 
 ### 手順
 
@@ -183,43 +200,55 @@ Nominatim と同じ間隔（1.1 秒）・同じキャッシュ・同じ User-Age
    使える、という記述は見つからなかった（Places API について明記した一文までは確認できていない）。
 2. 「API とサービス」→「ライブラリ」で次を有効にする。
    - **Places API (New)** — 検索・周辺検索・1 件の取得
-   - **Geocoding API** — 地図で選んだ位置の逆引き（v4 のエンドポイント `geocode.googleapis.com` を使う。
-     コンソール上でこの名前の API を有効にすれば v4 が使えるかは未確認。逆引きだけが 403 になる場合はここを確認）
-   - **Maps JavaScript API** — フロントエンドで Google の地図を表示する場合のみ（9 章）
+   - **Geocoding API** — 地図で選んだ位置の逆引き（v4 のエンドポイント `geocode.googleapis.com`）。コンソールで
+     「Geocoding API」を有効にし、キーの API 制限で許可すれば v4 も使えることを 2026-10-14 に確認した
+   - **Maps JavaScript API** — フロントエンドの場所選びの地図（9 章）。`PLACE_PROVIDER=google` にするなら必要
 3. **サーバー用のキー**を作る（`GOOGLE_MAPS_API_KEY`）。
    - アプリケーションの制限: **IP アドレス**（API サーバーの送信元 IP だけ）
    - API の制限: **Places API (New)** と **Geocoding API** だけ
    - このキーはブラウザに渡さない。フロントエンドの環境変数（`NEXT_PUBLIC_*`）に入れない。
-4. **ブラウザ用のキー**（地図を表示する場合のみ、サーバー用とは別のキー）を作る。
-   - アプリケーションの制限: **ウェブサイト（HTTP リファラー）**（本番のドメインと開発用の `http://localhost:3000/*`）
+4. **ブラウザ用のキー**（`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`。サーバー用とは別のキー）を作る。
+   - アプリケーションの制限: **ウェブサイト（HTTP リファラー）**。アプリを開くオリジンをすべて並べる。
+     本番 `https://dover.chaso-pa.com/*`、開発 `http://localhost:3000/*` と `http://192.168.3.101:3000/*`
+     （LAN 内の端末から開く場合）。別のポートで開発サーバーを動かすならそのポートも（例: `http://localhost:3107/*`）。
+     リストにないオリジンでは地図が `RefererNotAllowedMapError` になり、フロントエンドは OpenStreetMap の地図に切り替える。
    - API の制限: **Maps JavaScript API** だけ（Places や Geocoding を許可しない）
-5. **予算アラート**を設定する（「お支払い」→「予算とアラート」）。月額の予算と通知のしきい値
+   - このキーはビルド時にブラウザ用のコードに埋め込まれ、誰でも読める。悪用を防ぐのは上の 2 つの制限。
+5. **Map ID** を作る（「Google Maps Platform」→「地図の管理」→「地図 ID を作成」、種類は JavaScript）。
+   `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` に入れる。地図のピンは Advanced Markers で、Map ID が必要（未設定のときは
+   試用のための `DEMO_MAP_ID` を使う）。Map ID 自体に追加の料金はかからない（料金ページで Dynamic Maps の
+   課金対象に「Map ID の有無を問わない」とある）。
+6. **予算アラート**を設定する（「お支払い」→「予算とアラート」）。月額の予算と通知のしきい値
    （例: 50% / 90% / 100%）を決める。**予算は通知だけで、利用を止めない。**
    公式の記述: 「予算を設定しても、利用や支出の上限が自動的に設定されるわけではない」。
-6. **API ごとの 1 日あたりの上限**を設定する（「API とサービス」→ 各 API →「割り当てとシステム上限」）。
+7. **API ごとの 1 日あたりの上限**を設定する（「API とサービス」→ 各 API →「割り当てとシステム上限」）。
    実際に利用を止められるのはこちら。無料枠に収めるなら、月の無料枠を 31 で割った値より小さくする。
    目安: Text Search 150 回/日、Nearby Search 150 回/日、Place Details 150 回/日、Geocoding 300 回/日、
    Dynamic Maps 300 回/日。上限に達するとその API は 429 を返し、このバックエンドは 502 を返す
-   （フィードは名前なしのスポットとして表示を続ける）。
+   （フィードは名前なしのスポットとして表示を続ける）。Maps JavaScript API の上限超過（`OverQuotaMapError`）では
+   地図の中に Google のエラー表示が出る（9 章）。
 
-### 料金（2026-10-13 に Google の料金ページで確認した値）
+### 料金（2026-10-13 に Google の料金ページで確認した値。Dynamic Maps は 2026-10-14 に再確認）
 
 | SKU | 月の無料枠 | 最初の有料帯（1,000 回あたり） | この機能での使われ方 |
 |-----|-----------|-------------------------------|----------------------|
 | Text Search Pro | 5,000 | $32 | キーワード検索 1 回につき 1 回 |
 | Nearby Search Pro | 5,000 | $32 | 周辺検索 1 回につき 1 回 |
-| Place Details Pro | 5,000 | $17 | **Google のスポットを表示するたびに 1 回**（フィード、スポットのページ、ランキング、登録時） |
-| Geocoding | 10,000 | $5 | 地図で位置を選ぶたびに 1 回 |
-| Dynamic Maps | 10,000 | $7 | 地図を 1 回読み込むたびに 1 回（フロントエンド） |
+| Place Details Pro | 5,000 | $17 | **Google のスポットを表示するたびに 1 回**（フィード、スポットのページ、ランキング、登録時）。Google の地図で空いた位置をタップするたびにも 1 回 |
+| Geocoding | 10,000 | $5 | Google の地図で空いた位置をタップするたびに 1 回（Leaflet の地図では呼ばない） |
+| Dynamic Maps | 10,000 | $7 | **場所選びの地図を開くたびに 1 回**（ブラウザ用のキーを設定したときだけ） |
 | Place Details Essentials | 10,000 | $5 | 使っていない |
 | Autocomplete | 10,000 | $2.83 | 使っていない |
 | Place Photos | 1,000 | $7 | 使っていない |
 
 - Text Search Essentials（ID のみ）とオートコンプリートのセッション利用は無料枠の上限なし。どちらも使っていない。
 - リクエストは、指定したフィールドのうち最も高い帯で課金される。このバックエンドが指定するのは
-  `id`, `displayName`, `formattedAddress`, `location`, `primaryType`, `googleMapsUri` だけ。
+  `id`, `displayName`, `formattedAddress`, `location`, `primaryType`, `types`, `googleMapsUri` だけ。
   場所の名前（`displayName`）が Pro 帯なので、どの呼び出しも Pro になる。Enterprise 帯（評価・営業時間・
   電話番号など）のフィールドは指定していない。
+- Dynamic Maps の課金対象は「地図の読み込みの成功（Successful map load）」。地図を開くたびに地図を 1 つ作るので、
+  開くたびに 1 回。開いた後のパン・ズームは数えない（SKU の説明に明記）。投稿フォームを開いただけでは読み込まない。
+  キーが拒否された読み込みは「成功」ではない。Advanced Markers に別の SKU は料金ページに見当たらない。
 - 写真は取得していない（応答の `photo_url` は常に null）。表示 1 枚ごとに Place Photos が 1 回かかり、
   検索結果 8 件に写真を付けるだけで無料枠 1,000 回が 125 回の検索で尽きるため。
 - **表示のたびに Place Details がかかる点に注意。** Google の規約で名前をキャッシュできないため、
@@ -241,12 +270,22 @@ Nominatim と同じ間隔（1.1 秒）・同じキャッシュ・同じ User-Age
 
 **Google（`provider: "google"`、スポットの `source: "google"`）**
 
-- Google の地図なしで Places の内容を表示するときは、Google Maps のロゴ（スペースがなければ
-  「Google Maps」の文字）を表示する。応答の `attribution.text` は `Powered by Google`。ロゴの色・サイズなどの
-  指定は[ポリシー](https://developers.google.com/maps/documentation/places/web-service/policies)に従う。
+- Google の地図なしで Places の内容を表示するときは、**Google Maps のロゴ**を表示する。
+  [ポリシー](https://developers.google.com/maps/documentation/places/web-service/policies)（2026-10-08 更新、
+  2026-10-14 に確認）: 「Attribution should take the form of the Google Maps logo whenever possible. In cases where
+  space is limited, the text Google Maps is acceptable.」 ロゴは高さ 16〜19dp、周囲に上下左右 10dp・下 5dp の余白、
+  無地の背景には縁取りなしのロゴ。文字にする場合も「Google Maps」の表記を変えない。
+  - フロントエンドは Google の配布物（Google_Maps_Attribution_Assets.zip）の灰色（#5E5E5E）のロゴを変えずに
+    使う（`frontend/src/components/GoogleMapsLogo.tsx`、高さ 16px）。検索・周辺検索の一覧の下、地図の下の
+    パネル（逆引きの結果）、選んだ場所、投稿カード、スポットのページのすべてで文字ではなくロゴを出す。
+    応答の `attribution.text`（`Powered by Google`）は Google のときは表示に使わない。
+- Google の地図の上に表示する内容には追加の表示は要らない（ポリシー: 「You don't need to add extra attribution
+  if the Content is shown on a Google Map where the attribution is already visible.」）。地図そのものには
+  Google のロゴと地図データの表記が Maps JavaScript API によって常に出る。
 - **Places の内容を Google 以外の地図に表示してはいけない。** Google Maps Platform 利用規約 3.2.3(e):
   「Customer will not (i) display or use Places content on a non-Google Map」。`PLACE_PROVIDER=google` のとき、
-  検索結果や Google のスポットを OpenStreetMap のタイルの地図にピンで表示してはいけない。
+  検索結果や Google のスポットを OpenStreetMap のタイルの地図にピンで表示しない。地図で指した位置の逆引き
+  （Geocoding）も、Google の地図の上で指したときだけ行う（4 章、9.5）。
 - アプリは、Google の利用規約とプライバシーポリシーを取り込んだ、公開の利用規約とプライバシーポリシーを
   用意する必要がある（ポリシーのページの記載）。
 
@@ -322,7 +361,7 @@ Google の place ID は古くなることがある（店の閉業・統合など
 
 <!-- ここから下はフロントエンド担当が記入する。バックエンド側では編集しない。 -->
 
-記入日: 2026-10-13
+記入日: 2026-10-13（Google の地図は 2026-10-14 に追記）
 
 ### 9.1 画面の構成
 
@@ -332,7 +371,7 @@ Google の place ID は古くなることがある（店の閉業・統合など
 |------|------|
 | 入力中 | 運営のスポット（`GET /api/spots`）をブラウザ内で絞り込んで表示する。**通信しない** |
 | 「検索」ボタン / Enter | `POST /api/places/search` を 1 回呼ぶ。候補は名前・現地語の名前（`original_name`、あるときだけ）・住所・カテゴリ・「地図」ボタン |
-| 「地図から選ぶ」 | 全画面の地図（`PlaceMapModal.tsx`）。ピンをタップ、または空いた位置をタップ・長押しすると `POST /api/places/reverse` の名前と住所を表示し、「この場所にする」で確定、「キャンセル」で閉じる |
+| 「地図から選ぶ」 | 全画面の地図（`PlaceMapModal.tsx`。ブラウザ用の Google のキーがあれば Google の地図、なければ Leaflet の地図。9.3）。ピンをタップ、または空いた位置をタップ・長押しすると `POST /api/places/reverse` の名前と住所を表示し、「この場所にする」で確定、「キャンセル」で閉じる |
 | 「現在地の近く」 | 押したときだけブラウザに位置を求め、`POST /api/places/nearby` を呼ぶ |
 | 「見つからないときは手動で登録」 | 名前（必須）・住所（任意）・地図上の位置（任意）。保存前に「ほかの宿泊者にも表示される／個人の自宅などは登録しない」の注意を出す |
 | 選択後 | 名前と住所を表示し、「変更」「場所を外す」ができる |
@@ -346,7 +385,7 @@ Google の place ID は古くなることがある（店の閉業・統合など
 - 名前と住所は応答のまま表示し、翻訳・置換しない（`translate="no"`）。カテゴリは `category_key` を表示言語の
   ラベルにする。
 - 投稿カードとスポットのページに、スポットの名前・住所と、`source` に応じた帰属表示（osm:
-  `© OpenStreetMap contributors`、google: `Google Maps`）を出す（`frontend/src/components/SpotCredit.tsx`）。
+  `© OpenStreetMap contributors`、google: Google Maps のロゴ）を出す（`frontend/src/components/SpotCredit.tsx`）。
 
 ### 9.2 オートコンプリートにしていないことの確認
 
@@ -361,6 +400,37 @@ Google の place ID は古くなることがある（店の閉業・統合など
 > Autocomplete など）に替えたうえで、フロントエンドを変更する。
 
 ### 9.3 地図の表示
+
+地図は 2 種類あり、どちらも同じ props を受け取る（`frontend/src/features/post/types/map.ts` の `PlaceMapProps`）。
+どちらを使うかは `useMapKind()`（`features/post/hooks/use-map-kind.ts`）が決める: ブラウザ用のキー
+`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` があり、このページで Google の地図が失敗していなければ Google の地図
+（`GooglePlaceMap.tsx`）、それ以外は Leaflet の地図（`PlaceMap.tsx`）。
+
+**Google の地図**
+
+| 項目 | 内容 |
+|------|------|
+| 読み込み | Google 公式の [`@googlemaps/js-api-loader`](https://github.com/googlemaps/js-api-loader) 2.1.3（Apache-2.0、Google が保守。2026-09-22 公開で 7 日の公開待ち期間を満たす）。依存は型定義 `@types/google.maps`（MIT）だけ。Google が推奨する読み込み方（`importLibrary` のブートストラップ）をそのまま包んだもので、React 用の `@vis.gl/react-google-maps` は、使う機能（地図 1 つと独自のピン）に対して大きすぎるため使っていない |
+| 読み込むとき | 地図を開いたときだけ（`next/dynamic`、`ssr: false`）。ブラウザ用のキーと読み込み処理はこのチャンクにだけ入る（ビルド後に `.next` を調べて確認: キーの文字列を含むのは地図のチャンク 1 つだけ。サーバー用のキーはどこにも含まれない） |
+| 設定 | `v=weekly`、`language`（表示言語。ja / en / ko / zh-CN）、`region=JP`、`mapId`（Map ID）。表示言語はページで最初に地図を開いたときのもの（Maps JavaScript API は 1 ページで 1 回しか読み込めない）。言語を切り替えた後は、次にページを読み込んだときから変わる |
+| 操作 | 1 本指で地図を動かせる（`gestureHandling: 'greedy'`。モーダルの背後のページはスクロールしない）。ズームボタンは右下。店のアイコンをタップしても Google の情報ウィンドウは出さず、その位置のタップとして扱う（`clickableIcons: false`） |
+| ピン | Advanced Markers（`AdvancedMarkerElement`）に Leaflet と同じ見た目の要素を入れる。タップで選択（`gmp-click`）。現在地の青い点、タップした位置のピンも同じ |
+| 帰属表示 | Google のロゴと地図データの表記を Maps JavaScript API が地図の下端に出す |
+| 料金 | 開くたびに Dynamic Maps 1 回（5 章） |
+
+**Google の地図が使えないとき**
+
+| 状況 | 検出のしかた | 動き |
+|------|--------------|------|
+| キーの拒否（無効なキー、リファラーが許可されていない、API が有効でない、請求先がない） | Maps JavaScript API が呼ぶ `window.gm_authFailure`（[公式に記載された検出方法](https://developers.google.com/maps/documentation/javascript/events#auth-errors)） | Leaflet の地図に切り替え、「Google の地図を読み込めなかったため、簡易な地図を表示しています」と表示する |
+| スクリプトが読み込めない（オフライン、拡張機能による遮断） | 読み込みの `<script>` のエラー（ローダーの Promise が失敗） | 同上 |
+| 15 秒以内に読み込めない | ローダー側のタイムアウト | 同上 |
+| 利用上限の超過（`OverQuotaMapError`） | **検出していない**。`gm_authFailure` がこの場合にも呼ばれるかは公式の記載がない | 地図の中に Google のエラー表示が出る。検索・現在地の近く・手入力の登録・投稿は地図と無関係に使える |
+
+切り替えた後はページを読み込み直すまで Leaflet の地図のまま（Maps JavaScript API は読み込み直せないため）。
+Leaflet に切り替わると、Google の結果は地図から消え、9.5 の扱いになる。どの状況でも投稿は地図に依存しない。
+
+**Leaflet の地図**
 
 | 項目 | 内容 |
 |------|------|
@@ -396,31 +466,45 @@ Google の place ID は古くなることがある（店の閉業・統合など
 | `NEXT_PUBLIC_MAP_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | ラスタータイルの URL テンプレート（`{z}` `{x}` `{y}`、必要なら `{s}` `{r}`） |
 | `NEXT_PUBLIC_MAP_TILE_ATTRIBUTION` | `© OpenStreetMap contributors`（リンクつき） | 地図に出す帰属表示（HTML）。タイル提供元が求める文言にする |
 | `NEXT_PUBLIC_MAP_TILE_MAX_ZOOM` | `19` | タイル提供元が配信する最大ズーム |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | なし | **ブラウザ用**の Google Maps Platform のキー。設定すると場所選びの地図が Google の地図になる。サーバー用のキー（`GOOGLE_MAPS_API_KEY`）を入れてはいけない。制限は 5 章の手順 4 |
+| `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | `DEMO_MAP_ID` | Map ID（5 章の手順 5）。Advanced Markers に必要 |
 
 タイル URL にキーを含める提供元（`?key=...` 形式）を使う場合、そのキーはブラウザに公開される。提供元の管理画面で
 HTTP リファラー（サイトのドメイン）による制限をかけること。
 
-ブラウザ用の Google Maps のキーは**使っていない**。Google の地図での表示は実装していない（下記）。
+ブラウザ用の Google のキーはビルド時に埋め込まれ、ブラウザで誰でも読める（Google の想定どおり）。悪用を防ぐのは
+HTTP リファラーと API の制限なので、必ず両方をかけること。
 
 ### 9.5 `provider` が `google` のときの扱い
 
 6 章の制約（Places の内容を Google 以外の地図に表示しない、place ID 以外を保存しない）への対応:
 
-- `source: "google"` の検索結果・周辺検索の結果・スポットは、**この地図（OpenStreetMap のタイル）にピンを出さない**。
-  一覧には出し、行の「地図」は応答の `map_url`（Google マップ）を新しいタブで開くリンクになる。地図の下に
-  「Google の検索結果は、この地図には表示されません」と表示する。
-- 一覧の下に応答の `attribution` を表示する（Google のときは文字色・サイズを Google の指定に寄せた表示）。
-  投稿カードなどでは `Google Maps` の文字を出す。**ロゴ画像は使っておらず、文字だけ**。ロゴが必須かどうかは
-  運営者がポリシーを確認して判断すること。
-- ブラウザには何も保存しない。`localStorage` / `sessionStorage` / IndexedDB は使っていない。検索結果は
-  ページを開いている間のメモリ（TanStack Query、最長 5 分）にだけある。登録時に送るのは `source` と
-  `external_id`（place ID）と `language` だけ。
-- **未解決**: `provider` が `google` のとき、地図の空いた位置をタップすると Geocoding（Google）の名前と住所が
-  OpenStreetMap の地図の下に出る。これは 6 章の制約に触れる可能性が高い。Google に切り替える前に、
-  (a) 地図を Google のものにする（未実装）、(b) 逆引きだけ OpenStreetMap 系のままにする（バックエンドの変更）、
-  (c) `google` のときは地図からの選択を手動登録だけにする、のいずれかを決める必要がある。
-- Google の地図での表示（ブラウザ用キー）は**実装していない**。この環境に Google のキーがなく、動作を確認
-  できないため。
+地図が Google の地図かどうか（9.3）で扱いが変わる。
+
+| | Google の地図（ブラウザ用のキーあり） | Leaflet の地図（キーなし、または Google の地図が失敗） |
+|---|---|---|
+| Google の検索結果・周辺検索の結果・スポットのピン | 地図に出す | **出さない**。一覧には出し、行の「地図」は応答の `map_url`（Google マップ）を新しいタブで開くリンク。地図の下に「Google の検索結果は、この地図には表示されません」 |
+| 一覧の行の「地図」 | アプリ内の地図でその場所を開く | 上記の外部リンク |
+| 空いた位置のタップ・長押し | `google_map: true` で逆引きし、Geocoding の住所を地図の下に出す | `google_map: false` で送る。サーバーは Google に問い合わせず `needs_google_map: true` を返し、「この地図では、位置から名前を調べられません。名前を入力して登録できます。」と「この位置で名前を入力して登録」だけを出す（Google の Geocoding の内容を OpenStreetMap の地図の横に出さない。Geocoding の料金もかからない） |
+
+- Leaflet の地図での逆引きの扱いは、検討した 3 案のうち「Google のときは地図からの選択を手入力の登録だけにする」
+  にした。逆引きだけ OpenStreetMap 系にする案は、Google を選んだ運営者に Nominatim の利用規約（1 章）を別に
+  負わせ、Google のスポットと OSM のスポットが混ざるため採らなかった。判定はサーバー側にあり、`google_map` を
+  送らない古いクライアントにも Google の内容は返らない。
+- 一覧の下、地図の下のパネル、選んだ場所、投稿カード、スポットのページでは、Google の内容のそばに
+  Google Maps のロゴを出す（6 章）。
+- ブラウザには何も保存しない。`localStorage` / `sessionStorage` / IndexedDB は使っていない。登録時に送るのは
+  `source` と `external_id`（place ID）と `language` だけ。
+- ページのメモリ（TanStack Query）にも Google の内容を残さない。`provider: "google"` の検索結果、`source: "google"` の
+  スポット（`?spot=` のリンク、スポットのページ）は、使い終わった時点（別の語を検索した、投稿フォームやページを
+  離れた）でキャッシュから消す（`frontend/src/hooks/use-drop-unused-query.ts`）。表示している間は取得し直さない
+  （再描画、ウィンドウのフォーカス、回線の復帰で Google への呼び出しは増えない）。周辺検索の結果は保持しない
+  （`gcTime: 0`）。OpenStreetMap の検索結果はこれまでどおり 5 分間メモリに残し、同じ語の再検索に使う。
+  2026-10-15 にモックの応答で確認（同じ語の Enter・入力・フォーカス・回線の復帰・4 秒の待機でリクエストは増えず、
+  別の語の後で同じ Google の語を検索すると取得し直し、OSM の語は取得し直さない）。
+  - **未対応**: フィード・ランキングの一覧のキャッシュ（TanStack Query の既定: 60 秒は再取得せず、使われなくなって
+    5 分で消える）には、Google のスポットの名前と住所がほかの投稿と一緒に入る。一覧ごと消すと戻るたびに Place Details
+    の呼び出しが増えるため、扱いは運営者の判断とする。
 
 ### 9.6 位置情報
 
@@ -462,8 +546,44 @@ HTTP リファラー（サイトのドメイン）による制限をかけるこ
 | 日本語・英語・韓国語・中国語: 生のキーなし、横スクロールなし、ボタンの文字切れなし | ○ | 実 |
 | 画面キーボード: 入力欄が上に寄り、結果がキーボードの上に見える | ○ | 実（キーボードは表示領域を 440px に縮めて再現。フォーカスはスクリプトで設定） |
 | `provider: "google"`: 帰属表示、地図にピンを出さない、登録時に ID だけ送る、ブラウザに保存しない | ○ | **モックのみ** |
-| Google の実サービスでの表示、Google の地図での表示 | 未実行 | — |
 | 実機（iOS Safari / Android Chrome）でのタッチ操作・長押し・キーボード | 未実行 | — |
+
+**Google の地図（2026-10-14）。** 同じ方法（ヘッドレス Chrome、390×780、タッチを有効にしたモバイル表示）で、
+このブランチのバックエンド（`PLACE_PROVIDER=google`、運営者のサーバー用キーで実際の Google に接続）に対して実行。
+**Google の地図の確認は、運営者のポート 3000 での手動確認（10 章の手順）が最終確認になる。**
+
+「モック」= Maps JavaScript API のスクリプト（`maps.googleapis.com/maps/api/js`）を DevTools で差し替え、
+アプリが使う部分（`Map`、`AdvancedMarkerElement`、`ControlPosition`、`gm_authFailure` の呼び出し）だけを持つ
+偽物で実行。フロントエンドは偽のブラウザ用キーでビルドし、Google へのそれ以外の通信は遮断して 0 件だったことを
+確認した。検索・周辺検索・逆引き・登録は実際のバックエンドと実際の Google。
+
+| 確認した操作 | 結果 | 対象 |
+|--------------|------|------|
+| 地図を開くまで Maps JavaScript API を読み込まない | ○ | モック |
+| 読み込みの指定: `v=weekly`、`language`（ja / en / ko / zh-CN）、`region=JP`、`libraries=maps,marker,core` | ○ | モック |
+| 地図の設定: Map ID、`gestureHandling: greedy`（1 本指で移動）、ズームボタン右下、`clickableIcons: false` | ○ | モック |
+| 検索（`佐久平駅`、実 Google）→ 行の「地図」がアプリ内の地図 → Google の結果のピンが選択された状態で、その場所に移動して開く → 確定 | ○ | モック + 実 Google（検索） |
+| 運営のスポットと Google の結果のピンを両方描く。「この地図には表示されません」は出ない | ○ | モック |
+| ピンのタップで選択（運営のスポット、周辺検索の Google の結果）→ 確定 | ○ | モック + 実 Google（周辺検索） |
+| 空いた位置のタップ → `google_map: true` で逆引き → 名前・住所・ロゴ、位置にピン → 確定。確定した名前と住所が登録される名前と住所に一致 | ○ | モック + 実 Google（Geocoding・Place Details） |
+| 現在地の近く（許可）: 地図の中のボタンで 15 件、青い点、地図が現在地へ移動 | ○ | モック + 実 Google（周辺検索） |
+| 現在地の近く（拒否）: メッセージ、周辺検索は呼ばれない、Google の地図はそのまま | ○ | モック |
+| キーの拒否（偽の API が地図を壊してから `gm_authFailure` を呼ぶ。本物と同じ順）→ 約 1 秒で Leaflet の地図とメッセージ、ページは落ちない、開き直しても Google を読み込み直さない、Leaflet でのタップは `google_map: false` | ○ | モック |
+| 利用上限の超過で `gm_authFailure` が呼ばれる場合 → 上と同じく Leaflet に切り替わる | ○ | モック |
+| 利用上限の超過で `gm_authFailure` が呼ばれない場合 → Google の地図のまま（Google のエラー表示が出る）。検索・手入力・投稿は使える | ○（想定どおり） | モック |
+| スクリプトの遮断（`BlockedByClient`）→ すぐに Leaflet とメッセージ / 応答なし → 15 秒で Leaflet | ○ | 実（遮断・停止はブラウザ側で再現） |
+| ブラウザ用キーなし、`PLACE_PROVIDER=google`: Leaflet の地図、Google の結果はピンなし・外部リンク・注意書き、タップしても Google に問い合わせない | ○ | 実 Google（サーバー側） |
+| ブラウザ用キーなし、`PLACE_PROVIDER=osm`: 従来どおり（Nominatim の名前と住所、OSM の帰属表示） | ○ | 実（公開の Nominatim） |
+| 実際の Google の地図（運営者のポート 3000） | 未実行 | 10 章の手順で運営者が確認する |
+| 実機でのタッチ操作・長押し | 未実行 | — |
+
+> **注意（キーの制限の確認が必要）**: 上の確認の前、2026-10-14 の作業の途中で、運営者のブラウザ用キーでビルドした
+> フロントエンドを `http://localhost:3107` で開いたところ、**実際の Google の地図が読み込まれ、リファラーのエラーに
+> ならなかった**（約 7 回。地図の表示、ピンの選択、逆引き、現在地の近く、投稿、英語・中国語の表示まで動いた）。
+> 運営者によれば 3107 はリファラーのリストにないので、キーの「アプリケーションの制限」が効いていない可能性がある。
+> Cloud Console でブラウザ用キーの制限が「ウェブサイト」になっていて保存されているかを確認すること（5 章の手順 4）。
+> 同じ作業で、本物のキーを無効な値にしてビルドした場合は `InvalidKeyMapError` → `gm_authFailure` → Leaflet への
+> 切り替えを実際の Google で確認した（その時点で見つかった、切り替え時にページが落ちる不具合は修正済み）。
 
 <!-- フロントエンド担当の記入欄ここまで -->
 
@@ -472,10 +592,85 @@ HTTP リファラー（サイトのドメイン）による制限をかけるこ
 | 対象 | 状況 |
 |------|------|
 | OSM プロバイダー（Nominatim / Photon） | スタブでの自動テストに加え、2026-10-13 に公開サービスへ実際に接続して確認（佐久平駅・軽井沢駅の周辺、日本語と英語） |
-| Google プロバイダー | **スタブでの自動テストのみ。実サービスでは未実行** |
+| Google プロバイダー | スタブでの自動テストに加え、2026-10-14 に運営者のサーバー用キーで実サービスに接続して確認（下記） |
+| フロントエンドの Google の地図 | モックの Maps JavaScript API と実際のバックエンドで確認（9.7）。**実際の Google の地図は、下の「運営者による手動確認」で確認する** |
 | エンドポイント、一意制約（同時登録）、Google の保存ルール、ログ、レート制限 | 自動テスト（`backend/internal/services/place_*_test.go`、`backend/internal/server/place_integration_test.go`） |
 
-Google を有効にする前に、テスト用のキーで確認すること:
+**2026-10-14 の実サービスでの確認結果**（このブランチのバックエンドを `PLACE_PROVIDER=google` で起動）:
+
+| 確認 | 結果 |
+|------|------|
+| キーワード検索（英語 `Karuizawa Station`、日本語 `佐久平駅`） | 200。英語は英語名、日本語は日本語名 |
+| 周辺検索（カテゴリなし、`food`） | 200。距離つき。`includedTypes` の値で 400 になることはなかった（`food` で確認） |
+| 逆引き（Geocoding v4） | 200。「Geocoding API」を有効にしたキーで v4 が使える |
+| 検索結果の登録（Place Details） | 200。`spots` の行は place ID だけ（名前・住所・座標・地図 URL・カテゴリは空または NULL） |
+| フィードでの名前の解決 | 読む会員の言語で名前が出る（英語の会員には `Sakudaira Station`） |
+| 逆引きの結果の登録 | **修正した**: Geocoding は指した点の店を先頭に返し、その place ID を登録すると店の名前（例: 住所を確認したのに「Sakushi Shokuin Workers Union」）になっていた。住所の結果を選び、Place Details で読み直して返すように変えた（4 章）。修正後、2 か所（佐久市中込、佐久平駅北のホテルの前）で、確定前に表示された名前・住所と登録されたスポットの名前・住所が完全に一致し、ホテルの前の点がホテルにならないことを確認 |
+| 周辺検索のカテゴリ | `primaryType` が `snack_bar` の店が「その他」になっていた。`types` で補うようにし、「グルメ」になることを確認。住所の「, Japan」が外れることも確認 |
+
+まだ確認していないこと: フィード 1 ページでの Place Details の回数を Cloud Console で見ること（下の 3）、
+キーを無効にしたときのフィード（下の 4）、カテゴリつき周辺検索の全カテゴリ。
+
+### 運営者による手動確認（Google の地図、ポート 3000）
+
+実際の Google の地図は、ブラウザ用キーのリファラーに登録されたオリジンでしか確認できないため、運営者が自分の
+開発環境（`http://localhost:3000`）で次の手順で確認する。スマートフォンでも確認する場合は
+`http://192.168.3.101:3000` で開く。
+
+**準備**
+
+1. ブランチを取り込む: `git fetch` のあと `git checkout feature/google-map`。
+2. `frontend/.env` に次の 2 つを設定する（値はこの文書や報告に書かない）。
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` … ブラウザ用のキー（サーバー用のキーではない）
+   - `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` … Map ID
+3. `backend/.env` が `PLACE_PROVIDER="google"` と `GOOGLE_MAPS_API_KEY`（サーバー用のキー）になっていることを確認する。
+4. `cd frontend && npm install`（`@googlemaps/js-api-loader` を追加したため）。
+5. **Next.js の開発サーバーを止めて起動し直す**（`npm run dev`）。`NEXT_PUBLIC_*` は起動時にしか読まれない。
+   Go の API もこのブランチのコードで起動し直す（`go run ./cmd/server`。データベースの変更はない）。
+6. ブラウザの開発者ツールを開き、「コンソール」と「ネットワーク」を表示しておく。
+
+**手順と、見えるはずのもの**
+
+1. ログインして「投稿する」を開く。→ ネットワークに `maps.googleapis.com` への通信がまだない。
+2. 「地図から選ぶ」を押す。→ 数秒以内に **Google の地図**（日本語の地名、左下に Google のロゴ、右下に
+   「地図データ」と「利用規約」）。佐久市が中央、白駒の池・雲場池などに緑の縁のピン、右下にズームボタン。
+   1 本指（マウスならドラッグ）で地図が動き、後ろのページはスクロールしない。
+   「簡易な地図を表示しています」というメッセージは**出ない**。
+3. 白駒の池のピンをタップ。→ 下に「白駒の池」。「この場所にする」→ 投稿フォームに白駒の池が入る。
+4. 「変更」→「地図から選ぶ」→ 何もない場所（住宅地など）をタップ。→ ピンが立ち、「調べています」の後に
+   名前（例: `中込３０６７`）と住所、その下に Google Maps のロゴ。**表示された名前と住所を控える。**
+   店のアイコンの上をタップしても、Google の吹き出しは出ず、住所か「名前が見つかりませんでした」が出る（店の名前にはならない）。
+5. 「この場所にする」→ 本文を入れて「シェアする」→ フィードの自分の投稿に、**手順 4 で控えた名前と住所がそのまま**、
+   その下に Google Maps のロゴ。
+6. 「投稿する」で `佐久平駅` を検索。→ 候補の下に Google Maps のロゴ（文字の「Powered by Google」ではない）。
+   候補の右の「地図」→ 地図が佐久平駅に寄って開き、そのピンが選ばれている。
+7. 地図の中の「現在地の近く」→ 位置情報を許可。→ 青い点と、周りの店などのピンが地図に出る（「○件見つかりました」）。
+   ピンを 1 つタップ →「この場所にする」で入る。
+8. ブラウザのサイト設定で位置情報を「ブロック」にして、もう一度「現在地の近く」。→「位置情報が許可されませんでした…」。
+   地図はそのまま使える。（確認後、設定を戻す。）
+9. 画面上部の言語を English にし、**ページを再読み込み**してから地図を開く。→ 地図の地名が英語。
+   （言語を切り替えた直後に再読み込みせずに開くと、前の言語のまま。これは仕様。）
+10. 失敗時の確認: `frontend/.env` の `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` の末尾を 1 文字変えて開発サーバーを
+    起動し直し、地図を開く。→ 1〜2 秒で OpenStreetMap の簡易な地図に切り替わり、「Google の地図を読み込めなかった
+    ため、簡易な地図を表示しています」。灰色の箱のままにはならず、手入力の登録と投稿ができる。
+    **確認後、キーを元に戻して開発サーバーを起動し直す。**
+11. キーの制限の確認: `http://127.0.0.1:3000`（リファラーのリストにないオリジン）で開いて地図を開く。
+    → 簡易な地図に切り替わり、コンソールに `RefererNotAllowedMapError`。**Google の地図が表示されたら、ブラウザ用キーの
+    「アプリケーションの制限」が効いていない**（9.7 の注意を参照）。Cloud Console で制限を確認する。
+12. 料金の確認（翌日以降）: Cloud Console の「Maps JavaScript API」の指標で、地図の読み込み回数が、地図を開いた回数と
+    同じくらいであること。
+
+**うまくいかなかったときに送ってほしいもの**
+
+- 手順の番号と、見えたもの（画面のスクリーンショットでもよい。`.env` やキーが写らないもの）。
+- 開発者ツールのコンソールに出た赤いメッセージ。特に `Google Maps JavaScript API error:` で始まる行のエラー名
+  （例: `RefererNotAllowedMapError`、`InvalidKeyMapError`、`ApiNotActivatedMapError`）と、その下の
+  「Your site URL to be authorized: …」の URL。
+- **キーの値は送らない。** コンソールやネットワークの URL に `key=AIza…` が含まれていたら、その部分を消してから送る。
+
+### 本番で Google を有効にする前に
+
+本番のキーで確認すること:
 
 1. キーワード検索（日本語・英語）、周辺検索（カテゴリあり・なし）、逆引き、登録が 200 で返る。
    - 周辺検索のカテゴリは `includedTypes` に `restaurant` `cafe` `store` `tourist_attraction` `museum` `park`

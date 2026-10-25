@@ -26,8 +26,8 @@ export const queryKeys = {
   },
   places: {
     search: (query: string, language: string) => ['places', 'search', query, language] as const,
-    reverse: (latitude: number, longitude: number, language: string) =>
-      ['places', 'reverse', latitude, longitude, language] as const
+    reverse: (latitude: number, longitude: number, language: string, googleMap: boolean) =>
+      ['places', 'reverse', latitude, longitude, language, googleMap] as const
   },
   weather: ['weather'] as const,
   aiSpots: (filters: Record<string, string>) => ['ai-spots', filters] as const

@@ -8,6 +8,7 @@ Frontend for the 佐久の家 service pages (lodging information and the guest c
 - **Mantine v9** — UI component library
 - **SCSS Modules** + PostCSS — styling
 - **Leaflet** — map of the place picker (OpenStreetMap tiles by default, configurable)
+- **Maps JavaScript API** via `@googlemaps/js-api-loader` — the place picker's map instead, when a browser key is set
 - **TanStack Query + axios + zod** — API layer (no direct DB access; data comes from the Go API)
 - **next-intl** — UI strings in ja / en / ko / zh (`messages/*.json`), locale stored in a cookie
 - **Biome** — linting & formatting
@@ -56,6 +57,29 @@ no configuration it uses the public openstreetmap.org tile server, which needs n
 `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_TILE_ATTRIBUTION` and `NEXT_PUBLIC_MAP_TILE_MAX_ZOOM` (see
 `.env.example`) to use another tile source; they are fixed at build time. The tile policy, the required
 attribution and how the picker talks to the API are described in `../docs/spot-search.md`.
+
+#### Google map
+
+Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (a **browser** key) and `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` to draw the
+picker's map with the Maps JavaScript API instead. Both are inlined into the browser bundle at build time,
+so rebuild after changing them. This is the map to use when the API runs with `PLACE_PROVIDER=google`:
+Google's terms allow Google's results only on a Google map, so on the Leaflet map they stay in the list.
+
+- Restrict the key in the Cloud console to the **Maps JavaScript API** only and to **HTTP referrers**: the
+  production origin and every origin the app is opened from in development, e.g. `http://localhost:3000/*`,
+  `http://192.168.3.101:3000/*` and `http://localhost:3107/*`. A page whose origin is not in the list gets
+  `RefererNotAllowedMapError`, and the picker falls back to the Leaflet map.
+- The Map ID is created under "Map management" (JavaScript, raster or vector). The picker's markers are
+  Advanced Markers, which need one; without it Google's `DEMO_MAP_ID` is used, which is only for trying out.
+- Never put the server key (`GOOGLE_MAPS_API_KEY` in `backend/.env`) here. The browser key is read only in
+  `src/features/post/utils/load-google-maps.ts`, so it ends up only in the chunk that loads the map.
+- The API is loaded when the member opens the map, not with the composer. Each opening creates one map,
+  which Google bills as one Dynamic Maps load (10,000 a month free, then $7 per 1,000, as of 2026-10-14).
+- If the key is refused (`gm_authFailure`), the script cannot load (offline, blocked by an extension) or it
+  does not answer within 15 seconds, the picker switches to the Leaflet map for the rest of the page's life
+  and says so. Search, near-me and posting never depend on the map.
+- The map's labels follow the display language of the first opening; the Maps JavaScript API cannot be
+  loaded twice in one page, so after switching languages they change on the next page load.
 
 ## Project Structure
 

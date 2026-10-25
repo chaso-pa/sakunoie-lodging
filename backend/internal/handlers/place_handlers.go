@@ -84,7 +84,7 @@ func (h *PlaceHandlers) NearbyPlaces(ctx context.Context, input *models.NearbyPl
 
 func (h *PlaceHandlers) ReversePlace(ctx context.Context, input *models.ReversePlaceInput) (*models.ReversePlaceOutput, error) {
 	b := input.Body
-	result, meta, err := h.places.Reverse(ctx, middlewares.GetMemberID(ctx), b.Latitude, b.Longitude, b.Language)
+	result, meta, err := h.places.Reverse(ctx, middlewares.GetMemberID(ctx), b.Latitude, b.Longitude, b.Language, b.GoogleMap)
 	if err != nil {
 		return nil, placeError(ctx, "reverse place", err)
 	}
@@ -92,6 +92,7 @@ func (h *PlaceHandlers) ReversePlace(ctx context.Context, input *models.ReverseP
 	resp.Body.Result = result
 	resp.Body.Provider = meta.Provider
 	resp.Body.Attribution = meta.Attribution
+	resp.Body.NeedsGoogleMap = meta.NeedsGoogleMap
 	return resp, nil
 }
 

@@ -398,6 +398,8 @@
           "nothingHere": "No name was found for this position. You can enter a name and add it.",
           "lookupFailed": "The name of this position could not be looked up. You can enter a name and add it.",
           "lookupUnavailable": "Looking up names from a position is not available right now. You can enter a name and add it.",
+          "lookupNeedsGoogleMap": "This map cannot look up names from a position. You can enter a name and add it.",
+          "googleUnavailable": "Google's map could not be loaded, so a simpler map is shown. Please choose results from Google in the list.",
           "googleNotOnMap": "Results from Google are not shown on this map. Please choose them from the list.",
           "registerHere": "Enter a name for this position",
           "confirm": "Use this place",

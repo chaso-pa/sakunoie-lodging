@@ -12,6 +12,7 @@ import { type MapRequest, type MapSpot, PlaceMapModal } from '@/features/post/co
 import { PlaceRegisterModal, type RegisterDraft } from '@/features/post/components/PlaceRegisterModal';
 import { PlaceAttribution, type PlaceRow, PlaceRows } from '@/features/post/components/PlaceRows';
 import { useCurrentPosition } from '@/features/post/hooks/use-current-position';
+import { useMapKind } from '@/features/post/hooks/use-map-kind';
 import {
   googleSource,
   type LatLng,
@@ -50,6 +51,10 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
   const spots = useSpots();
   const nearby = useNearbyPlaces();
   const { status: locateStatus, locate } = useCurrentPosition();
+  const mapKind = useMapKind();
+  // Google's terms keep its places off any map but its own.
+  const onOurMap = (source: string, latitude: number | null, longitude: number | null) =>
+    (mapKind === 'google' || source !== googleSource) && latitude !== null && longitude !== null;
 
   const [changing, setChanging] = useState(false);
   const [input, setInput] = useState('');
@@ -144,8 +149,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
     }
   };
   const mapSpots: MapSpot[] = allSpots.flatMap((spot) =>
-    // Google's terms keep its places off any map but its own.
-    spot.source !== googleSource && spot.latitude !== null && spot.longitude !== null
+    onOurMap(spot.source, spot.latitude, spot.longitude) && spot.latitude !== null && spot.longitude !== null
       ? [
           {
             id: spot.id,
@@ -172,7 +176,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
     };
   };
   const placeRow = (place: Place): PlaceRow => {
-    const onOwnMap = place.source !== googleSource && place.latitude !== null && place.longitude !== null;
+    const onOwnMap = onOurMap(place.source, place.latitude, place.longitude);
     return {
       key: `place:${placeKey(place)}`,
       name: place.name,
