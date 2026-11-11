@@ -31,10 +31,6 @@
     "backHome": "ホームに戻る"
   },
   "home": {
-    "metaTitle": "佐久の家 | 佐久で、暮らすように泊まる。",
-    "title": "佐久で、暮らすように泊まる。",
-    "lead": "ホテルライクな個室と、あたたかな交流があるホームステイの宿。",
-    "placeholder": "このページは準備中です（仮のコンテンツ）。",
     "registerTitle": "ご予約済みの方へ",
     "registerBody": "チェックイン前に、宿泊者全員の情報をご登録ください。",
     "registerCta": "宿泊者登録へ進む"
@@ -208,5 +204,72 @@
     "invalidBody": "この編集用リンクは使用できません（ホストによる再発行などのため）。ホストに新しいリンクの発行を依頼してください。",
     "expiredTitle": "リンクの有効期限が切れています",
     "expiredBody": "編集期限（チェックアウト日の終わり）を過ぎました。訂正が必要な場合はホストにご連絡ください。"
+  },
+  "nav": {
+    "mainLabel": "メインメニュー",
+    "footerLabel": "サイト内リンク",
+    "openMenu": "メニューを開く",
+    "menuTitle": "メニュー",
+    "home": "ホーム",
+    "facilities": "施設のご案内",
+    "guide": "ご滞在ガイド",
+    "faq": "よくある質問",
+    "rates": "料金の目安",
+    "terms": "宿泊約款・ハウスルール",
+    "privacy": "プライバシーポリシー",
+    "survey": "滞在後アンケート",
+    "registration": "宿泊者登録",
+    "groupStay": "ご滞在",
+    "groupGuests": "ご宿泊の方へ",
+    "groupPolicies": "規約"
+  },
+  "cta": {
+    "airbnb": "宿泊を予約（Airbnb）",
+    "opensInNewTab": "（新しいタブで開きます）",
+    "details": "施設について詳しく見る",
+    "placeholderUrl": "リンク先は仮です（要差し替え）"
+  },
+  "publicSite": {
+    "placeholderTitle": "要差し替え / Placeholder content",
+    "placeholderBody": "このページは仮のコンテンツです。公開前に確認済みの情報に差し替えます。写真はすべて仮画像です。",
+    "placeholderPhoto": "仮画像",
+    "version": "版: {version}",
+    "effectiveDate": "施行日: {date}",
+    "galleryLabel": "写真ギャラリー",
+    "galleryPrev": "前の写真",
+    "galleryNext": "次の写真",
+    "galleryPosition": "{current} / {total}",
+    "sectionNav": "このページの内容",
+    "featuresTitle": "佐久の家の特徴",
+    "photosTitle": "お部屋と共用スペース",
+    "confirmedAmenities": "確定している内容",
+    "bookingTitle": "ご予約は Airbnb で",
+    "bookingBody": "料金と空室状況は Airbnb の掲載ページでご確認ください。",
+    "ratesItem": "項目",
+    "ratesPrice": "目安",
+    "ratesNote": "備考",
+    "ratesCaption": "料金の目安（実際の料金は Airbnb で決まります）",
+    "surveyTitle": "滞在後アンケートのお願い",
+    "surveyBody": "匿名の簡単なアンケートです。今後の改善に役立てます。",
+    "surveyCta": "アンケートに回答する"
+  },
+  "survey": {
+    "metaTitle": "滞在後アンケート",
+    "title": "滞在後アンケート",
+    "intro": "ご滞在いただきありがとうございました。今後のために、ご感想をお聞かせください。所要時間は2〜3分です。",
+    "anonymity": "このアンケートは匿名です。宿泊者登録やご予約の情報とは結び付けず、回答日は日付単位でのみ記録します。",
+    "facility": "ご宿泊の施設",
+    "required": "必須",
+    "ratingLow": "1 = 不満",
+    "ratingHigh": "5 = とても満足",
+    "ratingOption": "{value} / 5",
+    "textHelp": "個人を特定できる情報（氏名・連絡先など）は書かないでください。",
+    "charCount": "{count} / {max} 文字",
+    "honeypot": "この欄は空のままにしてください",
+    "submit": "送信する",
+    "thanksTitle": "ご回答ありがとうございました",
+    "thanksBody": "いただいたご意見は、今後の宿づくりに役立てます。",
+    "backHome": "ホームに戻る",
+    "errorTitle": "送信できませんでした"
   }
 }

@@ -1,0 +1,334 @@
+{
+  "_todo": "要差し替え: Google Forms の既存10問。Placeholder questions. Codes, types, options, required flags and maxLength must match backend/internal/services/surveydef/v1.json (checked by src/config/survey-definition.test.ts).",
+  "version": "v1",
+  "questions": [
+    {
+      "code": "q01",
+      "type": "rating_1_5",
+      "required": true,
+      "label": {
+        "ja": "今回のご滞在の総合的な満足度を教えてください。",
+        "en": "Overall, how satisfied were you with your stay?",
+        "zh-CN": "您对本次住宿的总体满意度如何？",
+        "ko": "이번 숙박에 전반적으로 얼마나 만족하셨나요?"
+      }
+    },
+    {
+      "code": "q02",
+      "type": "rating_1_5",
+      "label": {
+        "ja": "客室の清潔さはいかがでしたか。",
+        "en": "How clean was your room?",
+        "zh-CN": "客房的清洁程度如何？",
+        "ko": "객실의 청결 상태는 어떠셨나요?"
+      }
+    },
+    {
+      "code": "q03",
+      "type": "rating_1_5",
+      "label": {
+        "ja": "ホストとのコミュニケーションはいかがでしたか。",
+        "en": "How was your communication with the host?",
+        "zh-CN": "您与房东的沟通如何？",
+        "ko": "호스트와의 소통은 어떠셨나요?"
+      }
+    },
+    {
+      "code": "q04",
+      "type": "rating_1_5",
+      "label": {
+        "ja": "チェックインのわかりやすさはいかがでしたか。",
+        "en": "How easy was check-in?",
+        "zh-CN": "入住流程是否清楚易懂？",
+        "ko": "체크인 안내는 얼마나 이해하기 쉬웠나요?"
+      }
+    },
+    {
+      "code": "q05",
+      "type": "single_choice",
+      "label": {
+        "ja": "ご旅行の主な目的を教えてください。",
+        "en": "What was the main purpose of your trip?",
+        "zh-CN": "您此次出行的主要目的是什么？",
+        "ko": "이번 여행의 주된 목적은 무엇이었나요?"
+      },
+      "options": [
+        {
+          "value": "sightseeing",
+          "label": {
+            "ja": "観光",
+            "en": "Sightseeing",
+            "zh-CN": "观光",
+            "ko": "관광"
+          }
+        },
+        {
+          "value": "business",
+          "label": {
+            "ja": "仕事",
+            "en": "Business",
+            "zh-CN": "工作",
+            "ko": "업무"
+          }
+        },
+        {
+          "value": "visiting_family_friends",
+          "label": {
+            "ja": "家族・知人の訪問",
+            "en": "Visiting family or friends",
+            "zh-CN": "探亲访友",
+            "ko": "가족·지인 방문"
+          }
+        },
+        {
+          "value": "event",
+          "label": {
+            "ja": "イベント・行事",
+            "en": "An event",
+            "zh-CN": "参加活动",
+            "ko": "행사·이벤트"
+          }
+        },
+        {
+          "value": "other",
+          "label": {
+            "ja": "その他",
+            "en": "Other",
+            "zh-CN": "其他",
+            "ko": "기타"
+          }
+        }
+      ]
+    },
+    {
+      "code": "q06",
+      "type": "single_choice",
+      "label": {
+        "ja": "当宿を何で知りましたか。",
+        "en": "How did you find us?",
+        "zh-CN": "您是通过什么途径了解到本住宿的？",
+        "ko": "저희 숙소를 어떻게 알게 되셨나요?"
+      },
+      "options": [
+        {
+          "value": "airbnb",
+          "label": {
+            "ja": "Airbnb",
+            "en": "Airbnb",
+            "zh-CN": "Airbnb",
+            "ko": "Airbnb"
+          }
+        },
+        {
+          "value": "web_search",
+          "label": {
+            "ja": "ウェブ検索",
+            "en": "Web search",
+            "zh-CN": "网络搜索",
+            "ko": "웹 검색"
+          }
+        },
+        {
+          "value": "social_media",
+          "label": {
+            "ja": "SNS",
+            "en": "Social media",
+            "zh-CN": "社交媒体",
+            "ko": "SNS"
+          }
+        },
+        {
+          "value": "recommendation",
+          "label": {
+            "ja": "知人の紹介",
+            "en": "A recommendation",
+            "zh-CN": "亲友推荐",
+            "ko": "지인 추천"
+          }
+        },
+        {
+          "value": "other",
+          "label": {
+            "ja": "その他",
+            "en": "Other",
+            "zh-CN": "其他",
+            "ko": "기타"
+          }
+        }
+      ]
+    },
+    {
+      "code": "q07",
+      "type": "single_choice",
+      "label": {
+        "ja": "どなたとご宿泊されましたか。",
+        "en": "Who did you stay with?",
+        "zh-CN": "您与谁一同入住？",
+        "ko": "누구와 함께 숙박하셨나요?"
+      },
+      "options": [
+        {
+          "value": "solo",
+          "label": {
+            "ja": "おひとり",
+            "en": "On my own",
+            "zh-CN": "独自一人",
+            "ko": "혼자"
+          }
+        },
+        {
+          "value": "couple",
+          "label": {
+            "ja": "パートナーと",
+            "en": "With a partner",
+            "zh-CN": "与伴侣",
+            "ko": "파트너와"
+          }
+        },
+        {
+          "value": "family",
+          "label": {
+            "ja": "家族と",
+            "en": "With family",
+            "zh-CN": "与家人",
+            "ko": "가족과"
+          }
+        },
+        {
+          "value": "friends",
+          "label": {
+            "ja": "友人と",
+            "en": "With friends",
+            "zh-CN": "与朋友",
+            "ko": "친구와"
+          }
+        },
+        {
+          "value": "other",
+          "label": {
+            "ja": "その他",
+            "en": "Other",
+            "zh-CN": "其他",
+            "ko": "기타"
+          }
+        }
+      ]
+    },
+    {
+      "code": "q08",
+      "type": "multi_choice",
+      "label": {
+        "ja": "よかった点をお選びください（複数選択可）。",
+        "en": "What did you like? (Select all that apply.)",
+        "zh-CN": "您满意的方面有哪些？（可多选）",
+        "ko": "좋았던 점을 선택해 주세요(복수 선택 가능)."
+      },
+      "options": [
+        {
+          "value": "room_comfort",
+          "label": {
+            "ja": "客室の快適さ",
+            "en": "Comfort of the room",
+            "zh-CN": "客房的舒适度",
+            "ko": "객실의 쾌적함"
+          }
+        },
+        {
+          "value": "quiet",
+          "label": {
+            "ja": "静かさ",
+            "en": "Quietness",
+            "zh-CN": "安静",
+            "ko": "조용함"
+          }
+        },
+        {
+          "value": "host_interaction",
+          "label": {
+            "ja": "ホストとの交流",
+            "en": "Time with the host",
+            "zh-CN": "与房东的交流",
+            "ko": "호스트와의 교류"
+          }
+        },
+        {
+          "value": "shared_spaces",
+          "label": {
+            "ja": "共用スペース",
+            "en": "Shared spaces",
+            "zh-CN": "共用空间",
+            "ko": "공용 공간"
+          }
+        },
+        {
+          "value": "location",
+          "label": {
+            "ja": "立地",
+            "en": "Location",
+            "zh-CN": "地理位置",
+            "ko": "위치"
+          }
+        },
+        {
+          "value": "local_area",
+          "label": {
+            "ja": "周辺の環境",
+            "en": "The local area",
+            "zh-CN": "周边环境",
+            "ko": "주변 환경"
+          }
+        }
+      ]
+    },
+    {
+      "code": "q09",
+      "type": "single_choice",
+      "label": {
+        "ja": "ご家族やご友人にすすめたいと思いますか。",
+        "en": "Would you recommend us to family or friends?",
+        "zh-CN": "您会向家人或朋友推荐我们吗？",
+        "ko": "가족이나 친구에게 추천하고 싶으신가요?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "ja": "はい",
+            "en": "Yes",
+            "zh-CN": "会",
+            "ko": "네"
+          }
+        },
+        {
+          "value": "maybe",
+          "label": {
+            "ja": "どちらともいえない",
+            "en": "Maybe",
+            "zh-CN": "不确定",
+            "ko": "잘 모르겠어요"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "ja": "いいえ",
+            "en": "No",
+            "zh-CN": "不会",
+            "ko": "아니요"
+          }
+        }
+      ]
+    },
+    {
+      "code": "q10",
+      "type": "text",
+      "maxLength": 1000,
+      "label": {
+        "ja": "ご意見・ご感想があればお聞かせください。",
+        "en": "Any comments or suggestions?",
+        "zh-CN": "如有意见或感想，欢迎告诉我们。",
+        "ko": "의견이나 소감이 있으면 자유롭게 적어 주세요."
+      }
+    }
+  ]
+}

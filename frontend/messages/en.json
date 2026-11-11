@@ -31,10 +31,6 @@
     "backHome": "Back to home"
   },
   "home": {
-    "metaTitle": "Saku no Ie | Stay in Saku like you live here",
-    "title": "Stay in Saku like you live here.",
-    "lead": "A homestay with hotel-like private rooms and warm hospitality.",
-    "placeholder": "This page is being prepared (placeholder content).",
     "registerTitle": "Already booked?",
     "registerBody": "Please register every guest before check-in.",
     "registerCta": "Start guest registration"
@@ -208,5 +204,72 @@
     "invalidBody": "This edit link can no longer be used (for example, the host issued a new one). Ask the host for a new link.",
     "expiredTitle": "This link has expired",
     "expiredBody": "The editing period (end of the check-out day) has passed. Contact the host if something needs correcting."
+  },
+  "nav": {
+    "mainLabel": "Main menu",
+    "footerLabel": "Site links",
+    "openMenu": "Open menu",
+    "menuTitle": "Menu",
+    "home": "Home",
+    "facilities": "The home",
+    "guide": "Guest guide",
+    "faq": "FAQ",
+    "rates": "Rates",
+    "terms": "Terms and house rules",
+    "privacy": "Privacy policy",
+    "survey": "Post-stay survey",
+    "registration": "Guest registration",
+    "groupStay": "Your stay",
+    "groupGuests": "For guests",
+    "groupPolicies": "Policies"
+  },
+  "cta": {
+    "airbnb": "Book on Airbnb",
+    "opensInNewTab": "(opens in a new tab)",
+    "details": "Learn more about the home",
+    "placeholderUrl": "Placeholder link (to be replaced)"
+  },
+  "publicSite": {
+    "placeholderTitle": "要差し替え / Placeholder content",
+    "placeholderBody": "This page has placeholder content. It will be replaced with confirmed information before launch. All photos are placeholder images.",
+    "placeholderPhoto": "Placeholder image",
+    "version": "Version: {version}",
+    "effectiveDate": "Effective: {date}",
+    "galleryLabel": "Photo gallery",
+    "galleryPrev": "Previous photo",
+    "galleryNext": "Next photo",
+    "galleryPosition": "{current} / {total}",
+    "sectionNav": "On this page",
+    "featuresTitle": "What to expect",
+    "photosTitle": "Room and shared spaces",
+    "confirmedAmenities": "Confirmed so far",
+    "bookingTitle": "Book on Airbnb",
+    "bookingBody": "Check prices and availability on the Airbnb listing.",
+    "ratesItem": "Item",
+    "ratesPrice": "Indicative price",
+    "ratesNote": "Note",
+    "ratesCaption": "Indicative rates (Airbnb sets the actual price)",
+    "surveyTitle": "Tell us about your stay",
+    "surveyBody": "A short anonymous survey that helps us improve.",
+    "surveyCta": "Answer the survey"
+  },
+  "survey": {
+    "metaTitle": "Post-stay survey",
+    "title": "Post-stay survey",
+    "intro": "Thank you for staying with us. Please share your impressions; it takes 2–3 minutes.",
+    "anonymity": "This survey is anonymous. It is not linked to your registration or booking, and only the date of your answer is recorded.",
+    "facility": "Where you stayed",
+    "required": "Required",
+    "ratingLow": "1 = Not satisfied",
+    "ratingHigh": "5 = Very satisfied",
+    "ratingOption": "{value} out of 5",
+    "textHelp": "Please do not include anything that identifies you (such as your name or contact details).",
+    "charCount": "{count} / {max} characters",
+    "honeypot": "Leave this field empty",
+    "submit": "Submit",
+    "thanksTitle": "Thank you for your feedback",
+    "thanksBody": "Your answers help us improve the stay for future guests.",
+    "backHome": "Back to home",
+    "errorTitle": "We could not send your answers"
   }
 }

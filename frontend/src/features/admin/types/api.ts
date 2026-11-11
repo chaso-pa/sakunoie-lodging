@@ -101,3 +101,27 @@ export type AdminPatchRegistration = {
 export type ReissueEditLinkResult = { edit_token: string; edit_token_expires_at: string; expired: boolean };
 
 export type LedgerFilter = { facilityId?: number; from?: string; to?: string; q?: string; page?: number };
+
+/** GET /admin/surveys/summary — aggregates only; free text is never returned. */
+export type SurveyCount = { value: string; count: number };
+
+export type SurveyQuestionSummary = {
+  code: string;
+  type: 'rating_1_5' | 'single_choice' | 'multi_choice' | 'text';
+  answered: number;
+  /** answered < min_responses: mean and counts are null. */
+  suppressed: boolean;
+  mean: number | null;
+  counts: SurveyCount[] | null;
+};
+
+export type SurveySummary = {
+  survey_version: string;
+  from: string | null;
+  to: string | null;
+  total: number;
+  min_responses: number;
+  questions: SurveyQuestionSummary[];
+};
+
+export type SurveySummaryFilter = { facilityId?: number; from?: string; to?: string };

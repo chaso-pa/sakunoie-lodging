@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
     additionalData: `@use "${path.join(process.cwd(), '_mantine').replace(/\\/g, '/')}" as mantine;`
   },
   output: 'standalone',
+  // Public pages read content/{locale}/*.md with fs at request time; ship them with the standalone build.
+  outputFileTracingIncludes: { '/[locale]/**': ['./content/**/*'] },
   poweredByHeader: false,
   // Next 16 blocks dev resources (HMR) for other origins; E2E uses http://127.0.0.1:3100.
   allowedDevOrigins: ['127.0.0.1'],

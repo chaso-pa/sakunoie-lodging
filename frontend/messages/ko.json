@@ -31,10 +31,6 @@
     "backHome": "홈으로 돌아가기"
   },
   "home": {
-    "metaTitle": "사쿠노이에 | 사쿠에서 사는 것처럼 머무르기",
-    "title": "사쿠에서, 사는 것처럼 머무르다.",
-    "lead": "호텔 같은 개인실과 따뜻한 교류가 있는 홈스테이 숙소.",
-    "placeholder": "이 페이지는 준비 중입니다(임시 콘텐츠).",
     "registerTitle": "예약하신 분께",
     "registerBody": "체크인 전에 숙박자 전원의 정보를 등록해 주세요.",
     "registerCta": "숙박자 등록하기"
@@ -208,5 +204,72 @@
     "invalidBody": "이 편집 링크는 더 이상 사용할 수 없습니다(호스트의 재발급 등). 호스트에게 새 링크를 요청해 주세요.",
     "expiredTitle": "링크의 유효기간이 지났습니다",
     "expiredBody": "편집 기한(체크아웃 날짜의 끝)이 지났습니다. 정정이 필요하면 호스트에게 연락해 주세요."
+  },
+  "nav": {
+    "mainLabel": "메인 메뉴",
+    "footerLabel": "사이트 링크",
+    "openMenu": "메뉴 열기",
+    "menuTitle": "메뉴",
+    "home": "홈",
+    "facilities": "시설 안내",
+    "guide": "숙박 가이드",
+    "faq": "자주 묻는 질문",
+    "rates": "요금",
+    "terms": "숙박 약관·하우스 룰",
+    "privacy": "개인정보 처리방침",
+    "survey": "숙박 후 설문",
+    "registration": "숙박자 등록",
+    "groupStay": "숙박",
+    "groupGuests": "숙박객 안내",
+    "groupPolicies": "약관"
+  },
+  "cta": {
+    "airbnb": "Airbnb에서 예약",
+    "opensInNewTab": "(새 탭에서 열림)",
+    "details": "시설 자세히 보기",
+    "placeholderUrl": "임시 링크입니다(교체 예정)"
+  },
+  "publicSite": {
+    "placeholderTitle": "要差し替え / Placeholder content",
+    "placeholderBody": "이 페이지는 임시 콘텐츠입니다. 공개 전에 확인된 정보로 교체합니다. 사진은 모두 임시 이미지입니다.",
+    "placeholderPhoto": "임시 이미지",
+    "version": "버전: {version}",
+    "effectiveDate": "시행일: {date}",
+    "galleryLabel": "사진 갤러리",
+    "galleryPrev": "이전 사진",
+    "galleryNext": "다음 사진",
+    "galleryPosition": "{current} / {total}",
+    "sectionNav": "이 페이지의 내용",
+    "featuresTitle": "사쿠노이에의 특징",
+    "photosTitle": "객실과 공용 공간",
+    "confirmedAmenities": "확정된 내용",
+    "bookingTitle": "예약은 Airbnb에서",
+    "bookingBody": "요금과 예약 가능 여부는 Airbnb 숙소 페이지에서 확인해 주세요.",
+    "ratesItem": "항목",
+    "ratesPrice": "참고 요금",
+    "ratesNote": "비고",
+    "ratesCaption": "참고 요금(실제 요금은 Airbnb에서 정해집니다)",
+    "surveyTitle": "숙박 후 설문에 참여해 주세요",
+    "surveyBody": "익명으로 진행되는 짧은 설문으로, 서비스 개선에 활용합니다.",
+    "surveyCta": "설문 응답하기"
+  },
+  "survey": {
+    "metaTitle": "숙박 후 설문",
+    "title": "숙박 후 설문",
+    "intro": "머물러 주셔서 감사합니다. 소감을 들려주세요. 2~3분 정도 걸립니다.",
+    "anonymity": "이 설문은 익명입니다. 숙박자 등록이나 예약 정보와 연결하지 않으며, 응답 날짜만 기록합니다.",
+    "facility": "숙박한 시설",
+    "required": "필수",
+    "ratingLow": "1 = 불만족",
+    "ratingHigh": "5 = 매우 만족",
+    "ratingOption": "{value} / 5",
+    "textHelp": "이름이나 연락처 등 개인을 알 수 있는 정보는 적지 마세요.",
+    "charCount": "{count} / {max}자",
+    "honeypot": "이 칸은 비워 두세요",
+    "submit": "제출하기",
+    "thanksTitle": "응답해 주셔서 감사합니다",
+    "thanksBody": "보내 주신 의견은 앞으로의 숙소 운영에 활용하겠습니다.",
+    "backHome": "홈으로 돌아가기",
+    "errorTitle": "제출하지 못했습니다"
   }
 }
