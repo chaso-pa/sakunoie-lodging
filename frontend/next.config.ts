@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
   // Public pages read content/{locale}/*.md with fs at request time; ship them with the standalone build.
   outputFileTracingIncludes: { '/[locale]/**': ['./content/**/*'] },
   poweredByHeader: false,
+  // All images are local placeholders; disabling the optimizer removes /_next/image (GHSA-2464-fhr4-w9xw surface).
+  images: { unoptimized: true },
   // Next 16 blocks dev resources (HMR) for other origins; E2E uses http://127.0.0.1:3100.
   allowedDevOrigins: ['127.0.0.1'],
   experimental: {
