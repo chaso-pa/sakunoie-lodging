@@ -1,0 +1,21 @@
+.header {
+  height: mantine.rem(64px);
+  background: var(--sakunoie-surface);
+  border-bottom: 1px solid var(--sakunoie-border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: mantine.rem(8px);
+  min-height: mantine.rem(44px);
+  text-decoration: none;
+}
+
+.latin {
+  letter-spacing: 0.12em;
+
+  @include mantine.smaller-than(mantine.$mantine-breakpoint-xs) {
+    display: none;
+  }
+}

@@ -1,0 +1,23 @@
+body {
+  background: var(--sakunoie-canvas);
+  color: var(--mantine-color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+:lang(ja) body {
+  line-height: 1.7;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  padding: mantine.rem(12px) mantine.rem(16px);
+  background: var(--sakunoie-surface);
+
+  &:focus {
+    left: mantine.rem(8px);
+    top: mantine.rem(8px);
+  }
+}
