@@ -18,6 +18,7 @@ func SetupSurveyRoutes(api huma.API, h *handlers.SurveyHandlers) {
 		Summary:       "Submit an anonymous post-stay survey",
 		Description:   "Stores the answers with the facility and survey version only; no guest, registration or booking linkage. submitted_at and created_at are stored truncated to the UTC day. Answers are validated against the versioned definition (unknown question, out-of-range rating, invalid option or over-length text → 422). Unknown or inactive facility → 422 facility_unavailable. A filled honeypot field is accepted (202) and discarded.",
 		Tags:          []string{"Surveys"},
+		Security:      publicSecurity,
 		DefaultStatus: http.StatusAccepted,
 		Errors:        []int{http.StatusBadRequest, http.StatusUnprocessableEntity, http.StatusTooManyRequests},
 	}, h.SubmitSurvey)

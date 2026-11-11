@@ -31,6 +31,10 @@ type Deps struct {
 	Surveys       *services.SurveyService
 }
 
+// publicSecurity marks an operation as intentionally unauthenticated
+// (`security: []` in the spec).
+var publicSecurity = []map[string][]string{}
+
 // HumaConfig is the single API configuration used by the server, the
 // OpenAPI exporter and the tests.
 func HumaConfig(docsEnabled bool) huma.Config {
@@ -40,6 +44,8 @@ func HumaConfig(docsEnabled bool) huma.Config {
 	cfg.CreateHooks = nil
 	cfg.Transformers = []huma.Transformer{models.RequestIDTransformer}
 	cfg.Info.Description = "Guest registration API for Saku no Ie. Errors use the envelope {code, message, details, request_id}."
+	// Same origin: the web app proxies /api/* to this server (paths already carry /api/v1).
+	cfg.Servers = []*huma.Server{{URL: "/", Description: "Same origin as the web app"}}
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		"adminBearer": {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "Firebase ID token (admin endpoints)"},
 		"editToken":   {Type: "http", Scheme: "bearer", Description: "Guest edit token from the manage URL fragment"},

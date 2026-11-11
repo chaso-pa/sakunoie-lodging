@@ -19,6 +19,7 @@ func SetupGuestRegistrationRoutes(api huma.API, reg *handlers.GuestRegistrationH
 		Description:   "Creates one registration with 1..N guests in one transaction. Requires Idempotency-Key. 201 on create; 200 on an idempotent replay of the same body, which returns a new additional edit token, or edit_token=null with code=edit_link_unavailable when 3 links are active or the host reissued the link. Same key with a different body → 409 idempotency_conflict.",
 		Tags:          []string{"Guest registrations"},
 		DefaultStatus: http.StatusCreated,
+		Security:      publicSecurity,
 		Responses: map[string]*huma.Response{
 			"200": {
 				Description: "Idempotent replay (same Idempotency-Key and body)",

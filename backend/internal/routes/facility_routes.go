@@ -15,6 +15,7 @@ func SetupFacilityRoutes(api huma.API, h *handlers.FacilityHandlers) {
 		Summary:     "Get public facility information",
 		Description: "Public name, capacity, time zone and current terms/privacy versions of an active facility. Never returns internal IDs.",
 		Tags:        []string{"Facilities"},
+		Security:    publicSecurity,
 		Errors:      []int{http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests},
 	}, h.GetFacilityPublic)
 }

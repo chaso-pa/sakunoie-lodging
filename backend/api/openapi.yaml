@@ -1586,6 +1586,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Internal Server Error
+      security: []
       summary: Get public facility information
       tags:
         - Facilities
@@ -1657,6 +1658,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Internal Server Error
+      security: []
       summary: Submit a guest registration
       tags:
         - Guest registrations
@@ -1986,6 +1988,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Internal Server Error
+      security: []
       summary: Submit an anonymous post-stay survey
       tags:
         - Surveys
+servers:
+  - description: Same origin as the web app
+    url: /
