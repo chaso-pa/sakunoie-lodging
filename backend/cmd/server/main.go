@@ -1,13 +1,10 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"os"
 
-	"github.com/chaso-pa/gin-template/internal/models"
-	"github.com/chaso-pa/gin-template/internal/routes"
+	"github.com/chaso-pa/sakunoie-lodging/backend/internal/routes"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humagin"
 	"github.com/gin-gonic/gin"
@@ -29,13 +26,7 @@ func main() {
 	// Setup routes
 	routes.SetupStaticRoutes(r)
 
-	api := humagin.New(r, huma.DefaultConfig("My API", "1.0.0"))
-
-	huma.Get(api, "/greeting/{name}", func(ctx context.Context, input *models.GreetingInput) (*models.GreetingOutput, error) {
-		resp := &models.GreetingOutput{}
-		resp.Body.Message = fmt.Sprintf("Hello, %s!", input.Name)
-		return resp, nil
-	})
+	humagin.New(r, huma.DefaultConfig("Saku no Ie API", "1.0.0"))
 
 	// Get port from environment variable or default to 8080
 	port := os.Getenv("PORT")

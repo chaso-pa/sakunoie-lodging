@@ -1,4 +1,4 @@
-module github.com/chaso-pa/gin-template
+module github.com/chaso-pa/sakunoie-lodging/backend
 
 go 1.26.2
 
