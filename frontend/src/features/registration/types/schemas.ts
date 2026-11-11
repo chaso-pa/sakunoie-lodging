@@ -34,7 +34,12 @@ const msg = (key: ValidationKey) => ({ error: key });
 const requiredText = (max: number) => z.string().trim().min(1, msg('required')).max(max, msg('tooLong'));
 const optionalText = (max: number) => z.string().trim().max(max, msg('tooLong'));
 const optionalEmail = optionalText(255).refine((v) => v === '' || z.email().safeParse(v).success, msg('email'));
-const isValidDate = (v: string) => DATE_PATTERN.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`));
+/** A real calendar date: `Date` rolls `2026-02-30` over to March, so the value must round-trip. */
+const isValidDate = (v: string) => {
+  if (!DATE_PATTERN.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+};
 
 /**
  * The single place for the conditional legal rule (contract §3.3/§11 VERIFY):

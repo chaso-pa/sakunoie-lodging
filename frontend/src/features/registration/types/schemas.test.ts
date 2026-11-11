@@ -104,6 +104,16 @@ describe('wizard schema: counts and dates', () => {
     expect(validateWizard(missing, 4)).toMatchObject({ 'stay.checkInDate': 'invalidDate' });
   });
 
+  it('rejects calendar dates that do not exist', () => {
+    const stay = validWizard().stay;
+    for (const bad of ['2026-02-30', '2026-13-01', '2026-04-31', '2027-02-29', '2026-00-10']) {
+      const values = validWizard({ stay: { ...stay, checkInDate: bad } });
+      expect(validateWizard(values, 4), bad).toMatchObject({ 'stay.checkInDate': 'invalidDate' });
+    }
+    const leap = validWizard({ stay: { ...stay, checkInDate: '2028-02-29', checkOutDate: '2028-03-01' } });
+    expect(validateWizard(leap, 4)).toEqual({});
+  });
+
   it('requires both consents', () => {
     expect(validateWizard(validWizard({ termsAccepted: false, privacyAccepted: false }), 4)).toEqual({
       termsAccepted: 'consentRequired',
