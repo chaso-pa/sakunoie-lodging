@@ -167,7 +167,7 @@ CLAUDE.md
 - Document new decisions in this file; do not silently introduce organizations or reservation management.
 
 ## 13. Decisions log (2026-11-11)
-Implementation decisions that refine or deviate from this contract. Later phases append here.
+Implementation decisions that refine or deviate from this contract, recorded during MVP Phases 1–6 (plan `.omc/plans/sakunoie-mvp.md`). Add new decisions at the end. Items that need the owner before launch are listed in **Open items before production** at the end of this section.
 - **Schema and migrations: Prisma migrate + GORM.** §2/§8/§12 "migration SQL" is read as Prisma 7 migrations in `backend/prisma/migrations/` generated from `backend/prisma/schema.prisma`. Go accesses the DB through GORM for CRUD only, with no AutoMigrate. Models are PascalCase with `@@map`/`@map` to the snake_case names of `docs/schema.sql`. There is no Prisma Client (no generator block).
 - **CHECK constraints** (`chk_facility_capacity`, `chk_registration_dates`, `chk_registration_counts`) live in the `*_add_check_constraints` migration, created with `prisma migrate dev --create-only` and filled by hand. It is the only sanctioned hand-edited migration.
 - **JSON columns** (`audit_logs.changed_fields_json`, `survey_responses.answers_json`, `api_idempotency_keys.response_json`) are `String @db.LongText` in Prisma, with `json_valid()` CHECKs (`chk_audit_changed_fields_json`, `chk_survey_answers_json`, `chk_idempotency_response_json`) in the CHECK migration. In MariaDB, `JSON` is an alias for exactly that. Prisma's `Json` type made `migrate diff --from-migrations … --exit-code` report false drift on MariaDB 11.1. The columns use the table collation (`utf8mb4_unicode_ci`) instead of the `utf8mb4_bin` that the JSON alias would give. The Go API validates and marshals the JSON.
@@ -215,3 +215,41 @@ Implementation decisions that refine or deviate from this contract. Later phases
 - **Navigation.** Header: desktop (≥ Mantine `md`) shows facilities/guide/FAQ/rates and the Airbnb CTA; below that a burger opens a drawer with the same links and the CTA. External links use `target=_blank rel="noopener noreferrer"` with a visually hidden "opens in a new tab". Footer links all public pages, registration (default facility) and the survey.
 - **RSC caveat.** Server components must use Mantine's flat exports (`TableTr`, `ListItem`, `AccordionItem`, …): compound members such as `Table.Tr` are undefined on a client reference in RSC and crash the page at runtime (the build does not catch it).
 - **Admin survey UI.** `/admin/surveys` (ja only) shows total, the threshold, a banner when total is below it, and one card per question with counts as text plus decorative bars; suppressed questions and free text show an explanatory sentence instead of values. Filters (facility when more than one, UTC date range) are component state, not URL state.
+- **Repository layout (replaces §9).** The code lives in the existing `backend/` (Go: Gin + Huma v2, GORM, Prisma 7 for schema/migrations only) and `frontend/` (Next 16 App Router, Mantine v9, next-intl) directories, each with its own README and `CLAUDE.md`. There is no `apps/`/`services/` split.
+- **API contract.** Huma code-first OpenAPI 3.1, committed as `backend/api/openapi.yaml` and drift-tested (`backend/api/openapi_test.go`). `/docs`, `/openapi.*` and `/schemas/*` are served only when `APP_ENV` is `development` or `test`.
+- **Decision B (frontend → API).** Same origin through the Next rewrite `/api/:path*` → `API_PROXY_TARGET`. Go installs no CORS middleware, and `TRUSTED_PROXIES` gates `X-Forwarded-For` for the rate limiter.
+- **Decision D (idempotent create), as built.** No raw token is stored. A valid replay mints an **additional** token while fewer than 3 are active and no admin reissue has happened; otherwise it returns `edit_token: null` + `edit_link_unavailable`. Admin reissue revokes all tokens. The request hash is HMAC-SHA256, key rows expire after 24 h, and a janitor deletes them.
+- **Audit deviation from §3.6 (VERIFY with legal).** `audit_logs.changed_fields_json` stores field names only (plus non-PII export metadata), not protected before/after evidence of sensitive changes.
+- **Admin UI is Japanese-only** and lives outside `[locale]` (`src/app/admin`, its own root layout with `lang="ja"`). The MVP role is `owner` only; `staff` is a follow-up.
+- **`cacheComponents` stays off.** If it is enabled later, the `headers()`/`connection()` reads that obtain the CSP nonce (and every other request-time read) must sit inside `<Suspense>` boundaries.
+- **E2E (Phase 6).** Playwright (`@playwright/test` 1.64, Chromium) in `frontend/e2e/`: `public`, `registration`, `manage`, `admin` and `survey` specs. The `desktop-chromium` project (1280 px) runs all of them, and `mobile-chromium` (390×844) runs the wizard spec. The settings are `workers: 1` and `fullyParallel: false`. Each spec seeds its own synthetic rows through the public API in `beforeAll`, with unique `E2E-<spec>-<uuid8>` booking references and a random far-future stay date. Every spec passes alone. `e2e/global-setup.ts` checks the stack, resets the emulator accounts, signs up an admin user and an ungranted user with a random per-run password (kept only in env), and grants the owner role through `go run ./cmd/admin-grant` on compose `lodging_e2e`.
+- **E2E runs against the production build (deviation from plan "next dev").** `frontend/scripts/e2e-stack.sh start|stop|status` does the following:
+  - starts compose and recreates `lodging_e2e`;
+  - starts the Auth Emulator on :9099;
+  - builds and starts the API on :8180 with `APP_ENV=test`, per-run `openssl rand` keys in exported variables, `RATE_LIMIT_*_PER_MIN=1000` and `SURVEY_MIN_RESPONSES=1`;
+  - runs `next build` with `API_PROXY_TARGET=http://127.0.0.1:8180` and `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`, then runs the standalone server on :3100, so the nonce CSP is tested without dev-only `'unsafe-eval'`.
+
+  The script refuses ports that are already bound, starts every process with `setsid` and stops only those process groups, and finishes with `compose down -v`. The CI `e2e` job runs the same script.
+- **E2E coverage notes.** The suite checks:
+  - the CSP header and zero CSP violations (console text plus `securitypolicyviolation` events) on `/ja` and `/admin/login`;
+  - that the edit token never appears in any request URL;
+  - the lost-response retry (the server commits, the browser sees a network failure) and the 409 "already submitted" path with one Idempotency-Key throughout;
+  - a server 422 with client validation bypassed (the request is rewritten in the route handler);
+  - that reissue makes the old token return 401;
+  - the CSV BOM, header and `'=SUM(1)` neutralization.
+
+  The expired-token (410) recovery state is covered by Go clock-injection tests and not in E2E, because the token cannot expire in real time during a run.
+- **Hydration timing (observed).** A language change made before React hydrates the header is ignored, because the native `<select>` has no handler yet. The E2E waits for hydration (React props on the select) before switching. This is a minor UX gap on slow connections, not a correctness bug.
+- **OpenAPI lint (Phase 6).** `npx @redocly/cli lint` (recommended rules) originally reported `no-empty-servers` and three `security-defined` errors. The public create, facility and survey operations now declare `security: []`, and the spec has the same-origin server `/`. Only the `info-license` warning remains (no license chosen).
+
+### Open items before production
+1. **VERIFY items of §11:** lodging-license ledger fields and passport inspection/copy rules, retention basis, privacy notice and consent text, the checkout-day edit window (currently 23:59:59 local), step-up identity for edits, whether the representative's email is mandatory, and the facility terms versions, rates, Airbnb link, content and translations. Also the §3.6 audit-evidence deviation above.
+2. **Q2:** the real `max_guests` for `saku-no-ie` (seeded as the placeholder 4).
+3. **Q6:** confirm the token-editable allowlist (companion `full_name`/`name_kana`/`address`/`phone`/`email`; registration arrival time, booking source/reference, planned count; nothing on the representative).
+4. **Q7:** confirm that the CSV (UTF-8 with BOM) may carry passport **last 4 only**. The legal ledger may require full numbers.
+5. **Next 16.4.0 security advisories.** `npm audit` reports critical/high advisories for `next >=16.0.0 <=16.4.0` (e.g. GHSA-2464-fhr4-w9xw, image optimization RCE with SVG; GHSA-p3m5-59mp-jv5r, Server Actions DoS). `next build` prints the "known security vulnerability" reminder and sometimes stops once with `SecurityFatalError`. Upgrading Next (`next upgrade`) is the owner's decision and was not done.
+6. **`@grpc/grpc-js` advisory via `firebase`.** It comes in through `@firebase/firestore` (high; e.g. GHSA-m9gg-hp2v-232j). The app uses Firebase **Auth only**, so Firestore code is not imported, but the dependency remains until `firebase` ships a fixed range. npm's suggested "fix" is a semver-major downgrade to 9.x and is not appropriate.
+7. **Collation mismatch.** The shared `lodging-master-dev` database default is `utf8mb4_general_ci` (it existed before Phase 1), while `docs/schema.sql` and every table use `utf8mb4_unicode_ci`. The tables are explicit, so behavior is correct, but a production DB should be created with `utf8mb4_unicode_ci`.
+8. **Redocly lint:** valid. The `info-license` warning stays until a license is chosen.
+9. **AC1 guard check left for the owner.** The `prisma.config.ts` argv guard check (`DATABASE_URL=<shared .env URL> npx prisma migrate dev` must exit non-zero with the refusal before connecting) was not run against the real shared URL by the agents. The owner should run it once (read-only).
+10. Follow-ups from the ADR: a C2 cookie session once hosting is chosen; CSP `report-to`; a `staff` role; a key-rotation re-encryption job; retention/deletion jobs; CSV import (§10-6); a distributed rate limiter for more than one API instance; hosting, domain and email provider.

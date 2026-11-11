@@ -10,7 +10,7 @@ This project follows the [Bulletproof React](https://github.com/alan2207/bulletp
 - **Data access**: no database or ORM in the frontend. All data goes through the Go API (`backend/`); the DB schema and migrations live in `backend/prisma/`.
 - **i18n**: next-intl (pinned), locales `ja`/`en`/`zh-CN`/`ko`, routes under `src/app/[locale]/`, messages in `messages/*.json`. Use `Link`/`useRouter` from `@/i18n/navigation`, not `next/link`.
 - **Data fetching**: TanStack Query + the shared axios instance in `@/lib/api-client`; forms with `@mantine/form` + Zod.
-- **Tests**: Vitest (`npm test`, `src/**/*.test.ts`).
+- **Tests**: Vitest (`npm test`, `src/**/*.test.ts`) and Playwright E2E (`e2e/*.spec.ts`, stack via `scripts/e2e-stack.sh`; see README).
 - **Linter/Formatter**: Biome
 - **Language**: TypeScript (strict)
 

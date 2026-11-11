@@ -6,19 +6,28 @@ Go web API template using **Gin** as the HTTP router and **Huma v2** as the API 
 Huma wraps Gin via `humagin` adapter, providing automatic OpenAPI generation, input validation, and typed error responses.
 
 ```
-gin-template/
+backend/
+├── api/openapi.yaml         # Committed OpenAPI 3.1 spec (drift-tested)
 ├── cmd/
-│   └── server/
-│       └── main.go          # Server entry point: Gin setup + Huma API init
+│   ├── server/main.go       # Server entry point: config → DB → Gin + Huma
+│   ├── openapi/             # Spec exporter
+│   └── admin-grant/         # Owner grant CLI (guarded targets)
 ├── internal/
+│   ├── config/              # Env loading and startup refusals
+│   ├── database/            # GORM open; forces loc=UTC / time_zone +00:00
+│   ├── entities/            # GORM table structs (explicit TableName)
 │   ├── handlers/            # Huma handler functions (typed request/response)
 │   ├── middlewares/         # Gin middlewares
 │   ├── models/              # Input/Output structs for Huma endpoints
 │   ├── routes/              # Route registration (SetupHumaRoutes, SetupStaticRoutes)
 │   ├── services/            # Business logic (called by handlers)
+│   ├── testutil/            # Compose-only DB helpers for integration tests
 │   └── utils/               # Shared utilities
 ├── prisma/
-│   └── schema.prisma        # Database schema
+│   ├── schema.prisma        # Database schema (Prisma 7, no client)
+│   ├── migrations/
+│   └── seed.sql
+├── scripts/                 # assert-safe-db.sh, db-reset-test.sh, db-deploy-dev.sh
 ├── go.mod
 └── package.json             # Node deps for Prisma tooling
 ```
@@ -133,6 +142,9 @@ return nil, huma.NewError(http.StatusUnprocessableEntity, "validation failed",
 | Business logic | `internal/services/<resource>_service.go` |
 | DB access | `internal/services/<resource>_service.go` (or separate `repository`) |
 | Shared utilities | `internal/utils/` |
+| GORM table structs | `internal/entities/<table>.go` |
+| Env config and startup checks | `internal/config/` |
+| DB connection (UTC enforcement) | `internal/database/` |
 
 Group files by resource (e.g., `user_handlers.go`, `user_routes.go`, `user.go`).
 
