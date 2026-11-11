@@ -7,6 +7,9 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: read
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -19,6 +22,9 @@ jobs:
       SHADOW_DATABASE_URL: mysql://root:test@127.0.0.1:33306/lodging_shadow
       TEST_DATABASE_URL: root:test@tcp(127.0.0.1:33306)/lodging_test?parseTime=True
       APP_ENV: test
+      # TestIntegrationAdminAuthEmulator needs the Auth Emulator; without it the test skips.
+      FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+      FIREBASE_PROJECT_ID: demo-sakunoie
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -30,8 +36,24 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
+      # The Auth Emulator runs on Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm install -g firebase-tools
       - run: npm ci
       - run: docker compose -f compose.test.yaml up -d --wait
+      - name: Start the Firebase Auth Emulator
+        working-directory: frontend
+        run: |
+          nohup firebase emulators:start --only auth --project "$FIREBASE_PROJECT_ID" > "$RUNNER_TEMP/emulator.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf "http://$FIREBASE_AUTH_EMULATOR_HOST/" > /dev/null && exit 0
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/emulator.log"
+          exit 1
       - name: Prisma schema checks
         run: |
           npx prisma validate
