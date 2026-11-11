@@ -317,6 +317,8 @@ func TestIntegrationAdminPatch(t *testing.T) {
 		"rep_false":      {Guests: []models.AdminPatchGuest{{PublicID: repID, IsRepresentative: boolp(false)}}},
 		"no_passport":    {Guests: []models.AdminPatchGuest{{PublicID: repID, HasJapanAddress: boolp(false), Nationality: strp("Testland")}}},
 		"no_nationality": {Guests: []models.AdminPatchGuest{{PublicID: foreignID, Nationality: strp("")}}},
+		"bad_email":      {Guests: []models.AdminPatchGuest{{PublicID: foreignID, Email: strp("not-an-email")}}},
+		"bad_phone":      {Guests: []models.AdminPatchGuest{{PublicID: foreignID, Phone: strp("call me")}}},
 	} {
 		_, err := e.admin.Patch(ctx, scope, res.Body.PublicID, d.Version, body)
 		if !errors.Is(err, services.ErrValidation) {

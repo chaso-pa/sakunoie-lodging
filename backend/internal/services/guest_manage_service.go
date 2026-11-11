@@ -350,30 +350,7 @@ func (s *GuestManageService) PatchGuest(ctx context.Context, token, ifMatchHeade
 			return ErrPreconditionFailed
 		}
 		updates := map[string]any{}
-		var changed []string
-		var errs []FieldError
-		if in.FullName != nil {
-			if v := strings.TrimSpace(*in.FullName); v == "" {
-				errs = append(errs, FieldError{"body.full_name", "is required"})
-			} else {
-				updates["full_name"] = v
-				changed = append(changed, "full_name")
-			}
-		}
-		if in.Address != nil {
-			if v := strings.TrimSpace(*in.Address); v == "" {
-				errs = append(errs, FieldError{"body.address", "is required"})
-			} else {
-				updates["address"] = v
-				changed = append(changed, "address")
-			}
-		}
-		for name, p := range map[string]*string{"name_kana": in.NameKana, "phone": in.Phone, "email": in.Email} {
-			if p != nil {
-				updates[name] = trimmedOrNil(p)
-				changed = append(changed, name)
-			}
-		}
+		changed, errs := guestEdits("body", in.FullName, in.Address, in.NameKana, in.Phone, in.Email, updates)
 		if len(errs) > 0 {
 			return newDomainError(ErrValidation, errs...)
 		}

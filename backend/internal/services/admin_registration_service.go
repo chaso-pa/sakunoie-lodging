@@ -582,27 +582,10 @@ func (s *AdminRegistrationService) guestChanges(guests []entities.Guest, in []mo
 				newRep = p.PublicID
 			}
 		}
-		if p.FullName != nil {
-			if v := strings.TrimSpace(*p.FullName); v == "" {
-				errs = append(errs, FieldError{loc + ".full_name", "is required"})
-			} else {
-				gc.updates["full_name"] = v
-				changed = append(changed, "guest.full_name")
-			}
-		}
-		if p.Address != nil {
-			if v := strings.TrimSpace(*p.Address); v == "" {
-				errs = append(errs, FieldError{loc + ".address", "is required"})
-			} else {
-				gc.updates["address"] = v
-				changed = append(changed, "guest.address")
-			}
-		}
-		for name, v := range map[string]*string{"name_kana": p.NameKana, "phone": p.Phone, "email": p.Email} {
-			if v != nil {
-				gc.updates[name] = trimmedOrNil(v)
-				changed = append(changed, "guest."+name)
-			}
+		edited, editErrs := guestEdits(loc, p.FullName, p.Address, p.NameKana, p.Phone, p.Email, gc.updates)
+		errs = append(errs, editErrs...)
+		for _, name := range edited {
+			changed = append(changed, "guest."+name)
 		}
 
 		// Identity fields: the resulting state must satisfy the same

@@ -28,6 +28,28 @@ func TestIntegrationCreateIsAtomic(t *testing.T) {
 	}
 }
 
+// Contact fields are format-checked at creation (and on every PATCH).
+func TestIntegrationCreateRejectsBadContact(t *testing.T) {
+	e := setup(t)
+	badEmail := testutil.Representative()
+	badEmail.Email = strp("no-at-sign.example.test")
+	_, err := e.reg.Create(context.Background(), newKey(), sakuBody(1, badEmail))
+	expectErr(t, err, services.ErrValidation)
+	if got := services.FieldsOf(err); len(got) != 1 || got[0].Location != "body.guests[0].email" {
+		t.Fatalf("fields %+v", got)
+	}
+
+	badPhone := testutil.Representative()
+	badPhone.Phone = strp("phone: 090")
+	_, err = e.reg.Create(context.Background(), newKey(), sakuBody(1, badPhone))
+	expectErr(t, err, services.ErrValidation)
+
+	ok := testutil.Representative()
+	ok.Phone = strp(" +81 (90) ０９０-1234 ")
+	ok.Email = strp(" test-ok@example.test ")
+	e.mustCreate(t, newKey(), sakuBody(1, ok))
+}
+
 // §4.2 exactly one representative.
 func TestIntegrationExactlyOneRepresentative(t *testing.T) {
 	e := setup(t)

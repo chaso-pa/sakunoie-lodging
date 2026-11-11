@@ -10,7 +10,15 @@ import (
 	"github.com/google/uuid"
 )
 
-var passportRe = regexp.MustCompile(`^[A-Z0-9]{6,20}$`)
+var (
+	passportRe = regexp.MustCompile(`^[A-Z0-9]{6,20}$`)
+	// Basic shape only (one @, a dot in the domain, no spaces or list/quote
+	// characters); deliverability is not checked.
+	emailRe = regexp.MustCompile(`^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]+$`)
+	// Digits (including full-width) with an optional leading + and common
+	// separators; at least one digit.
+	phoneRe = regexp.MustCompile(`^[+＋]?[\p{Nd}()（）\-‐－ー.\s]*\p{Nd}[\p{Nd}()（）\-‐－ー.\s]*$`)
+)
 
 // guestFields is the common shape of a guest in create and add-companion
 // requests.
@@ -38,6 +46,50 @@ func trimmedOrNil(s *string) *string {
 	return &t
 }
 
+// validateContact checks already-trimmed optional phone and email values.
+func validateContact(loc string, phone, email *string) []FieldError {
+	var errs []FieldError
+	if phone != nil && !phoneRe.MatchString(*phone) {
+		errs = append(errs, FieldError{loc + ".phone", "must contain only digits, +, spaces, hyphens or parentheses"})
+	}
+	if email != nil && !emailRe.MatchString(*email) {
+		errs = append(errs, FieldError{loc + ".email", "must be an email address"})
+	}
+	return errs
+}
+
+// guestEdits validates the free-text guest corrections shared by the manage
+// and admin PATCH: full_name and address cannot be blanked, optional fields
+// are trimmed ("" clears them), phone and email are format-checked. Valid
+// values go into updates; it returns the changed column names.
+func guestEdits(loc string, fullName, address, nameKana, phone, email *string, updates map[string]any) ([]string, []FieldError) {
+	var changed []string
+	var errs []FieldError
+	type field struct {
+		name string
+		v    *string
+	}
+	for _, f := range []field{{"full_name", fullName}, {"address", address}} {
+		if f.v == nil {
+			continue
+		}
+		if v := strings.TrimSpace(*f.v); v == "" {
+			errs = append(errs, FieldError{loc + "." + f.name, "is required"})
+		} else {
+			updates[f.name] = v
+			changed = append(changed, f.name)
+		}
+	}
+	errs = append(errs, validateContact(loc, trimmedOrNil(phone), trimmedOrNil(email))...)
+	for _, f := range []field{{"name_kana", nameKana}, {"phone", phone}, {"email", email}} {
+		if f.v != nil {
+			updates[f.name] = trimmedOrNil(f.v)
+			changed = append(changed, f.name)
+		}
+	}
+	return changed, errs
+}
+
 // validateGuest checks the conditional legal fields. has_japan_address=false
 // requires nationality and a passport number (contract §3.3, VERIFY with the
 // facility license). A passport number sent for a guest with a Japanese
@@ -50,6 +102,7 @@ func validateGuest(loc string, g *guestFields) []FieldError {
 	g.Phone = trimmedOrNil(g.Phone)
 	g.Email = trimmedOrNil(g.Email)
 	g.Nationality = trimmedOrNil(g.Nationality)
+	errs = append(errs, validateContact(loc, g.Phone, g.Email)...)
 	if g.FullName == "" {
 		errs = append(errs, FieldError{loc + ".full_name", "is required"})
 	}

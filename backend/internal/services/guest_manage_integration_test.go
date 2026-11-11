@@ -144,6 +144,12 @@ func TestIntegrationTokenFieldScope(t *testing.T) {
 	_, err = e.manage.PatchGuest(ctx, token, sum.Version, "00000000-0000-4000-8000-000000000000", &models.PatchManageGuestBody{Phone: strp("1")})
 	expectErr(t, err, services.ErrNotFound)
 
+	// Contact format (shared with create and the admin PATCH).
+	_, err = e.manage.PatchGuest(ctx, token, sum.Version, compID, &models.PatchManageGuestBody{Email: strp("test@@example")})
+	expectErr(t, err, services.ErrValidation)
+	_, err = e.manage.PatchGuest(ctx, token, sum.Version, compID, &models.PatchManageGuestBody{Phone: strp("<script>")})
+	expectErr(t, err, services.ErrValidation)
+
 	// Stale If-Match → 412; current → OK.
 	_, err = e.manage.PatchGuest(ctx, token, `"stale"`, compID, &models.PatchManageGuestBody{Phone: strp("000-0000-0009")})
 	expectErr(t, err, services.ErrPreconditionFailed)
