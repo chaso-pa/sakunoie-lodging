@@ -28,6 +28,7 @@ type Deps struct {
 	Manage        *services.GuestManageService
 	AdminAuth     *services.AdminAuthService
 	Admin         *services.AdminRegistrationService
+	Surveys       *services.SurveyService
 }
 
 // HumaConfig is the single API configuration used by the server, the
@@ -67,7 +68,8 @@ func Register(api huma.API, deps Deps) {
 	SetupGuestRegistrationRoutes(v1,
 		&handlers.GuestRegistrationHandlers{Registrations: deps.Registrations},
 		&handlers.GuestManageHandlers{Manage: deps.Manage})
-	SetupAdminRoutes(v1, &handlers.AdminHandlers{Registrations: deps.Admin}, deps.AdminAuth)
+	SetupSurveyRoutes(v1, &handlers.SurveyHandlers{Surveys: deps.Surveys})
+	SetupAdminRoutes(v1, &handlers.AdminHandlers{Registrations: deps.Admin, Surveys: deps.Surveys}, deps.AdminAuth)
 }
 
 // NewEngine builds the Gin engine with the middleware chain used in

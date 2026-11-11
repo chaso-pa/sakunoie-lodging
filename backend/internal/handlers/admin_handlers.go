@@ -12,6 +12,7 @@ import (
 // AdminAuth middleware, never from request parameters.
 type AdminHandlers struct {
 	Registrations *services.AdminRegistrationService
+	Surveys       *services.SurveyService
 }
 
 func (h *AdminHandlers) ListAdminFacilities(ctx context.Context, _ *models.ListAdminFacilitiesInput) (*models.ListAdminFacilitiesOutput, error) {

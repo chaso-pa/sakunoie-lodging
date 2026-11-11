@@ -64,6 +64,7 @@ func run(logger *slog.Logger) error {
 		Manage:        services.NewGuestManageService(db, clock, tokens, cipher),
 		AdminAuth:     services.NewAdminAuthService(db, verifier),
 		Admin:         services.NewAdminRegistrationService(db, clock, tokens, cipher),
+		Surveys:       services.NewSurveyService(db, clock, cfg.SurveyMinResponses),
 	}
 
 	models.InstallErrorConstructors()

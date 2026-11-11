@@ -91,4 +91,13 @@ func SetupAdminRoutes(api huma.API, h *handlers.AdminHandlers, auth middlewares.
 		Description: "Revokes every earlier edit link and returns a new token once, valid until the end of the current checkout day in the facility time zone. Writes an audit row.",
 		Errors:      []int{http.StatusNotFound, http.StatusUnprocessableEntity},
 	}), h.ReissueEditLink)
+
+	huma.Register(api, adminOp(huma.Operation{
+		OperationID: "get-admin-survey-summary",
+		Method:      http.MethodGet,
+		Path:        "/admin/surveys/summary",
+		Summary:     "Aggregate survey results",
+		Description: "Aggregates only, for the current survey version: per-question answered counts, rating mean and 1-5 distribution, and option counts. Free-text answers are counted, never returned. A question answered by fewer than min_responses (SURVEY_MIN_RESPONSES) responses has mean and counts null. facility_id outside the admin's facilities → 403. from/to filter the submission day (UTC).",
+		Errors:      []int{http.StatusUnprocessableEntity},
+	}), h.GetSurveySummary)
 }

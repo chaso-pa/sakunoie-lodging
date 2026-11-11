@@ -61,6 +61,7 @@ func TestOpenAPIContract(t *testing.T) {
 		"patch /api/v1/guest-registrations/manage",
 		"post /api/v1/guest-registrations/manage/guests",
 		"patch /api/v1/guest-registrations/manage/guests/{guest_public_id}",
+		"post /api/v1/surveys",
 		"get /api/v1/admin/facilities",
 		"get /api/v1/admin/guest-registrations",
 		"get /api/v1/admin/guest-registrations/{id}",
@@ -68,6 +69,7 @@ func TestOpenAPIContract(t *testing.T) {
 		"post /api/v1/admin/guest-registrations/{id}/verify-identity",
 		"post /api/v1/admin/guest-registrations/{id}/reissue-edit-link",
 		"get /api/v1/admin/guest-registrations/export",
+		"get /api/v1/admin/surveys/summary",
 	} {
 		method, path, _ := strings.Cut(want, " ")
 		ops, ok := paths[path].(map[string]any)

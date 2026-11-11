@@ -889,6 +889,121 @@ components:
         - edit_token_expires_at
         - expired
       type: object
+    SubmitSurveyBody:
+      additionalProperties: false
+      properties:
+        answers:
+          additionalProperties: {}
+          description: "Answers keyed by question code (q01..q10). rating_1_5: integer 1-5; single_choice: option code; multi_choice: array of distinct option codes; text: string up to maxLength characters. Omit unanswered questions."
+          maxProperties: 20
+          type: object
+        facility_code:
+          description: Facility code (resolved server-side to an active facility; unknown or inactive → 422 facility_unavailable)
+          pattern: ^[a-z0-9-]{1,64}$
+          type: string
+        survey_version:
+          description: Version of the question set the answers belong to (currently v1)
+          maxLength: 64
+          minLength: 1
+          type: string
+        website:
+          description: Honeypot; leave empty. A non-empty value is accepted with 202 and discarded
+          maxLength: 200
+          type: string
+      required:
+        - facility_code
+        - survey_version
+        - answers
+      type: object
+    SurveyCount:
+      additionalProperties: false
+      properties:
+        count:
+          format: int64
+          type: integer
+        value:
+          description: Option code, or the rating 1-5 as a string
+          type: string
+      required:
+        - value
+        - count
+      type: object
+    SurveyQuestionSummary:
+      additionalProperties: false
+      properties:
+        answered:
+          description: "Responses that answered this question (for text: non-empty answers; the text itself is never returned)"
+          format: int64
+          type: integer
+        code:
+          type: string
+        counts:
+          description: "rating_1_5: counts for 1..5; single/multi_choice: counts per option in definition order; null for text"
+          items:
+            $ref: "#/components/schemas/SurveyCount"
+          type:
+            - array
+            - "null"
+        mean:
+          description: "rating_1_5 only: mean rounded to 2 decimals"
+          format: double
+          type:
+            - number
+            - "null"
+        suppressed:
+          description: True when answered < min_responses; mean and counts are then null
+          type: boolean
+        type:
+          enum:
+            - rating_1_5
+            - single_choice
+            - multi_choice
+            - text
+          type: string
+      required:
+        - code
+        - type
+        - answered
+        - suppressed
+        - mean
+        - counts
+      type: object
+    SurveySummary:
+      additionalProperties: false
+      properties:
+        from:
+          format: date
+          type:
+            - string
+            - "null"
+        min_responses:
+          description: Small-cell threshold (SURVEY_MIN_RESPONSES)
+          format: int64
+          type: integer
+        questions:
+          items:
+            $ref: "#/components/schemas/SurveyQuestionSummary"
+          type: array
+        survey_version:
+          description: Only responses of this (current) version are aggregated
+          type: string
+        to:
+          format: date
+          type:
+            - string
+            - "null"
+        total:
+          description: Responses matching the filter
+          format: int64
+          type: integer
+      required:
+        - survey_version
+        - from
+        - to
+        - total
+        - min_responses
+        - questions
+      type: object
   securitySchemes:
     adminBearer:
       bearerFormat: JWT
@@ -1361,6 +1476,72 @@ paths:
       summary: Record the in-person identity check
       tags:
         - Admin
+  /api/v1/admin/surveys/summary:
+    get:
+      description: "Aggregates only, for the current survey version: per-question answered counts, rating mean and 1-5 distribution, and option counts. Free-text answers are counted, never returned. A question answered by fewer than min_responses (SURVEY_MIN_RESPONSES) responses has mean and counts null. facility_id outside the admin's facilities → 403. from/to filter the submission day (UTC)."
+      operationId: get-admin-survey-summary
+      parameters:
+        - description: "Restrict to one authorized facility (403 if not authorized). Omitted: all authorized facilities"
+          explode: false
+          in: query
+          name: facility_id
+          schema:
+            description: "Restrict to one authorized facility (403 if not authorized). Omitted: all authorized facilities"
+            format: int64
+            minimum: 0
+            type: integer
+        - description: Earliest submission date (inclusive, UTC YYYY-MM-DD; submissions are stored per UTC day)
+          explode: false
+          in: query
+          name: from
+          schema:
+            description: Earliest submission date (inclusive, UTC YYYY-MM-DD; submissions are stored per UTC day)
+            format: date
+            type: string
+        - description: Latest submission date (inclusive, UTC YYYY-MM-DD)
+          explode: false
+          in: query
+          name: to
+          schema:
+            description: Latest submission date (inclusive, UTC YYYY-MM-DD)
+            format: date
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SurveySummary"
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Internal Server Error
+      security:
+        - adminBearer: []
+      summary: Aggregate survey results
+      tags:
+        - Admin
   /api/v1/facilities/{code}/public:
     get:
       description: Public name, capacity, time zone and current terms/privacy versions of an active facility. Never returns internal IDs.
@@ -1768,3 +1949,43 @@ paths:
       summary: Correct a companion
       tags:
         - Guest manage
+  /api/v1/surveys:
+    post:
+      description: Stores the answers with the facility and survey version only; no guest, registration or booking linkage. submitted_at and created_at are stored truncated to the UTC day. Answers are validated against the versioned definition (unknown question, out-of-range rating, invalid option or over-length text → 422). Unknown or inactive facility → 422 facility_unavailable. A filled honeypot field is accepted (202) and discarded.
+      operationId: submit-survey
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitSurveyBody"
+        required: true
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Bad Request
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unprocessable Entity
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Too Many Requests
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Internal Server Error
+      summary: Submit an anonymous post-stay survey
+      tags:
+        - Surveys
