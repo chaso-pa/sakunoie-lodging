@@ -110,6 +110,9 @@ func envelope(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	if len(m) != 4 || m["request_id"] != w.Header().Get("X-Request-Id") || m["request_id"] == "" {
 		t.Fatalf("bad envelope (%d): %s", w.Code, w.Body.String())
 	}
+	if w.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("missing X-Content-Type-Options: nosniff (%d)", w.Code)
+	}
 	return m
 }
 

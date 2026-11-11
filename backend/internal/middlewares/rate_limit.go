@@ -52,22 +52,28 @@ func ConfigureClientIP(r *gin.Engine, trusted []string) error {
 // RateLimiter is an in-memory per-IP token bucket per class. The key is
 // c.ClientIP() as configured by ConfigureClientIP. IPs are never logged.
 type RateLimiter struct {
-	mu        sync.Mutex
-	perMin    map[string]int
-	buckets   map[string]*bucket
-	ttl       time.Duration
-	lastSweep time.Time
-	now       func() time.Time
-	logger    *slog.Logger
+	mu         sync.Mutex
+	perMin     map[string]int
+	buckets    map[string]*bucket
+	maxBuckets int
+	ttl        time.Duration
+	lastSweep  time.Time
+	now        func() time.Time
+	logger     *slog.Logger
 }
+
+// defaultMaxBuckets caps memory under an address-rotation flood (~100 B per
+// bucket).
+const defaultMaxBuckets = 100_000
 
 func NewRateLimiter(perMin map[string]int, logger *slog.Logger) *RateLimiter {
 	return &RateLimiter{
-		perMin:  perMin,
-		buckets: map[string]*bucket{},
-		ttl:     10 * time.Minute,
-		now:     time.Now,
-		logger:  logger,
+		perMin:     perMin,
+		buckets:    map[string]*bucket{},
+		maxBuckets: defaultMaxBuckets,
+		ttl:        10 * time.Minute,
+		now:        time.Now,
+		logger:     logger,
 	}
 }
 
@@ -76,22 +82,44 @@ func (rl *RateLimiter) allow(class, ip string) bool {
 	defer rl.mu.Unlock()
 	now := rl.now()
 	if now.Sub(rl.lastSweep) > time.Minute {
-		for k, b := range rl.buckets {
-			if now.Sub(b.lastSeen) > rl.ttl {
-				delete(rl.buckets, k)
-			}
-		}
-		rl.lastSweep = now
+		rl.sweep(now)
 	}
 	key := class + "|" + ip
 	b, ok := rl.buckets[key]
 	if !ok {
+		if len(rl.buckets) >= rl.maxBuckets {
+			rl.evict(now)
+		}
 		n := rl.perMin[class]
 		b = &bucket{limiter: rate.NewLimiter(rate.Limit(float64(n)/60.0), n)}
 		rl.buckets[key] = b
 	}
 	b.lastSeen = now
 	return b.limiter.AllowN(now, 1)
+}
+
+func (rl *RateLimiter) sweep(now time.Time) {
+	for k, b := range rl.buckets {
+		if now.Sub(b.lastSeen) > rl.ttl {
+			delete(rl.buckets, k)
+		}
+	}
+	rl.lastSweep = now
+}
+
+// evict runs when the map is full: it drops expired buckets, and if that is
+// not enough, arbitrary ones (map order) down to 90% of the cap. An evicted
+// client merely starts with a fresh bucket.
+func (rl *RateLimiter) evict(now time.Time) {
+	rl.sweep(now)
+	target := rl.maxBuckets * 9 / 10
+	for k := range rl.buckets {
+		if len(rl.buckets) <= target {
+			break
+		}
+		delete(rl.buckets, k)
+	}
+	rl.logger.Warn("rate limiter bucket cap reached", "max_buckets", rl.maxBuckets)
 }
 
 // Middleware must run after routing (it reads c.FullPath()).

@@ -79,7 +79,8 @@ func Register(api huma.API, deps Deps) {
 }
 
 // NewEngine builds the Gin engine with the middleware chain used in
-// production: request ID → recovery → request log → rate limit.
+// production: security headers → request ID → recovery → request log →
+// rate limit.
 func NewEngine(cfg *config.Config, db *gorm.DB, deps Deps, logger *slog.Logger) (*gin.Engine, error) {
 	r := gin.New()
 	if err := middlewares.ConfigureClientIP(r, cfg.TrustedProxies); err != nil {
@@ -90,7 +91,7 @@ func NewEngine(cfg *config.Config, db *gorm.DB, deps Deps, logger *slog.Logger) 
 		middlewares.LimitManage: cfg.RateLimitManagePerMin,
 		middlewares.LimitSurvey: cfg.RateLimitSurveyPerMin,
 	}, logger)
-	r.Use(middlewares.RequestID(), middlewares.Recovery(logger), middlewares.RequestLogger(logger), limiter.Middleware())
+	r.Use(middlewares.SecurityHeaders(), middlewares.RequestID(), middlewares.Recovery(logger), middlewares.RequestLogger(logger), limiter.Middleware())
 	r.NoRoute(middlewares.NoRoute)
 	SetupStaticRoutes(r, db)
 	NewAPI(r, cfg.DocsEnabled(), deps)

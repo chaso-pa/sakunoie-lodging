@@ -83,6 +83,10 @@ Production deployment requirements:
 - Alternatively, route `/api/` from the edge straight to Go (bypassing Next) with the same header.
 - `TRUSTED_PROXIES` must list **only** the hop that connects to Go (the Next server, or the edge when
   `/api/` bypasses Next). Never list a range that clients can reach directly.
+- HSTS is set at the edge (TLS terminates there), not by Go. Go sets
+  `X-Content-Type-Options: nosniff` on every response (`middlewares.SecurityHeaders`).
+- The limiter keeps at most 100,000 buckets in memory; past that it drops expired and then
+  arbitrary buckets down to 90% and logs one WARN.
 
 ### Generating keys
 

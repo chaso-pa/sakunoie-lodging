@@ -3,6 +3,7 @@ package middlewares
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -111,6 +112,37 @@ func TestRateLimitClientIPTrustBoundary(t *testing.T) {
 	}
 	if w := postHeaders(r, "127.0.0.1:1", "", "192.0.2.1"); w.Code != http.StatusTooManyRequests {
 		t.Fatalf("same X-Real-IP client must be limited: %d", w.Code)
+	}
+}
+
+func TestRateLimitBucketCap(t *testing.T) {
+	var logs bytes.Buffer
+	rl := NewRateLimiter(map[string]int{LimitCreate: 1}, slog.New(slog.NewJSONHandler(&logs, nil)))
+	rl.maxBuckets = 10
+	for i := 0; i < 1000; i++ {
+		rl.allow(LimitCreate, fmt.Sprintf("192.0.2.%d", i))
+		if n := len(rl.buckets); n > rl.maxBuckets {
+			t.Fatalf("after %d clients: %d buckets, cap %d", i+1, n, rl.maxBuckets)
+		}
+	}
+	if !strings.Contains(logs.String(), "bucket cap reached") {
+		t.Fatal("expected a WARN when the cap is reached")
+	}
+	// The newest client keeps its bucket (inserted after eviction).
+	if rl.allow(LimitCreate, "192.0.2.999") {
+		t.Fatal("the most recent client must still be limited")
+	}
+}
+
+func TestSecurityHeadersNosniff(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(SecurityHeaders())
+	r.NoRoute(NoRoute)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/nope", nil))
+	if got := w.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("X-Content-Type-Options = %q", got)
 	}
 }
 
