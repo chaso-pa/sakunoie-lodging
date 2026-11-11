@@ -156,18 +156,32 @@ Group files by resource (e.g., `user_handlers.go`, `user_routes.go`, `user.go`).
 
 ## Database Migration
 
-**マイグレーション管理は必ずPrismaを使用すること。** 生のSQLファイルや他のマイグレーションツールは使用しない。
+**マイグレーション管理は必ずPrismaを使用すること。** Go からの DB アクセスは GORM（CRUD のみ、AutoMigrate 禁止）。Prisma Client は使わないため `generator` ブロックはなく、`prisma generate` は不要。
+
+### 安全ルール（共有 DB サーバー）
+
+- `.env` の `DATABASE_URL` は共有サーバー上の `lodging-master-dev`。ここで許可されるのは `migrate deploy` / `migrate status` / seed（`npm run db:deploy:dev`）のみ。
+- `migrate dev` / `migrate diff` / `migrate reset` / `db push` は **compose の MariaDB（`compose.test.yaml`, `127.0.0.1:33306`）に対してのみ** 実行する。`prisma.config.ts` が argv を見て、URL が compose でなければ拒否する。
+- DB を触るスクリプトは必ず `scripts/assert-safe-db.sh` を source する。パスワードを argv に載せない（`--defaults-extra-file`）。
 
 ### ワークフロー
 
-1. `prisma/schema.prisma` を編集してスキーマを変更する
-2. `npx prisma migrate dev --name <migration_name>` でマイグレーションを生成・適用する
-3. `npx prisma generate` でGoクライアントを再生成する
+1. `docker compose -f compose.test.yaml up -d --wait`
+2. `prisma/schema.prisma` を編集する（モデルは PascalCase、`@@map`/`@map` で snake_case）
+3. compose の URL をインラインで指定して `migrate dev` を実行する（非対話シェルでは pty が必要）:
+   ```bash
+   DATABASE_URL=mysql://root:test@127.0.0.1:33306/lodging_migrate \
+   SHADOW_DATABASE_URL=mysql://root:test@127.0.0.1:33306/lodging_shadow \
+   bash -c '(sleep 8; printf "y\n"; sleep 15) | script -qec "npx prisma migrate dev --name <name>" /dev/null'
+   ```
+4. 同じ URL で `npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` が 0 になることを確認する
+5. 共有 dev DB へは `npm run db:deploy:dev`
 
 ### マイグレーションルール
 
 - スキーマ変更は **必ず** `prisma/schema.prisma` を通じて行う — DBを直接変更しない
-- マイグレーションファイル (`prisma/migrations/`) は自動生成されるため手動編集しない
+- マイグレーションファイル (`prisma/migrations/`) は自動生成されるため手動編集しない。**例外**: Prisma で表現できない CHECK 制約は `migrate dev --create-only` で作った空マイグレーションに手で書く（`*_add_check_constraints`、ルート `CLAUDE.md` §13）
+- JSON カラムは `String @db.LongText` ＋ CHECK マイグレーションの `json_valid()`（MariaDB の `JSON` の実体。Prisma の `Json` 型は MariaDB で偽のドリフトを出す）
 - 本番環境では `npx prisma migrate deploy` を使用する（`migrate dev` は開発専用）
 
 ## Commands
@@ -179,11 +193,11 @@ go run cmd/server/main.go
 
 ### Database Operations
 ```bash
-npx prisma migrate dev --name <name>  # マイグレーション生成・適用（開発用）
-npx prisma migrate deploy             # マイグレーション適用（本番用）
-npx prisma generate                   # Goクライアント再生成
-npx prisma studio                     # Prisma Studio（DB GUI）
-npx prisma migrate status             # マイグレーション適用状況確認
+docker compose -f compose.test.yaml up -d --wait  # テスト用 MariaDB（127.0.0.1:33306, tmpfs）
+bash scripts/db-reset-test.sh lodging_test        # compose DB を作り直して migrate deploy + seed
+npm run db:deploy:dev                             # 共有 lodging-master-dev に migrate deploy + seed
+npx prisma migrate status                         # 適用状況確認（.env の URL）
+docker compose -f compose.test.yaml down -v       # 後片付け
 ```
 
 ### Testing

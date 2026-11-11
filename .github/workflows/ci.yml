@@ -1,0 +1,67 @@
+# CI sketch. Mirrors the local commands; uses only the throwaway compose
+# MariaDB and never sees shared-server credentials.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Compose DB (backend/compose.test.yaml); fixed throwaway credentials.
+      DATABASE_URL: mysql://root:test@127.0.0.1:33306/lodging_migrate
+      SHADOW_DATABASE_URL: mysql://root:test@127.0.0.1:33306/lodging_shadow
+      TEST_DATABASE_URL: root:test@tcp(127.0.0.1:33306)/lodging_test?parseTime=True
+      APP_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: docker compose -f compose.test.yaml up -d --wait
+      - name: Prisma schema checks
+        run: |
+          npx prisma validate
+          npx prisma format --check
+          npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+      - name: Migrate and seed lodging_test
+        run: bash scripts/db-reset-test.sh lodging_test
+      - run: go vet ./...
+      - run: go build ./...
+      # Includes the OpenAPI drift test once api/openapi.yaml exists (Phase 2).
+      - run: go test -p 1 -count=1 -race ./...
+      - if: always()
+        run: docker compose -f compose.test.yaml down -v
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx biome check
+      # Vitest is added in Phase 3.
+      - run: npx next build
+
+  # E2E job (compose + Auth Emulator + Playwright) is added in Phase 6.
