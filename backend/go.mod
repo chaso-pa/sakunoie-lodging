@@ -2,6 +2,8 @@ module github.com/chaso-pa/sakunoie-lodging/backend
 
 go 1.26.2
 
+toolchain go1.26.11
+
 require (
 	firebase.google.com/go/v4 v4.22.0
 	github.com/danielgtaylor/huma/v2 v2.37.3
@@ -65,7 +67,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
