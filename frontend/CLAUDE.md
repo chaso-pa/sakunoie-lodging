@@ -5,9 +5,9 @@ This project follows the [Bulletproof React](https://github.com/alan2207/bulletp
 ## Stack
 
 - **Framework**: Next.js (App Router)
-- **UI**: Mantine v8
+- **UI**: Mantine v9
 - **Styling**: SCSS Modules + PostCSS
-- **Database ORM**: Prisma
+- **Data access**: no database or ORM in the frontend. All data goes through the Go API (`backend/`); the DB schema and migrations live in `backend/prisma/`.
 - **Linter/Formatter**: Biome
 - **Language**: TypeScript (strict)
 
