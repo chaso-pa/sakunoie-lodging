@@ -1,0 +1,26 @@
+{
+  "name": "gin-template",
+  "scripts": {
+		"db:init": "prisma init",
+		"db:generate": "prisma generate",
+		"db:push": "prisma db push",
+		"db:pull": "prisma db pull",
+		"db:migrate": "prisma migrate dev",
+		"db:migrate:deploy": "prisma migrate deploy",
+		"db:migrate:reset": "prisma migrate reset",
+		"db:seed": "tsx prisma/seed.ts",
+		"db:studio": "prisma studio",
+		"db:format": "prisma format",
+		"db:validate": "prisma validate",
+		"db:reset": "prisma migrate reset --force",
+		"setup": "yarn db:init && yarn db:migrate && yarn db:generate && yarn db:seed",
+		"dev:setup": "cp .env.example .env && yarn run setup"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.0",
+    "prisma": "^7.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.0.0"
+  }
+}
