@@ -44,3 +44,10 @@ next-env.d.ts
 # firebase emulator
 firebase-debug.log
 *-debug.log
+
+# playwright / e2e stack
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/.e2e-stack/

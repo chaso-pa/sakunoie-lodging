@@ -61,7 +61,52 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx biome check
-      # Vitest is added in Phase 3.
+      - run: npx vitest run
       - run: npx next build
 
-  # E2E job (compose + Auth Emulator + Playwright) is added in Phase 6.
+  # Playwright against compose MariaDB (lodging_e2e) + Firebase Auth Emulator + API :8180 +
+  # Next standalone :3100, all started by frontend/scripts/e2e-stack.sh.
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      # The Auth Emulator runs on Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm install -g firebase-tools
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start the E2E stack
+        run: bash scripts/e2e-stack.sh start
+      - run: npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            frontend/.e2e-stack/*.log
+          retention-days: 7
+      - if: always()
+        run: bash scripts/e2e-stack.sh stop
