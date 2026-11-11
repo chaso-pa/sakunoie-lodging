@@ -37,17 +37,13 @@ func ETag(reg *entities.GuestRegistration) string {
 	return "r" + strconv.FormatInt(reg.UpdatedAt.UnixMicro(), 36)
 }
 
-// ifMatch reports whether an If-Match header value matches etag.
+// ifMatch reports whether an If-Match header value is exactly etag, either
+// as the quoted strong ETag or as the bare `version` from the body. "*",
+// weak (W/) tags and lists are rejected: a write must name the version it
+// was based on.
 func ifMatch(header, etag string) bool {
-	for v := range strings.SplitSeq(header, ",") {
-		v = strings.TrimSpace(v)
-		v = strings.TrimPrefix(v, "W/")
-		v = strings.Trim(v, `"`)
-		if v == "*" || v == etag {
-			return true
-		}
-	}
-	return false
+	v := strings.TrimSpace(header)
+	return v == `"`+etag+`"` || v == etag
 }
 
 // manageTx runs fn in a READ COMMITTED transaction, so reads after the

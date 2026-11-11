@@ -289,6 +289,15 @@ func TestIntegrationHTTPManageFlow(t *testing.T) {
 		t.Fatalf("stale etag: %d %s", w.Code, w.Body.String())
 	}
 
+	// Wildcard and weak tags never match: a write must name its version.
+	for _, im := range []string{"*", "W/" + sum.Version, `W/"` + sum.Version + `"`} {
+		w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"booking_source": "direct"},
+			map[string]string{"Authorization": auth["Authorization"], "If-Match": im})
+		if w.Code != http.StatusPreconditionFailed || envelope(t, w)["code"] != "precondition_failed" {
+			t.Fatalf("If-Match %q: %d %s", im, w.Code, w.Body.String())
+		}
+	}
+
 	// Unknown routes return the envelope too.
 	w = h.do(http.MethodGet, "/api/v1/nope", nil, nil)
 	if w.Code != http.StatusNotFound {
