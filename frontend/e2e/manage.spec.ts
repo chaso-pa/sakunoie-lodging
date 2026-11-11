@@ -69,6 +69,34 @@ test.describe('manage (edit link)', () => {
     expect(await page.evaluate(() => location.href)).not.toContain('#');
   });
 
+  test('an expired token (410) shows the expired guidance and drops the token (AC6)', async ({ page }) => {
+    // The token cannot expire in real time during a run, so the API answer is replaced with the
+    // server's 410 envelope (Go clock-injection tests cover the expiry itself).
+    let calls = 0;
+    await page.route('**/api/v1/guest-registrations/manage', (route) => {
+      calls++;
+      return route.fulfill({
+        status: 410,
+        contentType: 'application/json',
+        headers: { 'cache-control': 'no-store' },
+        body: JSON.stringify({
+          code: 'token_expired',
+          message: 'edit token expired',
+          details: [],
+          request_id: '00000000-0000-4000-8000-000000000410'
+        })
+      });
+    });
+    await page.goto(`/en/registration/manage#token=${encodeURIComponent(seeded.editToken)}`);
+    const alert = page.getByRole('alert').filter({ hasText: 'This link has expired' });
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText('Contact the host if something needs correcting');
+    expect(calls).toBeGreaterThan(0);
+    expect(await page.evaluate(() => location.href)).not.toContain('#');
+    expect(await page.evaluate(() => sessionStorage.getItem('sakunoie.manage.token'))).toBeNull();
+    await expect(page.getByRole('heading', { name: 'Guests', exact: true })).toHaveCount(0);
+  });
+
   test('no token in this tab shows the session-lost guidance', async ({ page }) => {
     await page.goto('/en/registration/manage');
     await expect(page.getByText('Edit link not found')).toBeVisible();

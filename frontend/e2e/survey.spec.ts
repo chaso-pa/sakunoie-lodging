@@ -18,11 +18,12 @@ test.describe('survey', () => {
     await page.goto('/en/survey');
 
     // q01 is required: nothing is sent while it is empty.
+    const q01 = page.getByRole('radiogroup', { name: /^1\. / });
     await page.getByRole('button', { name: 'Submit' }).click();
-    await expect(page.getByText('This field is required').first()).toBeVisible();
+    await expect(q01).toHaveAccessibleDescription(/This field is required/);
     expect(watch.requestUrls.some((u) => u.includes('/api/v1/surveys'))).toBe(false);
 
-    await page.getByRole('radio', { name: '5 out of 5' }).first().check();
+    await q01.getByRole('radio', { name: '5 out of 5' }).check();
     await page.getByRole('radio', { name: 'Sightseeing' }).check();
     await page.getByRole('checkbox', { name: 'Quietness' }).check();
     await page.getByLabel(/Any comments or suggestions/).fill(FREE_TEXT);
@@ -43,12 +44,11 @@ test.describe('survey', () => {
     await adminLogin(page);
     await page.goto('/admin/surveys');
     await expect(page.getByRole('heading', { name: 'アンケート集計', level: 1 })).toBeVisible();
-    const main = page.locator('main');
-    await expect(main.getByText('平均').first()).toBeVisible();
+    const main = page.getByRole('main');
+    const q01Summary = page.getByRole('region', { name: /^1\. / });
+    await expect(q01Summary).toContainText(/平均 \d\.\d\d \/ 5/);
     const total = Number(/回答数\s*(\d+)/.exec(await main.innerText())?.[1] ?? '0');
     expect(total).toBeGreaterThanOrEqual(2);
-    const q01 = page.getByRole('region', { name: /^1\. / });
-    await expect(q01).toContainText(/平均 \d\.\d\d \/ 5/);
     const q10 = page.getByRole('region', { name: /^10\. / });
     await expect(q10).toContainText(/記入あり \d+件/);
     await expect(main).not.toContainText(FREE_TEXT);

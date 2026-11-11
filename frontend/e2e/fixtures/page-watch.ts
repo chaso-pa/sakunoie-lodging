@@ -28,3 +28,10 @@ export const watchPage = async (context: BrowserContext, page: Page) => {
 /** Console errors other than the browser's own log line for an expected 4xx response. */
 export const unexpectedErrors = (errors: string[]) =>
   errors.filter((e) => !/Failed to load resource: the server responded with a status of 4\d\d/.test(e));
+
+/** Waits until React has hydrated the element matching `selector` (its DOM node carries React props). */
+export const waitForHydrated = (page: Page, selector: string) =>
+  page.waitForFunction((sel) => {
+    const el = document.querySelector(sel);
+    return !!el && Object.keys(el).some((k) => k.startsWith('__reactProps'));
+  }, selector);

@@ -1,13 +1,9 @@
 import facility from '@content/facilities/saku-no-ie.json';
 import { expect, type Page, test } from '@playwright/test';
-import { unexpectedErrors, watchPage } from './fixtures/page-watch';
+import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 
-/** Waits until React has hydrated the language switcher (its DOM node carries React props). */
-const waitForHydratedSwitcher = (page: Page) =>
-  page.waitForFunction(() => {
-    const select = document.querySelector('header select');
-    return !!select && Object.keys(select).some((k) => k.startsWith('__reactProps'));
-  });
+/** Waits until React has hydrated the language switcher. */
+const waitForHydratedSwitcher = (page: Page) => waitForHydrated(page, 'header select');
 
 const LOCALES = ['ja', 'en', 'zh-CN', 'ko'] as const;
 const PAGES = ['', '/facilities', '/guide', '/faq', '/rates', '/terms', '/privacy', '/survey'] as const;
@@ -51,8 +47,9 @@ test.describe('public site', () => {
     await page.getByLabel('言語').selectOption('en');
     await page.waitForURL('**/en', { waitUntil: 'commit' });
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await page.waitForLoadState('networkidle');
-    expect(watch.cspViolations).toEqual([]);
+    // The /en page has hydrated (its scripts ran); violations are reported asynchronously.
+    await waitForHydratedSwitcher(page);
+    await expect.poll(() => watch.cspViolations).toEqual([]);
     expect(unexpectedErrors(watch.consoleErrors)).toEqual([]);
   });
 

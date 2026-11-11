@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { adminLogin, fillLogin, unauthorizedCredentials } from './fixtures/admin-login';
 import { newApiContext } from './fixtures/api-context';
-import { unexpectedErrors, watchPage } from './fixtures/page-watch';
+import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 import { type SeededRegistration, seedRegistration } from './fixtures/seed';
 import { SYNTHETIC_PASSPORT, uniqueRef, uniqueStay } from './fixtures/synthetic';
 
@@ -45,8 +45,9 @@ test.describe('admin console', () => {
     expect(response?.headers()['x-robots-tag']).toContain('noindex');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
     await expect(page.getByRole('button', { name: 'ログイン' })).toBeVisible();
-    await page.waitForLoadState('networkidle');
-    expect(watch.cspViolations).toEqual([]);
+    // The login form has hydrated (Firebase Auth initialized); violations are reported asynchronously.
+    await waitForHydrated(page, 'form button[type=submit]');
+    await expect.poll(() => watch.cspViolations).toEqual([]);
     expect(unexpectedErrors(watch.consoleErrors)).toEqual([]);
   });
 
@@ -82,7 +83,8 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: '本人確認済みにする' }).click();
     await page.getByRole('dialog').getByRole('button', { name: '本人確認済みにする' }).click();
     await expect(page.getByText('本人確認を記録しました。')).toBeVisible();
-    await expect(page.getByText('確認済み', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('main').getByText('確認済み', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '本人確認済み', exact: true })).toBeDisabled();
 
     // Correction (audited by field name server-side).
     await page.getByRole('button', { name: '訂正する' }).click();
