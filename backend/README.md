@@ -58,7 +58,7 @@ throwaway compose URLs.
 | `SHADOW_DATABASE_URL` | Prisma, optional | compose `lodging_shadow`, set inline for `migrate dev`/`diff` only |
 | `TEST_DATABASE_URL` | integration tests | compose `lodging_test` (or `lodging_e2e`). Without it, the integration tests skip. |
 | `PORT` | no (8080) | listen port |
-| `TRUSTED_PROXIES` | no (`127.0.0.1,::1`) | proxies whose `X-Forwarded-For` is trusted. The Next rewrite is one of them. |
+| `TRUSTED_PROXIES` | no (`127.0.0.1,::1`) | peers whose `X-Real-IP` is trusted as the client IP. List only the hop that sits between the edge and Go (see [Client IP and the edge proxy](#client-ip-and-the-edge-proxy)). `X-Forwarded-For` is never read. |
 | `PASSPORT_ENC_KEYS` | yes | `1:<base64 32 bytes>[,2:<…>]`, AES-256-GCM keys by ID |
 | `PASSPORT_ENC_ACTIVE_KEY_ID` | yes | the key ID used for new encryptions |
 | `IDEMPOTENCY_HMAC_KEY` | yes | base64 of 32 bytes (HMAC of create request bodies) |
@@ -66,6 +66,23 @@ throwaway compose URLs.
 | `FIREBASE_AUTH_EMULATOR_HOST` | dev/test only | e.g. `127.0.0.1:9099`. It disables signature checks, so the server refuses it with `APP_ENV=production` or a project ID that does not start with `demo-`. |
 | `RATE_LIMIT_CREATE_PER_MIN`, `RATE_LIMIT_MANAGE_PER_MIN`, `RATE_LIMIT_SURVEY_PER_MIN` | no (10/60/10) | per-IP limits. The E2E stack uses 1000. |
 | `SURVEY_MIN_RESPONSES` | no (5) | small-cell threshold of the survey summary |
+
+### Client IP and the edge proxy
+
+The per-IP rate limiter keys on `c.ClientIP()`. Go reads **only `X-Real-IP`**, and only when the TCP
+peer is in `TRUSTED_PROXIES`; `X-Forwarded-For` is ignored. Reason: the Next rewrite
+(`/api/:path*` → `API_PROXY_TARGET`) forwards the client's `X-Forwarded-For` unchanged and does not
+append the peer address, so behind it XFF is entirely client-controlled. With no trusted header,
+every request through Next arrives from `127.0.0.1` and all clients share one bucket.
+
+Production deployment requirements:
+
+- The edge (nginx, Caddy or the load balancer) **must overwrite `X-Real-IP` with the peer address
+  and drop any client-supplied value**, e.g. nginx `proxy_set_header X-Real-IP $remote_addr;`, Caddy
+  `header_up X-Real-IP {remote_host}`. Next passes the header through to Go unchanged.
+- Alternatively, route `/api/` from the edge straight to Go (bypassing Next) with the same header.
+- `TRUSTED_PROXIES` must list **only** the hop that connects to Go (the Next server, or the edge when
+  `/api/` bypasses Next). Never list a range that clients can reach directly.
 
 ### Generating keys
 

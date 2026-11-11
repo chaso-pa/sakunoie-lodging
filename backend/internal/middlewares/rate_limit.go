@@ -39,9 +39,18 @@ type bucket struct {
 	lastSeen time.Time
 }
 
+// ConfigureClientIP makes c.ClientIP() trust only an X-Real-IP header that a
+// TRUSTED_PROXIES peer sent. X-Forwarded-For is never read: the Next rewrite
+// forwards the client's XFF unchanged without appending the peer, so a
+// trusted-hop XFF is client-controlled. The edge proxy must overwrite
+// X-Real-IP with the peer address (see README "Client IP").
+func ConfigureClientIP(r *gin.Engine, trusted []string) error {
+	r.RemoteIPHeaders = []string{"X-Real-IP"}
+	return r.SetTrustedProxies(trusted)
+}
+
 // RateLimiter is an in-memory per-IP token bucket per class. The key is
-// c.ClientIP(), which honours X-Forwarded-For only from TRUSTED_PROXIES
-// (engine.SetTrustedProxies). IPs are never logged.
+// c.ClientIP() as configured by ConfigureClientIP. IPs are never logged.
 type RateLimiter struct {
 	mu        sync.Mutex
 	perMin    map[string]int

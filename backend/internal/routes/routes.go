@@ -82,7 +82,7 @@ func Register(api huma.API, deps Deps) {
 // production: request ID → recovery → request log → rate limit.
 func NewEngine(cfg *config.Config, db *gorm.DB, deps Deps, logger *slog.Logger) (*gin.Engine, error) {
 	r := gin.New()
-	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+	if err := middlewares.ConfigureClientIP(r, cfg.TrustedProxies); err != nil {
 		return nil, err
 	}
 	limiter := middlewares.NewRateLimiter(map[string]int{

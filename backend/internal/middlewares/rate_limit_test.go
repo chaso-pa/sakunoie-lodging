@@ -16,7 +16,7 @@ func newLimitedEngine(t *testing.T, perMin int, logs *bytes.Buffer) *gin.Engine 
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if err := r.SetTrustedProxies([]string{"127.0.0.1", "::1"}); err != nil {
+	if err := ConfigureClientIP(r, []string{"127.0.0.1", "::1"}); err != nil {
 		t.Fatal(err)
 	}
 	logger := slog.New(slog.NewJSONHandler(logs, nil))
@@ -27,11 +27,18 @@ func newLimitedEngine(t *testing.T, perMin int, logs *bytes.Buffer) *gin.Engine 
 }
 
 func post(r *gin.Engine, remote, xff string) *httptest.ResponseRecorder {
+	return postHeaders(r, remote, xff, "")
+}
+
+func postHeaders(r *gin.Engine, remote, xff, realIP string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/guest-registrations", nil)
 	req.RemoteAddr = remote
 	if xff != "" {
 		req.Header.Set("X-Forwarded-For", xff)
+	}
+	if realIP != "" {
+		req.Header.Set("X-Real-IP", realIP)
 	}
 	r.ServeHTTP(w, req)
 	return w
@@ -71,28 +78,39 @@ func TestRateLimit429Envelope(t *testing.T) {
 	}
 }
 
-func TestRateLimitXFFTrustBoundary(t *testing.T) {
+func TestRateLimitClientIPTrustBoundary(t *testing.T) {
 	var logs bytes.Buffer
-	// Untrusted RemoteAddr: a spoofed X-Forwarded-For is ignored, so rotating
-	// it does not escape the RemoteAddr bucket.
+
+	// Untrusted peer: neither X-Forwarded-For nor X-Real-IP is honoured, so
+	// rotating them does not escape the RemoteAddr bucket.
 	r := newLimitedEngine(t, 1, &logs)
-	if w := post(r, "198.51.100.1:1", "192.0.2.1"); w.Code != http.StatusCreated {
+	if w := postHeaders(r, "198.51.100.1:1", "192.0.2.1", "192.0.2.1"); w.Code != http.StatusCreated {
 		t.Fatalf("first: %d", w.Code)
 	}
-	if w := post(r, "198.51.100.1:1", "192.0.2.2"); w.Code != http.StatusTooManyRequests {
-		t.Fatalf("spoofed XFF from untrusted peer must be ignored, got %d", w.Code)
+	if w := postHeaders(r, "198.51.100.1:1", "192.0.2.2", "192.0.2.2"); w.Code != http.StatusTooManyRequests {
+		t.Fatalf("X-Forwarded-For/X-Real-IP from an untrusted peer must be ignored, got %d", w.Code)
 	}
 
-	// Trusted proxy RemoteAddr: X-Forwarded-For is the client key.
+	// Trusted hop (the Next rewrite forwards the client's XFF unchanged): a
+	// spoofed X-Forwarded-For must not change the bucket.
 	r = newLimitedEngine(t, 1, &logs)
-	if w := post(r, "127.0.0.1:1", "192.0.2.1"); w.Code != http.StatusCreated {
+	if w := postHeaders(r, "127.0.0.1:1", "192.0.2.1", "203.0.113.50"); w.Code != http.StatusCreated {
 		t.Fatalf("first: %d", w.Code)
 	}
-	if w := post(r, "127.0.0.1:1", "192.0.2.2"); w.Code != http.StatusCreated {
-		t.Fatalf("distinct clients behind a trusted proxy share a bucket: %d", w.Code)
+	if w := postHeaders(r, "127.0.0.1:1", "192.0.2.2", "203.0.113.50"); w.Code != http.StatusTooManyRequests {
+		t.Fatalf("rotating X-Forwarded-For through a trusted hop escaped the limit: %d", w.Code)
 	}
-	if w := post(r, "127.0.0.1:1", "192.0.2.1"); w.Code != http.StatusTooManyRequests {
-		t.Fatalf("same forwarded client must be limited: %d", w.Code)
+
+	// Trusted hop: X-Real-IP (overwritten by the edge) is the client key.
+	r = newLimitedEngine(t, 1, &logs)
+	if w := postHeaders(r, "127.0.0.1:1", "", "192.0.2.1"); w.Code != http.StatusCreated {
+		t.Fatalf("first: %d", w.Code)
+	}
+	if w := postHeaders(r, "127.0.0.1:1", "", "192.0.2.2"); w.Code != http.StatusCreated {
+		t.Fatalf("distinct X-Real-IP clients behind a trusted hop share a bucket: %d", w.Code)
+	}
+	if w := postHeaders(r, "127.0.0.1:1", "", "192.0.2.1"); w.Code != http.StatusTooManyRequests {
+		t.Fatalf("same X-Real-IP client must be limited: %d", w.Code)
 	}
 }
 
