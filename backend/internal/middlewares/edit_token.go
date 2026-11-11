@@ -14,11 +14,15 @@ type editTokenKey struct{}
 // context. The service rejects a missing or bad token with 401.
 func EditToken(ctx huma.Context, next func(huma.Context)) {
 	ctx.SetHeader("Cache-Control", "no-store")
-	token := ""
+	next(huma.WithValue(ctx, editTokenKey{}, bearerToken(ctx)))
+}
+
+// bearerToken returns the `Authorization: Bearer` credential, or "".
+func bearerToken(ctx huma.Context) string {
 	if h := ctx.Header("Authorization"); len(h) > 7 && strings.EqualFold(h[:7], "bearer ") {
-		token = strings.TrimSpace(h[7:])
+		return strings.TrimSpace(h[7:])
 	}
-	next(huma.WithValue(ctx, editTokenKey{}, token))
+	return ""
 }
 
 // EditTokenFrom returns the bearer token placed by EditToken.

@@ -54,10 +54,16 @@ func run(logger *slog.Logger) error {
 	clock := services.SystemClock{}
 	tokens := services.NewTokenService(clock)
 	idem := services.NewIdempotencyService(db, clock, cfg.IdempotencyHMACKey, logger)
+	verifier, err := services.NewFirebaseVerifier(context.Background(), cfg.FirebaseProjectID)
+	if err != nil {
+		return err
+	}
 	deps := routes.Deps{
 		Facilities:    services.NewFacilityService(db),
 		Registrations: services.NewRegistrationService(db, clock, tokens, idem, cipher),
 		Manage:        services.NewGuestManageService(db, clock, tokens, cipher),
+		AdminAuth:     services.NewAdminAuthService(db, verifier),
+		Admin:         services.NewAdminRegistrationService(db, clock, tokens, cipher),
 	}
 
 	models.InstallErrorConstructors()
@@ -77,7 +83,8 @@ func run(logger *slog.Logger) error {
 	}
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("server starting", "port", cfg.Port, "app_env", cfg.AppEnv, "docs", cfg.DocsEnabled())
+		logger.Info("server starting", "port", cfg.Port, "app_env", cfg.AppEnv, "docs", cfg.DocsEnabled(),
+			"firebase_emulator", cfg.FirebaseEmulatorHost != "")
 		errCh <- srv.ListenAndServe()
 	}()
 

@@ -60,6 +60,9 @@ func Load(getenv func(string) string) (*Config, error) {
 		return nil, errors.New("config: APP_ENV must be one of development|test|production")
 	}
 
+	if c.FirebaseProjectID == "" {
+		return nil, errors.New("config: FIREBASE_PROJECT_ID is required (admin ID token audience)")
+	}
 	if c.FirebaseEmulatorHost != "" {
 		if c.AppEnv == EnvProduction {
 			return nil, errors.New("config: refusing to start: FIREBASE_AUTH_EMULATOR_HOST is set with APP_ENV=production")

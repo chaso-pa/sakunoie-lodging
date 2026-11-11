@@ -110,6 +110,36 @@ Run tests with coverage:
 go test -cover ./...
 ```
 
+### Admin authentication (Firebase)
+
+The admin API (`/api/v1/admin/*`) verifies Firebase ID tokens with
+firebase-admin-go `VerifyIDToken` and authorizes each request against
+`admin_users` + `admin_facility_access` (role `owner` only).
+
+- **No credentials needed.** Verification uses Google's public certs. The app
+  is created with `option.WithoutAuthentication()`, because without it
+  `app.Auth()` fails when no Application Default Credentials exist (Phase 4
+  spike). Production needs only `FIREBASE_PROJECT_ID`.
+- **Auth Emulator (dev/test):** from `frontend/`,
+  `firebase emulators:start --only auth --project demo-sakunoie` (port 9099,
+  needs Java). Set `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`. The server
+  refuses to start with the emulator host set unless the project id starts
+  with `demo-` and `APP_ENV` is not `production`.
+- **Grant access** (compose `lodging_test`/`lodging_e2e` or the shared
+  `lodging-master-dev` only; other targets are refused):
+  ```bash
+  GORM_DATABASE_URL='root:test@tcp(127.0.0.1:33306)/lodging_e2e?parseTime=True' \
+    go run ./cmd/admin-grant --uid <firebase uid> --facility saku-no-ie
+  ```
+
+Full test run (compose DB and emulator up; the only allowed skip is the
+forged-signature test when Google's cert endpoint is unreachable):
+```bash
+APP_ENV=test FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_PROJECT_ID=demo-sakunoie \
+TEST_DATABASE_URL='root:test@tcp(127.0.0.1:33306)/lodging_test?parseTime=True' \
+  go test -p 1 -count=1 -race ./...
+```
+
 ### API Documentation
 
 The OpenAPI specification is available at `api/openapi.yaml`. You can view the documentation using any OpenAPI-compatible tool.

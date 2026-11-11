@@ -17,6 +17,8 @@ var (
 	ErrNotFound            = errors.New("not_found")
 	ErrForbidden           = errors.New("forbidden")
 	ErrPreconditionFailed  = errors.New("precondition_failed")
+	ErrUnauthenticated     = errors.New("unauthenticated")
+	ErrNotAuthorized       = errors.New("not_authorized")
 )
 
 // FieldError locates a problem without echoing the submitted value.

@@ -15,6 +15,7 @@ func baseEnv() map[string]string {
 		"PASSPORT_ENC_KEYS":          "1:" + testKeyB64,
 		"PASSPORT_ENC_ACTIVE_KEY_ID": "1",
 		"IDEMPOTENCY_HMAC_KEY":       testKeyB64,
+		"FIREBASE_PROJECT_ID":        "demo-sakunoie",
 	}
 }
 
@@ -52,8 +53,9 @@ func TestLoadRefusals(t *testing.T) {
 			e["FIREBASE_PROJECT_ID"] = "real-project"
 			e["FIREBASE_AUTH_EMULATOR_HOST"] = "127.0.0.1:9099"
 		},
-		"db_missing":       func(e map[string]string) { delete(e, "GORM_DATABASE_URL") },
-		"passport_missing": func(e map[string]string) { delete(e, "PASSPORT_ENC_KEYS") },
+		"firebase_project_missing": func(e map[string]string) { delete(e, "FIREBASE_PROJECT_ID") },
+		"db_missing":               func(e map[string]string) { delete(e, "GORM_DATABASE_URL") },
+		"passport_missing":         func(e map[string]string) { delete(e, "PASSPORT_ENC_KEYS") },
 		"passport_short": func(e map[string]string) {
 			e["PASSPORT_ENC_KEYS"] = "1:" + base64.StdEncoding.EncodeToString([]byte("short"))
 		},

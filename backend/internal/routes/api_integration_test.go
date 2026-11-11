@@ -70,6 +70,8 @@ func newHarness(t *testing.T) *harness {
 		Facilities:    services.NewFacilityService(db),
 		Registrations: services.NewRegistrationService(db, clock, tokens, idem, cipher),
 		Manage:        services.NewGuestManageService(db, clock, tokens, cipher),
+		AdminAuth:     services.NewAdminAuthService(db, testutil.FakeVerifier{"tok-a": "uid-a", "tok-none": "uid-none"}),
+		Admin:         services.NewAdminRegistrationService(db, clock, tokens, cipher),
 	}, logger)
 	if err != nil {
 		t.Fatal(err)

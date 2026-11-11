@@ -26,6 +26,8 @@ var domainErrors = []struct {
 	{services.ErrNotFound, http.StatusNotFound, "not found"},
 	{services.ErrForbidden, http.StatusForbidden, "forbidden"},
 	{services.ErrPreconditionFailed, http.StatusPreconditionFailed, "resource changed; reload and retry"},
+	{services.ErrUnauthenticated, http.StatusUnauthorized, "sign-in required"},
+	{services.ErrNotAuthorized, http.StatusForbidden, "not authorized for the admin console"},
 }
 
 // toHTTPError maps a service error to the envelope with a stable code.

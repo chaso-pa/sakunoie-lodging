@@ -26,6 +26,7 @@ type env struct {
 	idem   *services.IdempotencyService
 	reg    *services.RegistrationService
 	manage *services.GuestManageService
+	admin  *services.AdminRegistrationService
 }
 
 func setup(t *testing.T) *env {
@@ -42,6 +43,7 @@ func setup(t *testing.T) *env {
 		idem:   idem,
 		reg:    services.NewRegistrationService(db, clock, tokens, idem, cipher),
 		manage: services.NewGuestManageService(db, clock, tokens, cipher),
+		admin:  services.NewAdminRegistrationService(db, clock, tokens, cipher),
 	}
 }
 

@@ -15,6 +15,9 @@ func TestMask(t *testing.T) {
 		{MaskEmail, "test-guest@example.test", "t***@example.test"},
 		{MaskEmail, "invalid", "***"},
 		{MaskEmail, "@example.test", "***"},
+		{MaskAddress, "長野県佐久市テスト1-2-3", "長野県***"},
+		{MaskAddress, " ab ", "ab***"},
+		{MaskAddress, "", ""},
 	}
 	for _, tc := range cases {
 		if got := tc.fn(tc.in); got != tc.want {

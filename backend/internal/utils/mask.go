@@ -44,3 +44,12 @@ func MaskEmail(s string) string {
 	r, _ := utf8.DecodeRuneInString(s)
 	return string(r) + "***" + s[at:]
 }
+
+// MaskAddress keeps the first three characters. "長野県佐久市…" -> "長野県***".
+func MaskAddress(s string) string {
+	r := []rune(strings.TrimSpace(s))
+	if len(r) == 0 {
+		return ""
+	}
+	return string(r[:min(3, len(r))]) + "***"
+}

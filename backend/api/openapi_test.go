@@ -61,6 +61,13 @@ func TestOpenAPIContract(t *testing.T) {
 		"patch /api/v1/guest-registrations/manage",
 		"post /api/v1/guest-registrations/manage/guests",
 		"patch /api/v1/guest-registrations/manage/guests/{guest_public_id}",
+		"get /api/v1/admin/facilities",
+		"get /api/v1/admin/guest-registrations",
+		"get /api/v1/admin/guest-registrations/{id}",
+		"patch /api/v1/admin/guest-registrations/{id}",
+		"post /api/v1/admin/guest-registrations/{id}/verify-identity",
+		"post /api/v1/admin/guest-registrations/{id}/reissue-edit-link",
+		"get /api/v1/admin/guest-registrations/export",
 	} {
 		method, path, _ := strings.Cut(want, " ")
 		ops, ok := paths[path].(map[string]any)
@@ -80,6 +87,18 @@ func TestOpenAPIContract(t *testing.T) {
 				if !strings.Contains(string(js), "#/components/schemas/ErrorEnvelope") {
 					t.Errorf("%s %s %s does not reference ErrorEnvelope", method, path, code)
 				}
+			}
+		}
+	}
+	// Every admin operation requires the adminBearer scheme.
+	for path, item := range paths {
+		if !strings.HasPrefix(path, "/api/v1/admin/") {
+			continue
+		}
+		for method, op := range item.(map[string]any) {
+			js, _ := json.Marshal(op.(map[string]any)["security"])
+			if string(js) != `[{"adminBearer":[]}]` {
+				t.Errorf("%s %s security = %s", method, path, js)
 			}
 		}
 	}
