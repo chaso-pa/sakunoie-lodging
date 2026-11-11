@@ -12,13 +12,15 @@ import (
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/entities"
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/models"
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/utils"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 // GuestManageService implements the token-scoped manage endpoints
-// (contract §4.4, §4.6, §4.7). Every mutation locks the registration row,
-// re-counts guests and bumps updated_at (the ETag).
+// (contract §4.4, §4.6, §4.7). TokenService.Resolve locks the registration
+// row (then the token); every mutation re-counts guests under that lock and
+// bumps updated_at (the ETag).
 type GuestManageService struct {
 	db     *gorm.DB
 	clock  Clock
@@ -51,7 +53,26 @@ func ifMatch(header, etag string) bool {
 // manageTx runs fn in a READ COMMITTED transaction, so reads after the
 // registration lock see every committed row.
 func (s *GuestManageService) manageTx(ctx context.Context, fn func(tx *gorm.DB) error) error {
-	return s.db.WithContext(ctx).Transaction(fn, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	return readCommittedTx(ctx, s.db, fn)
+}
+
+// readCommittedTx runs fn in a READ COMMITTED transaction and retries it
+// once after a deadlock (MariaDB 1213), which rolls the whole transaction
+// back. Lock order is registration row first, then its tokens/guests; the
+// retry is a backstop for orderings this does not cover (e.g. gap locks).
+// fn must not keep state across attempts.
+func readCommittedTx(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB) error) error {
+	opts := &sql.TxOptions{Isolation: sql.LevelReadCommitted}
+	err := db.WithContext(ctx).Transaction(fn, opts)
+	if isDeadlock(err) && ctx.Err() == nil {
+		err = db.WithContext(ctx).Transaction(fn, opts)
+	}
+	return err
+}
+
+func isDeadlock(err error) bool {
+	var me *mysql.MySQLError
+	return errors.As(err, &me) && me.Number == 1213
 }
 
 // lockRegistration re-reads the registration FOR UPDATE.
@@ -167,10 +188,6 @@ func (s *GuestManageService) AddCompanions(ctx context.Context, token string, in
 		if len(errs) > 0 {
 			return newDomainError(ErrValidation, errs...)
 		}
-		reg, err = lockRegistration(tx, reg.ID)
-		if err != nil {
-			return err
-		}
 		count, err := countGuests(tx, reg.ID)
 		if err != nil {
 			return err
@@ -228,10 +245,6 @@ func (s *GuestManageService) PatchRegistration(ctx context.Context, token, ifMat
 		}
 		if len(forbidden) > 0 {
 			return notEditable(forbidden...)
-		}
-		reg, err = lockRegistration(tx, reg.ID)
-		if err != nil {
-			return err
 		}
 		if !ifMatch(ifMatchHeader, ETag(reg)) {
 			return ErrPreconditionFailed
@@ -325,10 +338,6 @@ func (s *GuestManageService) PatchGuest(ctx context.Context, token, ifMatchHeade
 		}
 		if len(forbidden) > 0 {
 			return notEditable(forbidden...)
-		}
-		reg, err = lockRegistration(tx, reg.ID)
-		if err != nil {
-			return err
 		}
 		var g entities.Guest
 		err = tx.Where("public_id = ? AND registration_id = ?", guestPublicID, reg.ID).Take(&g).Error

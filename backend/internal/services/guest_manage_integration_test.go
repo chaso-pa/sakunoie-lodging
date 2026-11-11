@@ -3,6 +3,7 @@ package services_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -195,5 +196,65 @@ func TestIntegrationTokenFieldScope(t *testing.T) {
 	}
 	if strings.Contains(*audits[0].ChangedFieldsJSON, "example.test") {
 		t.Fatal("audit stores values")
+	}
+}
+
+// Lock order (deadlock 1213): a guest PATCH (token → registration before the
+// fix) racing an admin reissue (registration → tokens) must never fail with
+// anything but the expected 401/412 outcomes.
+func TestIntegrationConcurrentManagePatchAndReissue(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	scope := e.adminScope(t)
+	res := e.mustCreate(t, newKey(), sakuBody(2))
+	token := *res.Body.EditToken
+	sum, err := e.manage.AddCompanions(ctx, token, []models.CompanionInput{testutil.Companion("Test Companion")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	companion := sum.Guests[1].PublicID
+
+	for round := range 15 {
+		sum, err := e.manage.Summary(ctx, token)
+		if err != nil {
+			t.Fatalf("round %d summary: %v", round, err)
+		}
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		guestErrs := make([]error, 4)
+		for i := range guestErrs {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				phone := "090-0000-000" + string(rune('0'+i))
+				_, guestErrs[i] = e.manage.PatchGuest(ctx, token, `"`+sum.Version+`"`, companion,
+					&models.PatchManageGuestBody{Phone: &phone})
+			}()
+		}
+		var reissued *models.ReissueEditLinkResult
+		var adminErr error
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			reissued, adminErr = e.admin.ReissueEditLink(ctx, scope, res.Body.PublicID)
+		}()
+		close(start)
+		wg.Wait()
+
+		if adminErr != nil {
+			t.Fatalf("round %d reissue: %v", round, adminErr)
+		}
+		for i, err := range guestErrs {
+			switch {
+			case err == nil,
+				errors.Is(err, services.ErrTokenInvalid),
+				errors.Is(err, services.ErrPreconditionFailed):
+			default:
+				t.Fatalf("round %d guest %d: unexpected error (would be 500): %v", round, i, err)
+			}
+		}
+		token = reissued.EditToken
 	}
 }

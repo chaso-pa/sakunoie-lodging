@@ -116,13 +116,20 @@ func (s *TokenService) Reissue(tx *gorm.DB, f *entities.Facility, reg *entities.
 // its (not soft-deleted) registration. Unknown, malformed, revoked and
 // soft-deleted → ErrTokenInvalid (401). Expired → ErrTokenExpired (410).
 // It records last_used_at.
+//
+// Lock order: the token is first read without a lock to find its
+// registration, then the registration row is locked FOR UPDATE, then the
+// token row; this is the same order as an admin reissue (registration, then
+// UPDATE tokens), so the two cannot deadlock. The token is re-validated
+// after the registration lock, because a reissue may have revoked it in
+// between. The returned registration is locked for the rest of tx.
 func (s *TokenService) Resolve(tx *gorm.DB, raw string) (*entities.RegistrationAccessToken, *entities.GuestRegistration, error) {
 	h, ok := hashToken(raw)
 	if !ok {
 		return nil, nil, ErrTokenInvalid
 	}
 	var tok entities.RegistrationAccessToken
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("token_hash = ?", h).Take(&tok).Error
+	err := tx.Where("token_hash = ?", h).Take(&tok).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil, ErrTokenInvalid
 	}
@@ -132,13 +139,19 @@ func (s *TokenService) Resolve(tx *gorm.DB, raw string) (*entities.RegistrationA
 	if tok.RevokedAt != nil {
 		return nil, nil, ErrTokenInvalid
 	}
-	var reg entities.GuestRegistration
-	err = tx.Scopes(notDeleted).Where("id = ?", tok.RegistrationID).Take(&reg).Error
+	reg, err := lockRegistration(tx, tok.RegistrationID)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", tok.ID).Take(&tok).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil, ErrTokenInvalid
 	}
 	if err != nil {
 		return nil, nil, err
+	}
+	if tok.RevokedAt != nil {
+		return nil, nil, ErrTokenInvalid
 	}
 	now := s.clock.Now()
 	if now.After(tok.ExpiresAt) {
@@ -147,5 +160,5 @@ func (s *TokenService) Resolve(tx *gorm.DB, raw string) (*entities.RegistrationA
 	if err := tx.Model(&tok).Update("last_used_at", now).Error; err != nil {
 		return nil, nil, err
 	}
-	return &tok, &reg, nil
+	return &tok, reg, nil
 }

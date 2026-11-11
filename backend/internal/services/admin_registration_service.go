@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"slices"
 	"strings"
@@ -51,7 +50,7 @@ func checkScope(scope AdminScope) error {
 }
 
 func (s *AdminRegistrationService) tx(ctx context.Context, fn func(tx *gorm.DB) error) error {
-	return s.db.WithContext(ctx).Transaction(fn, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	return readCommittedTx(ctx, s.db, fn)
 }
 
 // Facilities lists the facilities in scope.
