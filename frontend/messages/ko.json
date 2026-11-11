@@ -236,6 +236,7 @@
     "version": "버전: {version}",
     "effectiveDate": "시행일: {date}",
     "galleryLabel": "사진 갤러리",
+    "galleryRoleDescription": "캐러셀",
     "galleryPrev": "이전 사진",
     "galleryNext": "다음 사진",
     "galleryPosition": "{current} / {total}",

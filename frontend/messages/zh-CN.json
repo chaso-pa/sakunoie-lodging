@@ -236,6 +236,7 @@
     "version": "版本：{version}",
     "effectiveDate": "生效日期：{date}",
     "galleryLabel": "照片集",
+    "galleryRoleDescription": "轮播",
     "galleryPrev": "上一张",
     "galleryNext": "下一张",
     "galleryPosition": "{current} / {total}",

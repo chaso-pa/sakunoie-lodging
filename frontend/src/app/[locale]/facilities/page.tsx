@@ -39,6 +39,7 @@ export default async function FacilitiesPage({ params }: PageProps) {
           badge={t('placeholderPhoto')}
           labels={{
             region: t('galleryLabel'),
+            roleDescription: t('galleryRoleDescription'),
             prev: t('galleryPrev'),
             next: t('galleryNext'),
             positionTemplate: t.raw('galleryPosition') as string

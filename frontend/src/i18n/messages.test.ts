@@ -5,12 +5,15 @@ import ja from '../../messages/ja.json';
 import ko from '../../messages/ko.json';
 import zhCN from '../../messages/zh-CN.json';
 
-const flatten = (value: unknown, prefix = ''): Record<string, string> => {
-  if (typeof value === 'string') return { [prefix]: value };
-  return Object.entries(value as Record<string, unknown>).reduce<Record<string, string>>(
-    (acc, [key, child]) => Object.assign(acc, flatten(child, prefix ? `${prefix}.${key}` : key)),
-    {}
-  );
+const flatten = (value: unknown, prefix = '', out: Record<string, string> = {}): Record<string, string> => {
+  if (typeof value === 'string') {
+    out[prefix] = value;
+    return out;
+  }
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    flatten(child, prefix ? `${prefix}.${key}` : key, out);
+  }
+  return out;
 };
 
 const catalogs = { ja, en, 'zh-CN': zhCN, ko } as const;

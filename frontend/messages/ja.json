@@ -236,6 +236,7 @@
     "version": "版: {version}",
     "effectiveDate": "施行日: {date}",
     "galleryLabel": "写真ギャラリー",
+    "galleryRoleDescription": "カルーセル",
     "galleryPrev": "前の写真",
     "galleryNext": "次の写真",
     "galleryPosition": "{current} / {total}",

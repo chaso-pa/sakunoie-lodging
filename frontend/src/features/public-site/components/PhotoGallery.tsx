@@ -11,7 +11,7 @@ import { PlaceholderPhoto } from '@/features/public-site/components/PlaceholderP
 export type GalleryPhoto = { photo: FacilityPhoto; alt: string };
 
 /** Plain strings (server → client props); `positionTemplate` contains `{current}` and `{total}`. */
-type Labels = { region: string; prev: string; next: string; positionTemplate: string };
+type Labels = { region: string; roleDescription: string; prev: string; next: string; positionTemplate: string };
 type Props = { photos: GalleryPhoto[]; badge: string; labels: Labels };
 
 const format = (template: string, current: number, total: number) =>
@@ -78,7 +78,7 @@ export function PhotoGallery({ photos, badge, labels }: Props) {
         </div>
       </div>
 
-      <section className={classes.carousel} aria-roledescription='carousel' aria-label={labels.region}>
+      <section className={classes.carousel} aria-roledescription={labels.roleDescription} aria-label={labels.region}>
         {/* biome-ignore lint/a11y/noNoninteractiveTabindex: the focusable scroll track takes arrow keys */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: same; buttons below are the pointer alternative */}
         <div ref={track} className={classes.track} onScroll={onScroll} onKeyDown={onKeyDown} tabIndex={0}>
