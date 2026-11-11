@@ -1,0 +1,28 @@
+# Throwaway MariaDB for migration authoring, Go integration tests and E2E.
+# Never point anything destructive at the shared dev server; use this instead.
+#   docker compose -f compose.test.yaml up -d --wait
+#   docker compose -f compose.test.yaml down -v
+# The root password is a fixed throwaway value; the data lives in tmpfs.
+name: sakunoie-lodging-test
+
+services:
+  db:
+    image: mariadb:11.1.2
+    ports:
+      - "127.0.0.1:${TEST_DB_PORT:-33306}:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: test
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
+    tmpfs:
+      - /var/lib/mysql
+    volumes:
+      - ./docker/mariadb-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 5s
