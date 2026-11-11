@@ -4,7 +4,7 @@
 // database through GORM, so there is no generator block.
 //
 // Conventions:
-// - Models are PascalCase and map to snake_case tables/columns (@@map/@map).
+// - Models are PascalCase; table and column map attributes give snake_case names.
 // - DATETIME(6) columns hold UTC and are written by the application
 //   (no @default(now()) / @updatedAt).
 // - CHECK constraints cannot be expressed here; they live in the
