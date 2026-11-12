@@ -213,15 +213,17 @@ git-ignored, because they may contain synthetic tokens. CI runs the same steps (
 
 - [ ] **Airbnb URL**: `content/facilities/saku-no-ie.json` `airbnbUrl` is the Airbnb top page. Set the
       listing URL and `airbnbUrlIsPlaceholder: false`.
-- [ ] **Photos**: `public/images/placeholder/*.svg` are generated shapes with a "placeholder image"
-      badge. Replace them with licensed photos and keep `alt` (4 locales), `aspectRatio` and `focalPoint`.
+- [x] **Photos**: `public/images/saku-no-ie/*.jpg` are the owner's Airbnb listing photos (≤ 1600 px,
+      metadata stripped). When replacing one, keep `alt` (4 locales), `aspectRatio` (the file's pixel
+      ratio; a Vitest test checks it) and `focalPoint`.
 - [ ] **Survey questions**: `q01..q10` are placeholders for the existing Google Forms questions.
       Update both `content/surveys/v1.json` and `../backend/internal/services/surveydef/v1.json`.
 - [ ] **Legal texts**: `content/*/terms.md` and `privacy.md` are placeholders (version `2026-11-01`).
       Get legal review, then bump `version` here and in `../backend/internal/services/policy_versions.json`.
 - [ ] **Rates**: `content/*/rates.md` shows "being confirmed". Add the indicative rates. Airbnb stays
       the source of actual prices.
-- [ ] **Capacity**: `max_guests = 4` for `saku-no-ie` (`../backend/prisma/seed.sql`, VERIFY). The seed is
+- [ ] **Capacity**: `max_guests = 4` for `saku-no-ie` (`../backend/prisma/seed.sql`, VERIFY); the Airbnb
+      listing says 2 guests. The seed is
       insert-only, so re-seeding does not change an existing DB. Update `facilities.max_guests`
       there deliberately; there is no admin screen for it yet.
 - [ ] Every other `placeholder: true` / `要差し替え` page (home, facilities, guide, FAQ) and the
