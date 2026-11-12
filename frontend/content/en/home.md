@@ -8,11 +8,11 @@ placeholder: true
 todo: "要差し替え: the hero copy is the DESIGN.md suggestion; confirm it matches the actual service before launch."
 stayType:
   title: You stay in a private room in the host's home
-  body: Saku no Ie is a homestay. You rent a private room in the home where the host lives; it is not an entire-home rental. Some spaces are shared with the host (which ones is still being confirmed — placeholder).
+  body: Saku no Ie is a homestay. You rent a private room in the home where the host lives; it is not an entire-home rental. The LDK (living, dining and kitchen), pantry, laundry room, bathroom, changing room and toilet are partly shared with the host.
 features:
   - icon: door
     title: A calm private room
-    body: Rest in a private guest room. Room details are still being confirmed (placeholder).
+    body: A private 5.2-tatami guest room with a queen bed and a projector. Rest well after your journey.
   - icon: users
     title: Time with your host
     body: The host lives in the home. Feel free to ask about the local area.
@@ -27,4 +27,4 @@ features:
 
 ## Getting here
 
-(Placeholder) Nearest station and parking are still being confirmed. The exact address is shared through Airbnb messages after your booking is confirmed.
+Free parking for 1 car. (Placeholder) The nearest station and other access details are still being confirmed. The exact address is shared through Airbnb messages after your booking is confirmed.

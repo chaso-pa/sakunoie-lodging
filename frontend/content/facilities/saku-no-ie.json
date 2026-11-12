@@ -1,5 +1,5 @@
 {
-  "_todo": "要差し替え: airbnbUrl is flagged as a placeholder (airbnbUrlIsPlaceholder) and amenities list only what the contract confirms (a private room in a host-occupied home with some shared spaces). Photos are the owner's Airbnb listing photos; when replacing one, keep alt (4 locales), aspectRatio (pixel ratio of the file) and focalPoint. Confirm the listing URL and amenities before launch.",
+  "_todo": "要差し替え: airbnbUrl is flagged as a placeholder (airbnbUrlIsPlaceholder); confirm the listing URL before launch. Amenities list only facts the owner has confirmed (pricing page 宿泊料金表 as of 2026-10-01, and the terms): a private room in a host-occupied home, a queen bed, a projector, the LDK/pantry and laundry/bath shared in part with the host, coffee and snacks, free parking for 1 car and free Wi-Fi. Photos are the owner's Airbnb listing photos; when replacing one, keep alt (4 locales), aspectRatio (pixel ratio of the file) and focalPoint.",
   "code": "saku-no-ie",
   "name": {
     "ja": "佐久の家",
@@ -37,13 +37,73 @@
       }
     },
     {
-      "code": "shared_spaces",
-      "icon": "users",
+      "code": "queen_bed",
+      "icon": "bed",
       "label": {
-        "ja": "一部スペースはホストと共用",
-        "en": "Some spaces shared with the host",
-        "zh-CN": "部分空间与房东共用",
-        "ko": "일부 공간은 호스트와 공용"
+        "ja": "クイーンベッド",
+        "en": "Queen bed",
+        "zh-CN": "大号双人床（Queen）",
+        "ko": "퀸 침대"
+      }
+    },
+    {
+      "code": "projector",
+      "icon": "projector",
+      "label": {
+        "ja": "プロジェクター",
+        "en": "Projector",
+        "zh-CN": "投影仪",
+        "ko": "프로젝터"
+      }
+    },
+    {
+      "code": "shared_ldk_pantry",
+      "icon": "sofa",
+      "label": {
+        "ja": "LDK・パントリー（一部ホストと共用）",
+        "en": "Living-dining-kitchen and pantry (partly shared with the host)",
+        "zh-CN": "客厅、餐厅、厨房和食品储藏室（部分与房东共用）",
+        "ko": "LDK·팬트리(일부 호스트와 공용)"
+      }
+    },
+    {
+      "code": "shared_laundry_bath",
+      "icon": "bath",
+      "label": {
+        "ja": "ランドリー・浴室（一部ホストと共用）",
+        "en": "Laundry room and bathroom (partly shared with the host)",
+        "zh-CN": "洗衣房和浴室（部分与房东共用）",
+        "ko": "세탁실·욕실(일부 호스트와 공용)"
+      }
+    },
+    {
+      "code": "coffee_snacks",
+      "icon": "coffee",
+      "label": {
+        "ja": "コーヒー・軽食",
+        "en": "Coffee and snacks",
+        "zh-CN": "咖啡和小零食",
+        "ko": "커피·간식"
+      }
+    },
+    {
+      "code": "free_parking",
+      "icon": "parking",
+      "label": {
+        "ja": "無料駐車場（1台）",
+        "en": "Free parking (1 car)",
+        "zh-CN": "免费停车位（1辆）",
+        "ko": "무료 주차(1대)"
+      }
+    },
+    {
+      "code": "free_wifi",
+      "icon": "wifi",
+      "label": {
+        "ja": "無料 Wi-Fi",
+        "en": "Free Wi-Fi",
+        "zh-CN": "免费 Wi-Fi",
+        "ko": "무료 Wi-Fi"
       }
     }
   ],

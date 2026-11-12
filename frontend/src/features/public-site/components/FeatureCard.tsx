@@ -1,7 +1,31 @@
 import { Card, Text, ThemeIcon, Title } from '@mantine/core';
-import { IconDoor, IconHome, IconMapPin, IconUsers } from '@tabler/icons-react';
+import {
+  IconBath,
+  IconBed,
+  IconCoffee,
+  IconDeviceProjector,
+  IconDoor,
+  IconHome,
+  IconMapPin,
+  IconParking,
+  IconSofa,
+  IconUsers,
+  IconWifi
+} from '@tabler/icons-react';
 
-const icons = { door: IconDoor, users: IconUsers, map: IconMapPin, home: IconHome } as const;
+const icons = {
+  door: IconDoor,
+  users: IconUsers,
+  map: IconMapPin,
+  home: IconHome,
+  bed: IconBed,
+  projector: IconDeviceProjector,
+  sofa: IconSofa,
+  bath: IconBath,
+  coffee: IconCoffee,
+  parking: IconParking,
+  wifi: IconWifi
+} as const;
 export type FeatureIconName = keyof typeof icons;
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

@@ -21,7 +21,7 @@ categories:
   - title: Amenities
     items:
       - q: Is there Wi-Fi?
-        a: Being confirmed (placeholder).
+        a: Yes. Free Wi-Fi is available.
       - q: Is there parking?
-        a: Being confirmed (placeholder).
+        a: Yes. There is free parking for 1 car.
 ---
