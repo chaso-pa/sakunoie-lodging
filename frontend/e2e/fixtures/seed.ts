@@ -64,7 +64,7 @@ export const seedRegistration = async (
       facility_code: FACILITY_CODE,
       check_in_date: stay.checkIn,
       check_out_date: stay.checkOut,
-      planned_guest_count: overrides.plannedGuestCount ?? 3,
+      planned_guest_count: overrides.plannedGuestCount ?? 2,
       booking_source: 'airbnb',
       booking_reference: overrides.bookingReference,
       terms_version: TERMS_VERSION,

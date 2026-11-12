@@ -3,15 +3,18 @@ import { unexpectedErrors, watchPage } from './fixtures/page-watch';
 import { SYNTHETIC_PASSPORT, uniqueRef, uniqueStay } from './fixtures/synthetic';
 
 const CREATE_URL = '**/api/v1/guest-registrations';
-const PARTIAL = 'You are registering 2 of 3 planned guests';
+const PARTIAL = 'You are registering 1 of 2 planned guests';
 
-/** Fills the 4-step wizard (en): planned 3, a non-Japan representative and one companion. Stops on the review step. */
+/**
+ * Fills the 4-step wizard (en): planned 2 (saku-no-ie capacity), a non-Japan representative, and a companion that
+ * is added (copying the representative's address) and removed again, so 1 of 2 guests is registered. Stops on review.
+ */
 const fillWizard = async (page: Page, bookingReference: string) => {
   const stay = uniqueStay();
   await page.goto('/en/stays/saku-no-ie/registration');
   await page.locator('#field-stay-checkInDate').fill(stay.checkIn);
   await page.locator('#field-stay-checkOutDate').fill(stay.checkOut);
-  await page.locator('#field-stay-plannedGuestCount').fill('3');
+  await page.locator('#field-stay-plannedGuestCount').fill('2');
   await page.locator('#field-stay-bookingReference').fill(bookingReference);
   await page.getByRole('button', { name: 'Continue' }).click();
 
@@ -26,12 +29,15 @@ const fillWizard = async (page: Page, bookingReference: string) => {
   await page.locator('#field-representative-passportNumber').fill(SYNTHETIC_PASSPORT);
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  // One companion (planned 3): partial-registration warning.
+  // A companion fills the plan (no warning); removing it leaves 1 of 2: partial-registration warning.
   await page.getByRole('button', { name: 'Add a guest' }).click();
   await page.locator('#field-companions-0-fullName').fill('Test Companion');
   await page.getByRole('button', { name: "Use the representative's address and phone" }).click();
   await expect(page.locator('#field-companions-0-address')).toHaveValue('1 Test Street, Testland');
   await page.locator('section').filter({ hasText: 'Guest 1' }).getByRole('radio', { name: 'Yes' }).check();
+  await expect(page.getByText(/You are registering/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Remove guest 1' }).click();
+  await expect(page.locator('#field-companions-0-fullName')).toHaveCount(0);
   await expect(page.getByText(PARTIAL)).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
 
@@ -43,7 +49,7 @@ const fillWizard = async (page: Page, bookingReference: string) => {
 };
 
 test.describe('registration wizard', () => {
-  test('lost success response: retry reuses the key; completion shows 2/3 and a fragment-only edit link', async ({
+  test('lost success response: retry reuses the key; completion shows 1/2 and a fragment-only edit link', async ({
     page,
     context
   }) => {
@@ -69,7 +75,7 @@ test.describe('registration wizard', () => {
 
     expect(keys.length).toBeGreaterThanOrEqual(2);
     expect(new Set(keys).size).toBe(1);
-    await expect(page.getByText('2/3 registered')).toBeVisible();
+    await expect(page.getByText('1/2 registered')).toBeVisible();
     const editUrl = await page.getByLabel('Edit link (URL)').inputValue();
     expect(editUrl).toMatch(/\/en\/registration\/manage#token=[A-Za-z0-9_-]{20,}$/);
     const token = decodeURIComponent(editUrl.split('#token=')[1]);
@@ -81,7 +87,7 @@ test.describe('registration wizard', () => {
     await manage.goto(editUrl);
     await expect(manage.getByRole('heading', { name: 'Guests', exact: true })).toBeVisible();
     expect(manage.url()).not.toContain('#');
-    await expect(manage.getByText('2/3 registered')).toBeVisible();
+    await expect(manage.getByText('1/2 registered')).toBeVisible();
 
     // The token only ever travels in the fragment / Authorization header, never in a request URL.
     for (const url of [...watch.requestUrls, ...manageRequests]) {

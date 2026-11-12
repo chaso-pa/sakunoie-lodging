@@ -1,19 +1,24 @@
 import { expect, test } from '@playwright/test';
 import { newApiContext } from './fixtures/api-context';
 import { unexpectedErrors, watchPage } from './fixtures/page-watch';
-import { type SeededRegistration, seedRegistration } from './fixtures/seed';
+import { defaultGuests, type SeededRegistration, seedRegistration } from './fixtures/seed';
 import { SYNTHETIC_PASSPORT, uniqueRef } from './fixtures/synthetic';
 
 let seeded: SeededRegistration;
 
 test.beforeAll(async ({ playwright }) => {
   const api = await newApiContext(playwright);
-  seeded = await seedRegistration(api, { bookingReference: uniqueRef('manage'), plannedGuestCount: 3 });
+  // The representative only: 1 of 2 planned (saku-no-ie capacity 2), so a companion can be added.
+  seeded = await seedRegistration(api, {
+    bookingReference: uniqueRef('manage'),
+    plannedGuestCount: 2,
+    guests: defaultGuests().slice(0, 1)
+  });
   await api.dispose();
 });
 
 test.describe('manage (edit link)', () => {
-  test('fragment stripped; correct a companion, add a guest, patch the stay; representative read-only', async ({
+  test('fragment stripped; add a guest, correct the companion, patch the stay; representative read-only', async ({
     page,
     context
   }) => {
@@ -29,10 +34,20 @@ test.describe('manage (edit link)', () => {
 
     await expect(page.getByRole('heading', { name: 'Guests', exact: true })).toBeVisible();
     expect(await page.evaluate(() => location.href)).not.toContain('#');
-    await expect(page.getByText('2/3 registered')).toBeVisible();
+    await expect(page.getByText('1/2 registered')).toBeVisible();
     await expect(page.getByText('Passport (last 4): 1234')).toBeVisible();
     await expect(page.getByText("The representative's details cannot be changed")).toBeVisible();
     await expect(page.getByText('000-0000-1234')).toHaveCount(0); // phone is masked
+    // The representative has no "Correct" button.
+    await expect(page.getByRole('button', { name: 'Correct', exact: true })).toHaveCount(0);
+
+    // Add the second guest: 2/2.
+    await page.locator('#field-guests-0-fullName').fill('Test Companion Two');
+    await page.locator('#field-guests-0-address').fill('2 Test Street, Testland');
+    await page.locator('section').filter({ hasText: 'Add guests' }).getByRole('radio', { name: 'Yes' }).check();
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByText('2/2 registered')).toBeVisible();
+    await expect(page.getByText('All planned guests are registered')).toBeVisible();
 
     // Correct the companion's phone (the only "Correct" button: the representative has none).
     await expect(page.getByRole('button', { name: 'Correct', exact: true })).toHaveCount(1);
@@ -41,14 +56,6 @@ test.describe('manage (edit link)', () => {
     await guestForm.getByLabel('Phone').fill('000-1111-2222');
     await guestForm.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();
-
-    // Add the third guest: 3/3.
-    await page.locator('#field-guests-0-fullName').fill('Test Companion Two');
-    await page.locator('#field-guests-0-address').fill('2 Test Street, Testland');
-    await page.locator('section').filter({ hasText: 'Add guests' }).getByRole('radio', { name: 'Yes' }).check();
-    await page.getByRole('button', { name: 'Add', exact: true }).click();
-    await expect(page.getByText('3/3 registered')).toBeVisible();
-    await expect(page.getByText('All planned guests are registered')).toBeVisible();
 
     // Stay correction (If-Match path).
     await page.getByRole('button', { name: 'Correct stay details' }).click();

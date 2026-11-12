@@ -229,9 +229,7 @@ git-ignored, because they may contain synthetic tokens. CI runs the same steps (
       (https://app.chaso-pa.com/sakunoie-pricing). Airbnb stays the source of the actual price.
 - [x] **Amenities**: `content/facilities/saku-no-ie.json` lists only the confirmed ones (queen bed, projector,
       shared LDK/pantry and laundry/bath, coffee and snacks, free parking for 1 car, free Wi-Fi).
-- [ ] **Capacity**: `max_guests = 4` for `saku-no-ie` (`../backend/prisma/seed.sql`, VERIFY); the Airbnb
-      listing says 2 guests. The seed is
-      insert-only, so re-seeding does not change an existing DB. Update `facilities.max_guests`
-      there deliberately; there is no admin screen for it yet.
+- [x] **Capacity**: `max_guests = 2` for `saku-no-ie` (owner decision). The insert-only seed inserts 2
+      for fresh DBs; existing rows (the shared dev DB) are updated by hand.
 - [ ] Every other `placeholder: true` / `要差し替え` page (home, facilities, guide, FAQ: access, procedures,
       other amenities such as towels and heating).

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { adminLogin, fillLogin, unauthorizedCredentials } from './fixtures/admin-login';
 import { API_URL, newApiContext } from './fixtures/api-context';
 import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
-import { type SeededRegistration, seedRegistration } from './fixtures/seed';
+import { defaultGuests, type SeededRegistration, seedRegistration } from './fixtures/seed';
 import { SYNTHETIC_PASSPORT, uniqueRef, uniqueStay } from './fixtures/synthetic';
 
 let rowA: SeededRegistration;
@@ -12,8 +12,13 @@ let rowB: SeededRegistration;
 test.beforeAll(async ({ playwright }) => {
   const api = await newApiContext(playwright);
   const stay = uniqueStay();
-  // A: non-Japan representative with a synthetic passport; 2 of 3 guests registered.
-  rowA = await seedRegistration(api, { bookingReference: uniqueRef('admin'), ...stay, plannedGuestCount: 3 });
+  // A: non-Japan representative with a synthetic passport; 1 of 2 guests registered (capacity 2).
+  rowA = await seedRegistration(api, {
+    bookingReference: uniqueRef('admin'),
+    ...stay,
+    plannedGuestCount: 2,
+    guests: defaultGuests().slice(0, 1)
+  });
   // B: formula-like booking reference that the CSV must neutralize.
   rowB = await seedRegistration(api, {
     bookingReference: '=SUM(1)',

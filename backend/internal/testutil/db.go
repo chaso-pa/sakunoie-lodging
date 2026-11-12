@@ -19,7 +19,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// Facility codes seeded by ResetData.
+// Facility codes seeded by ResetData. The test copy of saku-no-ie keeps a
+// synthetic capacity of 4 (the real facility has 2, see prisma/seed.sql) so the capacity, concurrency and partial-registration tests
+// have room for 3–4 guests; the 2-guest limit is covered by test-honolulu and
+// by lowering max_guests inside a test.
 const (
 	FacilitySaku     = "saku-no-ie"    // max 4, Asia/Tokyo
 	FacilityHonolulu = "test-honolulu" // max 2, Pacific/Honolulu
