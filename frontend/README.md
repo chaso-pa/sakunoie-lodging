@@ -88,7 +88,7 @@ content/
 
 - Each Markdown file has front matter (`title`, `description`, quoted `version` and `effectiveDate`,
   `placeholder`, `todo`, plus page-specific fields that Zod validates). It is read on the server with
-  `gray-matter` and rendered with `react-markdown`, which allows no raw HTML. If a locale file is
+  `gray-matter` and rendered with `react-markdown` plus `remark-gfm` (tables), which allows no raw HTML. If a locale file is
   missing, the page falls back to `ja` with a warning, but the content test requires all 28 files.
 - While `placeholder: true`, a page shows the "要差し替え / Placeholder content" banner.
 - JSON is imported through the **`@content/*` alias** (`tsconfig.json` and `vitest.config.mts`), e.g.
@@ -218,13 +218,20 @@ git-ignored, because they may contain synthetic tokens. CI runs the same steps (
       ratio; a Vitest test checks it) and `focalPoint`.
 - [ ] **Survey questions**: `q01..q10` are placeholders for the existing Google Forms questions.
       Update both `content/surveys/v1.json` and `../backend/internal/services/surveydef/v1.json`.
-- [ ] **Legal texts**: `content/*/terms.md` and `privacy.md` are placeholders (version `2026-11-01`).
-      Get legal review, then bump `version` here and in `../backend/internal/services/policy_versions.json`.
-- [ ] **Rates**: `content/*/rates.md` shows "being confirmed". Add the indicative rates. Airbnb stays
-      the source of actual prices.
+- [x] **Terms**: `content/*/terms.md` is the owner's 宿泊約款 (version `2026-10-01`; `ja` verbatim from
+      https://app.chaso-pa.com/sakunoie-terms, `en`/`zh-CN`/`ko` translations to review). A new version needs the
+      same `version` here and in `../backend/internal/services/policy_versions.json`.
+- [ ] **Privacy policy**: `content/*/privacy.md` is a **draft** (version `2026-11-12`) that needs legal review.
+      Fill in every 【要記入】 (operator name/representative, contact email/phone, hosting provider, retention
+      periods, passport-copy handling, security details, fees), resolve every 【要法務確認】, then remove
+      `placeholder` and bump `version` here and in `policy_versions.json`.
+- [x] **Rates**: `content/*/rates.md` is the owner's 宿泊料金表 as of 2026-10-01
+      (https://app.chaso-pa.com/sakunoie-pricing). Airbnb stays the source of the actual price.
+- [x] **Amenities**: `content/facilities/saku-no-ie.json` lists only the confirmed ones (queen bed, projector,
+      shared LDK/pantry and laundry/bath, coffee and snacks, free parking for 1 car, free Wi-Fi).
 - [ ] **Capacity**: `max_guests = 4` for `saku-no-ie` (`../backend/prisma/seed.sql`, VERIFY); the Airbnb
       listing says 2 guests. The seed is
       insert-only, so re-seeding does not change an existing DB. Update `facilities.max_guests`
       there deliberately; there is no admin screen for it yet.
-- [ ] Every other `placeholder: true` / `要差し替え` page (home, facilities, guide, FAQ) and the
-      amenity facts (Wi-Fi, parking, laundry, room size).
+- [ ] Every other `placeholder: true` / `要差し替え` page (home, facilities, guide, FAQ: access, procedures,
+      other amenities such as towels and heating).
