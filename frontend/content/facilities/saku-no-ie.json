@@ -1,0 +1,117 @@
+{
+  "_todo": "要差し替え: airbnbUrl is a placeholder (Airbnb top page), photos are generated placeholder graphics, and amenities list only what the contract confirms (a private room in a host-occupied home with some shared spaces). Replace with the real listing URL, licensed photos (keep alt, aspectRatio and focalPoint) and confirmed amenities before launch.",
+  "code": "saku-no-ie",
+  "name": {
+    "ja": "佐久の家",
+    "en": "Saku no Ie",
+    "zh-CN": "佐久之家",
+    "ko": "사쿠노이에"
+  },
+  "area": {
+    "ja": "長野県佐久市",
+    "en": "Saku, Nagano, Japan",
+    "zh-CN": "日本长野县佐久市",
+    "ko": "일본 나가노현 사쿠시"
+  },
+  "airbnbUrl": "https://www.airbnb.com/",
+  "airbnbUrlIsPlaceholder": true,
+  "amenities": [
+    {
+      "code": "private_room",
+      "icon": "door",
+      "label": {
+        "ja": "ゲスト用の個室",
+        "en": "Private guest room",
+        "zh-CN": "独立客房",
+        "ko": "게스트 전용 개인실"
+      }
+    },
+    {
+      "code": "host_on_site",
+      "icon": "home",
+      "label": {
+        "ja": "ホストが同じ家に在住",
+        "en": "Host lives in the home",
+        "zh-CN": "房东住在同一屋内",
+        "ko": "호스트가 같은 집에 거주"
+      }
+    },
+    {
+      "code": "shared_spaces",
+      "icon": "users",
+      "label": {
+        "ja": "一部スペースはホストと共用",
+        "en": "Some spaces shared with the host",
+        "zh-CN": "部分空间与房东共用",
+        "ko": "일부 공간은 호스트와 공용"
+      }
+    }
+  ],
+  "photos": [
+    {
+      "id": "hero",
+      "src": "/images/placeholder/hero.svg",
+      "aspectRatio": "16:9",
+      "focalPoint": "40% 55%",
+      "placeholder": true,
+      "alt": {
+        "ja": "仮画像：客室のイメージ（暖色の壁と窓、ベッドを描いた図形）",
+        "en": "Placeholder image: illustration of a guest room with a warm wall, a window and a bed",
+        "zh-CN": "占位图：客房示意图（暖色墙面、窗户和床的图形）",
+        "ko": "임시 이미지: 따뜻한 색 벽과 창문, 침대를 그린 객실 일러스트"
+      }
+    },
+    {
+      "id": "room",
+      "src": "/images/placeholder/room.svg",
+      "aspectRatio": "4:3",
+      "focalPoint": "50% 60%",
+      "placeholder": true,
+      "alt": {
+        "ja": "仮画像：個室のイメージ（ベッドとランプの図形）",
+        "en": "Placeholder image: illustration of the private room with a bed and a lamp",
+        "zh-CN": "占位图：独立客房示意图（床和台灯的图形）",
+        "ko": "임시 이미지: 침대와 스탠드가 있는 개인 객실 일러스트"
+      }
+    },
+    {
+      "id": "shared",
+      "src": "/images/placeholder/shared-space.svg",
+      "aspectRatio": "4:3",
+      "focalPoint": "50% 50%",
+      "placeholder": true,
+      "alt": {
+        "ja": "仮画像：共用スペースのイメージ（テーブルと椅子の図形）",
+        "en": "Placeholder image: illustration of a shared space with a table and chairs",
+        "zh-CN": "占位图：共用空间示意图（桌椅的图形）",
+        "ko": "임시 이미지: 테이블과 의자가 있는 공용 공간 일러스트"
+      }
+    },
+    {
+      "id": "entrance",
+      "src": "/images/placeholder/entrance.svg",
+      "aspectRatio": "4:3",
+      "focalPoint": "50% 50%",
+      "placeholder": true,
+      "alt": {
+        "ja": "仮画像：玄関のイメージ（扉の図形）",
+        "en": "Placeholder image: illustration of an entrance door",
+        "zh-CN": "占位图：入口示意图（门的图形）",
+        "ko": "임시 이미지: 현관문 일러스트"
+      }
+    },
+    {
+      "id": "neighborhood",
+      "src": "/images/placeholder/neighborhood.svg",
+      "aspectRatio": "4:3",
+      "focalPoint": "50% 50%",
+      "placeholder": true,
+      "alt": {
+        "ja": "仮画像：周辺環境のイメージ（道と木々の図形）",
+        "en": "Placeholder image: illustration of a road with trees",
+        "zh-CN": "占位图：周边环境示意图（道路和树木的图形）",
+        "ko": "임시 이미지: 길과 나무가 있는 주변 환경 일러스트"
+      }
+    }
+  ]
+}

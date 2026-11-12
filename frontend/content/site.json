@@ -1,0 +1,5 @@
+{
+  "_todo": "要差し替え: add further facilities here (and a matching facilities/<code>.json, registered in src/config/site.ts) when they open.",
+  "defaultFacilityCode": "saku-no-ie",
+  "facilities": ["saku-no-ie"]
+}

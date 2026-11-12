@@ -1,13 +1,15 @@
 package handlers
 
 import (
-	"context"
-	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/chaso-pa/sakunoie-lodging/backend/internal/database"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
+// HealthCheck is the liveness probe.
 func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "ok",
@@ -15,15 +17,13 @@ func HealthCheck(c *gin.Context) {
 	})
 }
 
-func HelloWorld(c *gin.Context) {
-	name := c.DefaultQuery("name", "World")
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Hello " + name + "!",
-	})
-}
-
-func HumaHelloWorld(c context.Context, input *GreetingInput) (*GreetingOutput, error) {
-	resp := &GreetingOutput{}
-	resp.Body.Message = fmt.Sprintf("Hello, %s!", input.Name)
-	return resp, nil
+// ReadyCheck is the readiness probe: DB ping with a 1 s timeout.
+func ReadyCheck(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db == nil || database.Ping(c.Request.Context(), db, time.Second) != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "ready"})
+	}
 }

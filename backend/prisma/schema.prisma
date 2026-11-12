@@ -1,13 +1,215 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client-js"
-}
+// Database contract for Saku no Ie (mirrors docs/schema.sql).
+//
+// Prisma is used only for schema and migrations. The Go API accesses the
+// database through GORM, so there is no generator block.
+//
+// Conventions:
+// - Models are PascalCase; table and column map attributes give snake_case names.
+// - DATETIME(6) columns hold UTC and are written by the application
+//   (no @default(now()) / @updatedAt).
+// - CHECK constraints cannot be expressed here; they live in the
+//   `add_check_constraints` migration.
+// - JSON columns are `String @db.LongText` plus a json_valid() CHECK in that
+//   migration. That is what MariaDB's JSON alias is, and Prisma's `Json` type
+//   reports false drift on MariaDB in `migrate diff --from-migrations`.
+//   The Go API validates and (un)marshals the JSON itself.
+// - public_id columns are utf8mb4 CHAR(36); the ascii_bin collation from
+//   docs/schema.sql is intentionally dropped (see CLAUDE.md §13).
+// - Foreign keys use RESTRICT on delete and update, like docs/schema.sql.
 
 datasource db {
   provider = "mysql"
+}
+
+model Facility {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  code      String   @unique(map: "code") @db.VarChar(64)
+  name      String   @db.VarChar(255)
+  timezone  String   @default("Asia/Tokyo") @db.VarChar(64)
+  maxGuests Int      @map("max_guests") @db.UnsignedInt
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @map("created_at") @db.DateTime(6)
+  updatedAt DateTime @map("updated_at") @db.DateTime(6)
+
+  adminAccess     AdminFacilityAccess[]
+  registrations   GuestRegistration[]
+  auditLogs       AuditLog[]
+  surveyResponses SurveyResponse[]
+
+  @@map("facilities")
+}
+
+model AdminUser {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  firebaseUid String   @unique(map: "firebase_uid") @map("firebase_uid") @db.VarChar(128)
+  createdAt   DateTime @map("created_at") @db.DateTime(6)
+  updatedAt   DateTime @map("updated_at") @db.DateTime(6)
+
+  facilityAccess        AdminFacilityAccess[]
+  verifiedRegistrations GuestRegistration[]
+  auditLogs             AuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminFacilityAccess {
+  adminUserId BigInt   @map("admin_user_id") @db.UnsignedBigInt
+  facilityId  BigInt   @map("facility_id") @db.UnsignedBigInt
+  role        String   @db.VarChar(32)
+  createdAt   DateTime @map("created_at") @db.DateTime(6)
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_afa_admin")
+  facility  Facility  @relation(fields: [facilityId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_afa_facility")
+
+  @@id([adminUserId, facilityId])
+  @@index([facilityId], map: "fk_afa_facility")
+  @@map("admin_facility_access")
+}
+
+model GuestRegistration {
+  id                   BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  publicId             String    @unique(map: "public_id") @map("public_id") @db.Char(36)
+  facilityId           BigInt    @map("facility_id") @db.UnsignedBigInt
+  checkInDate          DateTime  @map("check_in_date") @db.Date
+  checkOutDate         DateTime  @map("check_out_date") @db.Date
+  estimatedArrivalTime DateTime? @map("estimated_arrival_time") @db.Time(0)
+  plannedGuestCount    Int       @map("planned_guest_count") @db.UnsignedInt
+  capacitySnapshot     Int       @map("capacity_snapshot") @db.UnsignedInt
+  bookingSource        String?   @map("booking_source") @db.VarChar(50)
+  bookingReference     String?   @map("booking_reference") @db.VarChar(255)
+  termsVersion         String    @map("terms_version") @db.VarChar(64)
+  privacyVersion       String    @map("privacy_version") @db.VarChar(64)
+  termsAcceptedAt      DateTime  @map("terms_accepted_at") @db.DateTime(6)
+  privacyAcceptedAt    DateTime  @map("privacy_accepted_at") @db.DateTime(6)
+  submittedAt          DateTime  @map("submitted_at") @db.DateTime(6)
+  identityVerifiedAt   DateTime? @map("identity_verified_at") @db.DateTime(6)
+  identityVerifiedBy   BigInt?   @map("identity_verified_by") @db.UnsignedBigInt
+  createdAt            DateTime  @map("created_at") @db.DateTime(6)
+  updatedAt            DateTime  @map("updated_at") @db.DateTime(6)
+  deletedAt            DateTime? @map("deleted_at") @db.DateTime(6)
+
+  facility   Facility   @relation(fields: [facilityId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_registration_facility")
+  verifiedBy AdminUser? @relation(fields: [identityVerifiedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_registration_verifier")
+
+  guests       Guest[]
+  accessTokens RegistrationAccessToken[]
+  auditLogs    AuditLog[]
+  importRows   ImportRow[]
+
+  @@index([facilityId, checkInDate, checkOutDate], map: "idx_registration_facility_dates")
+  @@index([facilityId, createdAt], map: "idx_registration_facility_created")
+  @@index([identityVerifiedBy], map: "fk_registration_verifier")
+  @@map("guest_registrations")
+}
+
+model Guest {
+  id                       BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  publicId                 String   @unique(map: "public_id") @map("public_id") @db.Char(36)
+  registrationId           BigInt   @map("registration_id") @db.UnsignedBigInt
+  isRepresentative         Boolean  @default(false) @map("is_representative")
+  fullName                 String   @map("full_name") @db.VarChar(255)
+  nameKana                 String?  @map("name_kana") @db.VarChar(255)
+  address                  String   @db.Text
+  phone                    String?  @db.VarChar(50)
+  email                    String?  @db.VarChar(255)
+  hasJapanAddress          Boolean  @map("has_japan_address")
+  nationality              String?  @db.VarChar(100)
+  passportNumberCiphertext Bytes?   @map("passport_number_ciphertext") @db.VarBinary(1024)
+  passportNumberLast4      String?  @map("passport_number_last4") @db.VarChar(4)
+  createdAt                DateTime @map("created_at") @db.DateTime(6)
+  updatedAt                DateTime @map("updated_at") @db.DateTime(6)
+
+  registration GuestRegistration @relation(fields: [registrationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_guest_registration")
+
+  @@index([registrationId], map: "idx_guest_registration")
+  @@map("guests")
+}
+
+model RegistrationAccessToken {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  registrationId BigInt    @map("registration_id") @db.UnsignedBigInt
+  tokenHash      Bytes     @unique(map: "token_hash") @map("token_hash") @db.Binary(32)
+  expiresAt      DateTime  @map("expires_at") @db.DateTime(6)
+  revokedAt      DateTime? @map("revoked_at") @db.DateTime(6)
+  lastUsedAt     DateTime? @map("last_used_at") @db.DateTime(6)
+  createdAt      DateTime  @map("created_at") @db.DateTime(6)
+
+  registration GuestRegistration @relation(fields: [registrationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_token_registration")
+
+  @@index([registrationId], map: "idx_token_registration")
+  @@map("registration_access_tokens")
+}
+
+model AuditLog {
+  id                BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  facilityId        BigInt   @map("facility_id") @db.UnsignedBigInt
+  registrationId    BigInt?  @map("registration_id") @db.UnsignedBigInt
+  actorType         String   @map("actor_type") @db.VarChar(32)
+  actorAdminUserId  BigInt?  @map("actor_admin_user_id") @db.UnsignedBigInt
+  action            String   @db.VarChar(100)
+  changedFieldsJson String?  @map("changed_fields_json") @db.LongText
+  createdAt         DateTime @map("created_at") @db.DateTime(6)
+
+  facility     Facility           @relation(fields: [facilityId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_audit_facility")
+  registration GuestRegistration? @relation(fields: [registrationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_audit_registration")
+  actorAdmin   AdminUser?         @relation(fields: [actorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_audit_admin")
+
+  @@index([facilityId, createdAt], map: "idx_audit_facility_time")
+  @@index([registrationId], map: "fk_audit_registration")
+  @@index([actorAdminUserId], map: "fk_audit_admin")
+  @@map("audit_logs")
+}
+
+model SurveyResponse {
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  facilityId    BigInt   @map("facility_id") @db.UnsignedBigInt
+  surveyVersion String   @map("survey_version") @db.VarChar(64)
+  answersJson   String   @map("answers_json") @db.LongText
+  submittedAt   DateTime @map("submitted_at") @db.DateTime(6)
+  createdAt     DateTime @map("created_at") @db.DateTime(6)
+
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_survey_facility")
+
+  @@index([facilityId, submittedAt], map: "idx_survey_facility_time")
+  @@map("survey_responses")
+}
+
+model ApiIdempotencyKey {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  keyHash        Bytes    @unique(map: "key_hash") @map("key_hash") @db.Binary(32)
+  requestHash    Bytes    @map("request_hash") @db.Binary(32)
+  responseJson   String?  @map("response_json") @db.LongText
+  responseStatus Int?     @map("response_status") @db.UnsignedSmallInt
+  createdAt      DateTime @map("created_at") @db.DateTime(6)
+  expiresAt      DateTime @map("expires_at") @db.DateTime(6)
+
+  @@map("api_idempotency_keys")
+}
+
+model ImportBatch {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  sourceType     String   @map("source_type") @db.VarChar(64)
+  sourceChecksum String   @map("source_checksum") @db.Char(64)
+  importedAt     DateTime @map("imported_at") @db.DateTime(6)
+
+  rows ImportRow[]
+
+  @@unique([sourceType, sourceChecksum], map: "uq_import_batch")
+  @@map("import_batches")
+}
+
+model ImportRow {
+  id              BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  batchId         BigInt  @map("batch_id") @db.UnsignedBigInt
+  sourceRowNumber Int     @map("source_row_number") @db.UnsignedInt
+  outcome         String  @db.VarChar(32)
+  registrationId  BigInt? @map("registration_id") @db.UnsignedBigInt
+  errorCode       String? @map("error_code") @db.VarChar(100)
+
+  batch        ImportBatch        @relation(fields: [batchId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_import_batch")
+  registration GuestRegistration? @relation(fields: [registrationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_import_registration")
+
+  @@unique([batchId, sourceRowNumber], map: "uq_import_row")
+  @@index([registrationId], map: "fk_import_registration")
+  @@map("import_rows")
 }
