@@ -4,7 +4,13 @@ import { API_URL } from './fixtures/api-context';
 import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 
 /** Waits until React has hydrated the language switcher. */
-const waitForHydratedSwitcher = (page: Page) => waitForHydrated(page, 'header select');
+const waitForHydratedSwitcher = (page: Page) => waitForHydrated(page, 'header [data-locale-switcher]');
+
+/** Opens the language menu and picks a language by its native name. */
+const switchLocale = async (page: Page, label: RegExp, language: string) => {
+  await page.locator('header').getByRole('button', { name: label }).click();
+  await page.getByRole('menuitem', { name: language }).click();
+};
 
 const LOCALES = ['ja', 'en', 'zh-CN', 'ko'] as const;
 const PAGES = ['', '/facilities', '/guide', '/faq', '/rates', '/terms', '/privacy', '/survey'] as const;
@@ -46,7 +52,7 @@ test.describe('public site', () => {
 
     // Hydration under the nonce CSP: React attaches to the server HTML and a client-side control works.
     await waitForHydratedSwitcher(page);
-    await page.getByLabel('言語').selectOption('en');
+    await switchLocale(page, /^言語/, 'English');
     await page.waitForURL('**/en', { waitUntil: 'commit' });
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     // The /en page has hydrated (its scripts ran); violations are reported asynchronously.
@@ -58,7 +64,7 @@ test.describe('public site', () => {
   test('locale switcher keeps the path', async ({ page }) => {
     await page.goto('/en/faq');
     await waitForHydratedSwitcher(page);
-    await page.getByLabel('Language').selectOption('ko');
+    await switchLocale(page, /^Language/, '한국어');
     await page.waitForURL('**/ko/faq', { waitUntil: 'commit' });
     await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
     await expect(page.locator('h1')).toBeVisible();
