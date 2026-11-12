@@ -84,10 +84,15 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx biome check
       - run: npx vitest run
+      # Production shape: the browser calls the API origin directly (no /api rewrite is built).
       - run: npx next build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://api.sakunoie.example
 
   # Playwright against compose MariaDB (lodging_e2e) + Firebase Auth Emulator + API :8180 +
-  # Next standalone :3100, all started by frontend/scripts/e2e-stack.sh.
+  # Next standalone :3100, all started by frontend/scripts/e2e-stack.sh. Cross-origin like
+  # production: Next is built with NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8180 and the API runs
+  # with CORS_ALLOWED_ORIGINS=http://127.0.0.1:3100 (both set by the script).
   e2e:
     runs-on: ubuntu-latest
     defaults:
@@ -121,6 +126,9 @@ jobs:
       - name: Start the E2E stack
         run: bash scripts/e2e-stack.sh start
       - run: npx playwright test
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3100
+          E2E_API_URL: http://127.0.0.1:8180
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

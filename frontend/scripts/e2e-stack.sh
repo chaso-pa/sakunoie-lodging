@@ -2,6 +2,9 @@
 # Local E2E stack for Playwright (plan Phase 6).
 #
 #   bash scripts/e2e-stack.sh start    # compose + reset lodging_e2e, Auth Emulator, API, Next build + standalone
+#
+# Cross-origin like production: Next on :3100 is built with NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8180,
+# so the browser calls the API directly and the API answers CORS for http://127.0.0.1:3100 only.
 #   bash scripts/e2e-stack.sh stop     # stop only the processes this script started; compose down -v
 #   bash scripts/e2e-stack.sh status
 #
@@ -13,7 +16,8 @@
 #   GORM_DATABASE_URL_E2E  API DSN (default: compose lodging_e2e; must be compose lodging_e2e)
 #   E2E_STATE_DIR          logs, PIDs and the API binary (default: frontend/.e2e-stack)
 #   E2E_PID_LOG            extra file that every started PID is appended to
-#   E2E_SKIP_BUILD=1       reuse the existing .next build (it must have been built with the same env)
+#   E2E_SKIP_BUILD=1       reuse the existing .next build (it must have been built with the same env,
+#                          including NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8180)
 #
 # No password is passed on a command line: secrets are generated into exported variables.
 set -euo pipefail
@@ -29,6 +33,8 @@ API_PORT=8180
 EMU_PORT=9099
 DB_PORT="${TEST_DB_PORT:-33306}"
 EMU_HOST="127.0.0.1:$EMU_PORT"
+WEB_ORIGIN="http://127.0.0.1:$WEB_PORT"
+API_ORIGIN="http://127.0.0.1:$API_PORT"
 PROJECT_ID=demo-sakunoie
 E2E_DSN_DEFAULT="root:test@tcp(127.0.0.1:${DB_PORT})/lodging_e2e?charset=utf8mb4&parseTime=True"
 
@@ -80,7 +86,7 @@ stop_stack() {
         done
         kill -KILL -- "-$pid" 2>/dev/null || true
         log "stopped $name (pid $pid)"
-        [[ -n "${E2E_PID_LOG:-}" ]] && echo "e2e-stack stopped $name pid=$pid $(date -Iseconds)" >>"$E2E_PID_LOG"
+        if [[ -n "${E2E_PID_LOG:-}" ]]; then echo "e2e-stack stopped $name pid=$pid $(date -Iseconds)" >>"$E2E_PID_LOG"; fi
       fi
     done
     rm -f "$PIDS"
@@ -88,7 +94,7 @@ stop_stack() {
   if [[ -f "$STATE/compose-up" ]]; then
     docker compose -f "$BACKEND/compose.test.yaml" down -v
     rm -f "$STATE/compose-up"
-    [[ -n "${E2E_PID_LOG:-}" ]] && echo "e2e-stack compose down -v $(date -Iseconds)" >>"$E2E_PID_LOG"
+    if [[ -n "${E2E_PID_LOG:-}" ]]; then echo "e2e-stack compose down -v $(date -Iseconds)" >>"$E2E_PID_LOG"; fi
   fi
   log "stopped"
 }
@@ -110,7 +116,7 @@ start_stack() {
     die "GORM_DATABASE_URL_E2E must point at compose 127.0.0.1:${DB_PORT}/lodging_e2e"
   docker compose -f "$BACKEND/compose.test.yaml" up -d --wait
   touch "$STATE/compose-up"
-  [[ -n "${E2E_PID_LOG:-}" ]] && echo "e2e-stack compose up $(date -Iseconds)" >>"$E2E_PID_LOG"
+  if [[ -n "${E2E_PID_LOG:-}" ]]; then echo "e2e-stack compose up $(date -Iseconds)" >>"$E2E_PID_LOG"; fi
   bash "$BACKEND/scripts/db-reset-test.sh" lodging_e2e
 
   # 2. Firebase Auth Emulator (Java). The demo- project needs no credentials.
@@ -127,13 +133,17 @@ start_stack() {
     export PASSPORT_ENC_KEYS IDEMPOTENCY_HMAC_KEY PASSPORT_ENC_ACTIVE_KEY_ID=1
     export FIREBASE_PROJECT_ID="$PROJECT_ID" FIREBASE_AUTH_EMULATOR_HOST="$EMU_HOST"
     export RATE_LIMIT_CREATE_PER_MIN=1000 RATE_LIMIT_MANAGE_PER_MIN=1000 RATE_LIMIT_SURVEY_PER_MIN=1000
+    # The browser on :3100 calls :8180 directly. No proxy sets a client-IP header here (default X-Real-IP).
+    export CORS_ALLOWED_ORIGINS="$WEB_ORIGIN" CLIENT_IP_HEADER=X-Real-IP BIND_ADDR=127.0.0.1
     export SURVEY_MIN_RESPONSES=1
     spawn api "$STATE/api.log" "$STATE/sakunoie-server"
   )
   wait_http "http://127.0.0.1:$API_PORT/ready" "API" 60
 
-  # 4. Next production build (rewrite target and emulator host are baked in), then standalone on :3100.
-  export API_PROXY_TARGET="http://127.0.0.1:$API_PORT"
+  # 4. Next production build (API origin and emulator host are inlined), then standalone on :3100.
+  # With NEXT_PUBLIC_API_BASE_URL set, the /api rewrite is not built, so nothing goes through Next.
+  export NEXT_PUBLIC_API_BASE_URL="$API_ORIGIN"
+  unset API_PROXY_TARGET
   export NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST="$EMU_HOST"
   export NEXT_PUBLIC_FIREBASE_PROJECT_ID="$PROJECT_ID"
   export NEXT_TELEMETRY_DISABLED=1

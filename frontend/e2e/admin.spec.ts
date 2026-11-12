@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { adminLogin, fillLogin, unauthorizedCredentials } from './fixtures/admin-login';
-import { newApiContext } from './fixtures/api-context';
+import { API_URL, newApiContext } from './fixtures/api-context';
 import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 import { type SeededRegistration, seedRegistration } from './fixtures/seed';
 import { SYNTHETIC_PASSPORT, uniqueRef, uniqueStay } from './fixtures/synthetic';
@@ -9,8 +9,8 @@ import { SYNTHETIC_PASSPORT, uniqueRef, uniqueStay } from './fixtures/synthetic'
 let rowA: SeededRegistration;
 let rowB: SeededRegistration;
 
-test.beforeAll(async ({ playwright }, testInfo) => {
-  const api = await newApiContext(playwright, testInfo);
+test.beforeAll(async ({ playwright }) => {
+  const api = await newApiContext(playwright);
   const stay = uniqueStay();
   // A: non-Japan representative with a synthetic passport; 2 of 3 guests registered.
   rowA = await seedRegistration(api, { bookingReference: uniqueRef('admin'), ...stay, plannedGuestCount: 3 });
@@ -38,7 +38,7 @@ test.describe('admin console', () => {
     await page.waitForURL('**/admin/login', { waitUntil: 'commit' });
     const response = await page.goto('/admin/login');
     const csp = response?.headers()['content-security-policy'] ?? '';
-    expect(csp).toMatch(/connect-src 'self' http:\/\/127\.0\.0\.1:9099(;|$)/);
+    expect(csp).toContain(`connect-src 'self' ${API_URL} http://127.0.0.1:9099;`);
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
     expect(response?.headers()['referrer-policy']).toBe('no-referrer');
@@ -102,10 +102,10 @@ test.describe('admin console', () => {
     const newUrl = await linkInput.inputValue();
     expect(newUrl).toMatch(/\/ja\/registration\/manage#token=/);
     const newToken = decodeURIComponent(newUrl.split('#token=')[1]);
-    const oldRes = await page.request.get('/api/v1/guest-registrations/manage', {
+    const oldRes = await page.request.get(`${API_URL}/api/v1/guest-registrations/manage`, {
       headers: { Authorization: `Bearer ${rowA.editToken}` }
     });
-    const newRes = await page.request.get('/api/v1/guest-registrations/manage', {
+    const newRes = await page.request.get(`${API_URL}/api/v1/guest-registrations/manage`, {
       headers: { Authorization: `Bearer ${newToken}` }
     });
     expect(oldRes.status()).toBe(401);

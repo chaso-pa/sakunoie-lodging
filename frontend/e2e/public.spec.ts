@@ -1,5 +1,6 @@
 import facility from '@content/facilities/saku-no-ie.json';
 import { expect, type Page, test } from '@playwright/test';
+import { API_URL } from './fixtures/api-context';
 import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 
 /** Waits until React has hydrated the language switcher. */
@@ -37,7 +38,8 @@ test.describe('public site', () => {
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("base-uri 'none'");
-    expect(csp).toMatch(/connect-src 'self'(;|$)/);
+    // The browser calls the API origin directly; Firebase origins appear on admin pages only.
+    expect(csp).toContain(`connect-src 'self' ${API_URL};`);
     expect(csp).toMatch(/script-src 'self' 'nonce-[^']+' 'strict-dynamic'(;|$)/);
     expect(csp).not.toMatch(/googleapis|127\.0\.0\.1:9099|unsafe-eval/);
     expect(response?.headers()['x-content-type-options']).toBe('nosniff');

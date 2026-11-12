@@ -6,8 +6,8 @@ import { seedSurvey } from './fixtures/seed';
 
 const FREE_TEXT = 'Synthetic E2E survey comment';
 
-test.beforeAll(async ({ playwright }, testInfo) => {
-  const api = await newApiContext(playwright, testInfo);
+test.beforeAll(async ({ playwright }) => {
+  const api = await newApiContext(playwright);
   await seedSurvey(api, 4);
   await api.dispose();
 });

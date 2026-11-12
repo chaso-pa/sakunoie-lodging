@@ -49,7 +49,7 @@ export const defaultGuests = (): Guest[] => [
   }
 ];
 
-/** Creates a registration through the public API (via the Next rewrite) and returns its one-time edit token. */
+/** Creates a registration through the public API (on the API origin) and returns its one-time edit token. */
 export const seedRegistration = async (
   request: APIRequestContext,
   overrides: SeedOverrides

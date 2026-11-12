@@ -6,8 +6,8 @@ import { SYNTHETIC_PASSPORT, uniqueRef } from './fixtures/synthetic';
 
 let seeded: SeededRegistration;
 
-test.beforeAll(async ({ playwright }, testInfo) => {
-  const api = await newApiContext(playwright, testInfo);
+test.beforeAll(async ({ playwright }) => {
+  const api = await newApiContext(playwright);
   seeded = await seedRegistration(api, { bookingReference: uniqueRef('manage'), plannedGuestCount: 3 });
   await api.dispose();
 });

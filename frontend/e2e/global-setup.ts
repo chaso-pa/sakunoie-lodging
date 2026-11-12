@@ -5,6 +5,7 @@ import type { FullConfig } from '@playwright/test';
 
 // Runs once per `playwright test` (also for a single spec). Expects `scripts/e2e-stack.sh start`.
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3100';
+const API_URL = process.env.E2E_API_URL ?? 'http://127.0.0.1:8180';
 const EMULATOR = `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'}`;
 const PROJECT_ID = 'demo-sakunoie';
 const E2E_DSN = process.env.GORM_DATABASE_URL_E2E ?? 'root:test@tcp(127.0.0.1:33306)/lodging_e2e?parseTime=True';
@@ -43,7 +44,7 @@ export default async function globalSetup(config: FullConfig) {
   const backendDir = path.resolve(frontendDir, '../backend');
   assertComposeE2E(E2E_DSN);
   await ensureUp(`${BASE_URL}/ja`, 'Next (web)');
-  await ensureUp(`${BASE_URL}/api/v1/facilities/saku-no-ie/public`, 'API through the Next rewrite');
+  await ensureUp(`${API_URL}/api/v1/facilities/saku-no-ie/public`, 'API (cross-origin)');
   await ensureUp(`${EMULATOR}/`, 'Auth Emulator');
 
   // Fresh emulator users each run; the password is random and only kept in env for the workers.
