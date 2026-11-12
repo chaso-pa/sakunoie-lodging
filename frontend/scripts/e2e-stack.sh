@@ -127,7 +127,8 @@ start_stack() {
   (cd "$BACKEND" && go build -o "$STATE/sakunoie-server" ./cmd/server)
   (
     cd "$BACKEND"
-    export APP_ENV=test PORT="$API_PORT" GORM_DATABASE_URL="$e2e_dsn"
+    # Never read backend/.env (shared dev values) in an E2E run.
+    export SKIP_DOTENV=1 APP_ENV=test PORT="$API_PORT" GORM_DATABASE_URL="$e2e_dsn"
     PASSPORT_ENC_KEYS="1:$(openssl rand -base64 32)"
     IDEMPOTENCY_HMAC_KEY="$(openssl rand -base64 32)"
     export PASSPORT_ENC_KEYS IDEMPOTENCY_HMAC_KEY PASSPORT_ENC_ACTIVE_KEY_ID=1

@@ -1,6 +1,8 @@
 // Command admin-grant gives a Firebase Auth uid the owner role on one
 // facility (admin_users + admin_facility_access). The MVP has no other role.
-// Run from backend/ with the target DSN in GORM_DATABASE_URL:
+// Run from backend/ with the target DSN in GORM_DATABASE_URL. backend/.env is
+// loaded first if present (already-set variables win; SKIP_DOTENV=1 disables
+// it), so with no override the target is the .env DSN:
 //
 //	GORM_DATABASE_URL='root:test@tcp(127.0.0.1:33306)/lodging_e2e?parseTime=True' \
 //	  go run ./cmd/admin-grant --uid <firebase uid> --facility saku-no-ie
@@ -21,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chaso-pa/sakunoie-lodging/backend/internal/config"
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/database"
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/entities"
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/services"
@@ -38,6 +41,10 @@ func main() {
 	uid := flag.String("uid", "", "Firebase Auth uid (localId)")
 	facility := flag.String("facility", "", "facility code, e.g. saku-no-ie")
 	flag.Parse()
+	if _, err := config.LoadDotEnv(".env"); err != nil {
+		fmt.Fprintln(os.Stderr, "admin-grant:", err)
+		os.Exit(1)
+	}
 	if err := run(os.Getenv("GORM_DATABASE_URL"), strings.TrimSpace(*uid), strings.TrimSpace(*facility), os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "admin-grant:", err)
 		os.Exit(1)

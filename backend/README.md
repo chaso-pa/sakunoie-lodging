@@ -38,13 +38,15 @@ Scripts pass DB passwords through `--defaults-extra-file` or the environment, ne
 
 ## Environment
 
-**`cmd/server` does not load `.env`.** It reads only the process environment, so export the
-variables or set them inline. `.env` is read only by Prisma (`prisma.config.ts` uses dotenv) and by
-`scripts/db-deploy-dev.sh`. To run the server with your `.env`:
+**`cmd/server` and `cmd/admin-grant` load `./.env` at startup** (godotenv), so run them from
+`backend/`. Variables that are already set always win: an inline value, an `export`, systemd
+`EnvironmentFile` or Docker env overrides the file. A missing `.env` is fine (production can
+inject the environment instead). `SKIP_DOTENV=1` turns loading off; the E2E stack sets it so the
+shared-dev values never reach a test run. Values are never logged; the server logs one line when
+the file was loaded. Prisma (`prisma.config.ts`) and `scripts/db-deploy-dev.sh` read `.env` too.
 
 ```bash
-set -a; . ./.env; set +a      # exports into this shell only; nothing goes on a command line
-go run ./cmd/server
+go run ./cmd/server           # picks up ./.env
 ```
 
 `.env.example` lists every variable with placeholders. `.env.test.example` lists the committed
@@ -176,8 +178,7 @@ contains the DSN.
 ## Running
 
 ```bash
-set -a; . ./.env; set +a
-go run ./cmd/server        # :8080; GET /health (liveness), GET /ready (DB ping)
+go run ./cmd/server        # loads ./.env; :8080; GET /health (liveness), GET /ready (DB ping)
 ```
 
 For the admin endpoints in dev, start the Auth Emulator from `../frontend`:
@@ -249,9 +250,8 @@ GORM_DATABASE_URL='root:test@tcp(127.0.0.1:33306)/lodging_e2e?parseTime=True' \
      -H 'content-type: application/json' --data @signup.json   # {"email":"…","password":"…"} in a file, not argv
    ```
    The response's `localId` is the uid. Delete `signup.json` afterwards.
-3. Grant, with the `.env` DSN exported rather than typed:
+3. Grant. The DSN comes from `GORM_DATABASE_URL` in `./.env`, so it is never typed:
    ```bash
-   set -a; . ./.env; set +a
    go run ./cmd/admin-grant --uid <localId> --facility saku-no-ie
    ```
    It refuses every target except compose `lodging_test`/`lodging_e2e` and

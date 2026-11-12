@@ -29,6 +29,13 @@ func main() {
 }
 
 func run(logger *slog.Logger) error {
+	loaded, err := config.LoadDotEnv(".env")
+	if err != nil {
+		return err
+	}
+	if loaded {
+		logger.Info("loaded .env (already-set variables take precedence)")
+	}
 	cfg, err := config.Load(os.Getenv)
 	if err != nil {
 		return err

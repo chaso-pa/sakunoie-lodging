@@ -11,6 +11,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/uuid v1.6.0
+	github.com/joho/godotenv v1.5.1
 	golang.org/x/time v0.16.0
 	google.golang.org/api v0.312.0
 	gorm.io/driver/mysql v1.6.0

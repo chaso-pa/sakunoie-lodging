@@ -59,7 +59,7 @@ export default async function globalSetup(config: FullConfig) {
   // Owner grant on compose lodging_e2e (admin-grant refuses any other target). The DSN goes through env.
   execFileSync('go', ['run', './cmd/admin-grant', '--uid', adminUid, '--facility', 'saku-no-ie'], {
     cwd: backendDir,
-    env: { ...process.env, GORM_DATABASE_URL: E2E_DSN },
+    env: { ...process.env, SKIP_DOTENV: '1', GORM_DATABASE_URL: E2E_DSN },
     stdio: ['ignore', 'ignore', 'inherit']
   });
 
