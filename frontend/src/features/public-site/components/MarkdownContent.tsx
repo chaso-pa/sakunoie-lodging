@@ -1,9 +1,25 @@
-import { Anchor, Blockquote, List, ListItem, Table, TableScrollContainer, Text, Title } from '@mantine/core';
+import {
+  Anchor,
+  Blockquote,
+  List,
+  ListItem,
+  Table,
+  TableScrollContainer,
+  TableTbody,
+  TableTd,
+  TableTh,
+  TableThead,
+  TableTr,
+  Text,
+  Title
+} from '@mantine/core';
 import Markdown, { type Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 /**
  * Renders version-controlled Markdown on the server. Raw HTML is not rendered (react-markdown's
- * default), so content cannot inject scripts. Headings start at h2: the page owns the h1.
+ * default), so content cannot inject scripts. Headings start at h2: the page owns the h1. GFM adds
+ * tables (e.g. the terms' 別表). Server component: use Mantine's flat exports (`TableTr`, not `Table.Tr`).
  */
 const components: Components = {
   h1: ({ children }) => (
@@ -40,9 +56,16 @@ const components: Components = {
   ),
   table: ({ children }) => (
     <TableScrollContainer minWidth={320}>
-      <Table>{children}</Table>
+      <Table withTableBorder withColumnBorders mb='md' bg='var(--sakunoie-surface)'>
+        {children}
+      </Table>
     </TableScrollContainer>
   ),
+  thead: ({ children }) => <TableThead>{children}</TableThead>,
+  tbody: ({ children }) => <TableTbody>{children}</TableTbody>,
+  tr: ({ children }) => <TableTr>{children}</TableTr>,
+  th: ({ children }) => <TableTh scope='col'>{children}</TableTh>,
+  td: ({ children }) => <TableTd>{children}</TableTd>,
   a: ({ href, children }) => {
     const external = !!href && /^https?:\/\//.test(href);
     return (
@@ -57,7 +80,9 @@ const components: Components = {
 export function MarkdownContent({ children }: { children: string }) {
   return (
     <div>
-      <Markdown components={components}>{children}</Markdown>
+      <Markdown components={components} remarkPlugins={[remarkGfm]}>
+        {children}
+      </Markdown>
     </div>
   );
 }
