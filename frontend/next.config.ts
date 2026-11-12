@@ -1,11 +1,15 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { parseApiBaseUrl } from './src/config/api';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-// Same-origin API access (plan Decision B): the browser calls /api/v1/*, Next forwards it to Go.
-// Resolved when `next dev` / `next build` / `next start` starts.
+// Production (CLAUDE.md §13 "Decision B revised"): the browser calls NEXT_PUBLIC_API_BASE_URL directly
+// (cross-origin, CORS allowlist on the API). Parsing it here fails the build on a malformed value.
+const apiOrigin = parseApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
+// Dev convenience only, when no API base URL is set: /api/* on this origin is rewritten to Go.
+// Resolved when `next dev` / `next build` starts (baked into the routes manifest).
 const apiProxyTarget = process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8080';
 
 const nextConfig: NextConfig = {
@@ -26,7 +30,7 @@ const nextConfig: NextConfig = {
     globalNotFound: true
   },
   async rewrites() {
-    return [{ source: '/api/:path*', destination: `${apiProxyTarget}/api/:path*` }];
+    return apiOrigin ? [] : [{ source: '/api/:path*', destination: `${apiProxyTarget}/api/:path*` }];
   }
 };
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
+import { apiOrigin } from '@/config/api';
 import { routing } from '@/i18n/routing';
 import { buildCsp, buildPageHeaders, createNonce, isAdminPath } from '@/lib/security-headers';
 
@@ -13,6 +14,7 @@ export default function proxy(request: NextRequest) {
     nonce,
     isDev: process.env.NODE_ENV === 'development',
     isAdmin,
+    apiOrigin,
     firebaseAuthEmulatorHost: process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST || undefined
   });
 
@@ -37,6 +39,6 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except API rewrites, Next internals (static, image, dev HMR socket) and files with an extension.
+  // Everything except the (dev-only) API rewrite, Next internals (static, image, dev HMR socket) and files with an extension.
   matcher: ['/((?!api/|_next/|.*\\..*).*)']
 };

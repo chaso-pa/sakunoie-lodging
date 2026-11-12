@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { API_PATH, apiBaseUrl, apiOrigin } from '@/config/api';
 
 export type ApiErrorDetail = { location: string; message: string };
 
@@ -57,25 +58,43 @@ type TokenProvider = () => Promise<string | null> | string | null;
 const tokenProviders = new Map<string, TokenProvider>();
 
 /**
- * Registers a bearer-token source for requests whose URL starts with `prefix`
- * (e.g. `/guest-registrations/manage` or `/admin/`). Features register their own
- * provider so this shared module never imports a feature. Re-registering replaces.
+ * Registers a bearer-token source for requests whose API path (relative to `/api/v1`) starts with
+ * `prefix` (e.g. `/guest-registrations/manage` or `/admin/`). Features register their own provider so
+ * this shared module never imports a feature. Re-registering replaces.
  */
 export const registerAuthTokenProvider = (prefix: string, provider: TokenProvider) => {
   tokenProviders.set(prefix, provider);
 };
 
+/**
+ * The path part used for prefix matching. A relative request URL (the normal case: axios joins it with
+ * `baseURL`) loses its query and fragment. An absolute URL counts only when it points at the API origin
+ * under `/api/v1`, so a token is never attached to a request for another origin.
+ */
+const apiRequestPath = (url: string): string | undefined => {
+  if (!/^([a-z][a-z\d+.-]*:)?\/\//i.test(url)) return url.split(/[?#]/, 1)[0];
+  if (!apiOrigin) return undefined;
+  const parsed = new URL(url, apiOrigin);
+  if (parsed.origin !== apiOrigin || !parsed.pathname.startsWith(`${API_PATH}/`)) return undefined;
+  return parsed.pathname.slice(API_PATH.length);
+};
+
 export const findTokenProvider = (url: string | undefined): TokenProvider | undefined => {
-  if (!url) return undefined;
+  const path = url ? apiRequestPath(url) : undefined;
+  if (!path) return undefined;
   let match: { prefix: string; provider: TokenProvider } | undefined;
   for (const [prefix, provider] of tokenProviders) {
-    if (url.startsWith(prefix) && (!match || prefix.length > match.prefix.length)) match = { prefix, provider };
+    if (path.startsWith(prefix) && (!match || prefix.length > match.prefix.length)) match = { prefix, provider };
   }
   return match?.provider;
 };
 
+/**
+ * Cross-origin when `NEXT_PUBLIC_API_BASE_URL` is set (`@/config/api`). Tokens travel only in the
+ * `Authorization` header; the API allows no credentials (cookies), so `withCredentials` stays false.
+ */
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiBaseUrl,
   timeout: 20_000,
   headers: { Accept: 'application/json' }
 });

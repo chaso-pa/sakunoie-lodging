@@ -42,12 +42,35 @@ describe('buildCsp', () => {
   });
 });
 
+describe('buildCsp with a cross-origin API (NEXT_PUBLIC_API_BASE_URL)', () => {
+  const apiOrigin = 'https://api.sakunoie.example';
+
+  it("adds the API origin to connect-src on public, registration, manage and survey pages, keeping 'self'", () => {
+    const csp = buildCsp({ nonce: 'n', isDev: false, isAdmin: false, apiOrigin });
+    expect(directive(csp, 'connect-src')).toBe("'self' https://api.sakunoie.example");
+    expect(csp).not.toMatch(/googleapis/);
+  });
+
+  it('adds the API origin and the Firebase origins on admin pages', () => {
+    expect(directive(buildCsp({ nonce: 'n', isDev: false, isAdmin: true, apiOrigin }), 'connect-src')).toBe(
+      "'self' https://api.sakunoie.example https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
+    );
+    expect(
+      directive(
+        buildCsp({ nonce: 'n', isDev: false, isAdmin: true, apiOrigin, firebaseAuthEmulatorHost: '127.0.0.1:9099' }),
+        'connect-src'
+      )
+    ).toBe("'self' https://api.sakunoie.example http://127.0.0.1:9099");
+  });
+});
+
 describe('buildPageHeaders', () => {
   it('sends no referrer and noindex on registration, stays and admin pages', () => {
     for (const p of [
       '/ja/registration/manage',
       '/en/registration/complete',
       '/ko/stays/saku-no-ie/registration',
+      '/zh-CN/registration/manage',
       '/admin',
       '/admin/login'
     ]) {

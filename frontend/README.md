@@ -13,8 +13,9 @@ choices summarized here.
 - **Mantine v9**, SCSS Modules and PostCSS.
 - **next-intl 4.14.9** (pinned exactly). Locales are `ja` (default), `en`, `zh-CN` and `ko`, and every
   public route has a locale prefix (`/ja/...`).
-- **TanStack Query** and one shared axios instance (`src/lib/api-client.ts`, base URL `/api/v1`),
-  with `@mantine/form` and Zod for forms.
+- **TanStack Query** and one shared axios instance (`src/lib/api-client.ts`, base URL
+  `${NEXT_PUBLIC_API_BASE_URL}/api/v1`, or `/api/v1` when that is unset), with `@mantine/form` and Zod
+  for forms.
 - **Firebase Auth JS SDK** (admin sign-in only; the Auth Emulator is used in dev and E2E).
 - **Biome**, **TypeScript** (strict), **Vitest** for unit tests and **Playwright** for E2E tests.
 
@@ -39,7 +40,8 @@ The two groups of variables are read at different times, so it matters when you 
 
 | Variable | Read at | Purpose |
 |---|---|---|
-| `API_PROXY_TARGET` | **build time** (`next build`; also `next dev` start) | Origin of the Go API. `next.config.ts` rewrites `/api/:path*` to `${API_PROXY_TARGET}/api/:path*`, so the browser only talks to its own origin and the API needs no CORS. The default is `http://127.0.0.1:8080`. `next build` writes the value into the routes manifest, so you must **rebuild** to change it. Setting it on the standalone server at runtime does nothing. |
+| `NEXT_PUBLIC_API_BASE_URL` | **build time** (inlined; also read by `src/proxy.ts` and `next.config.ts`) | Origin of the Go API that the browser calls **directly** (cross-origin), e.g. `https://api.sakunoie.example`. The API client uses `${NEXT_PUBLIC_API_BASE_URL}/api/v1`, every page's CSP `connect-src` adds this origin, and the rewrite below is disabled. Origin only (`scheme://host[:port]`); anything else fails the build. The API must list this site's origin in `CORS_ALLOWED_ORIGINS`. **Required for production**; rebuild to change it. |
+| `API_PROXY_TARGET` | **build time** (`next build`; also `next dev` start) | **Dev convenience only**, used when `NEXT_PUBLIC_API_BASE_URL` is unset: `next.config.ts` rewrites `/api/:path*` to `${API_PROXY_TARGET}/api/:path*`, so the browser stays same-origin and the API needs no CORS. The default is `http://127.0.0.1:8080`. `next build` writes the value into the routes manifest, so you must rebuild to change it. Production does not use it. |
 | `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST` | **build time** (inlined), also read by `src/proxy.ts` | `host:port` of the Auth Emulator, e.g. `127.0.0.1:9099`. When it is set, the admin client calls `connectAuthEmulator`, the API key may be any string, the project defaults to `demo-sakunoie`, and the admin CSP `connect-src` allows `http://<host>`. **Never set it for production.** |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | build time (inlined) | Firebase web API key. Required when there is no emulator. |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | build time (inlined) | e.g. `<project>.firebaseapp.com`. Required when there is no emulator. |
@@ -47,9 +49,11 @@ The two groups of variables are read at different times, so it matters when you 
 | `PORT`, `HOSTNAME` | runtime (standalone server) | Listen address of `node .next/standalone/server.js`. |
 
 Without the emulator, admin pages put the Google endpoints (`identitytoolkit.googleapis.com`,
-`securetoken.googleapis.com`) in `connect-src`. Public pages always use `connect-src 'self'`.
+`securetoken.googleapis.com`) in `connect-src`. Every page's `connect-src` is `'self'` plus the
+`NEXT_PUBLIC_API_BASE_URL` origin when it is set; the Firebase origins appear on admin pages only.
 
-`.env*` files are git-ignored. Set the variables in your shell or in an untracked `.env.local`.
+`.env.example` lists every variable with placeholders. Other `.env*` files are git-ignored: set the
+variables in your shell or in an untracked `.env.local`.
 
 E2E-only variables are listed under [E2E tests](#e2e-tests-playwright).
 
@@ -58,11 +62,14 @@ E2E-only variables are listed under [E2E tests](#e2e-tests-playwright).
 `src/proxy.ts` (the Next 16 replacement for middleware) runs for every page. It:
 
 - builds a per-request nonce CSP with `src/lib/security-headers.ts`: `script-src 'self' 'nonce-…' 'strict-dynamic'`
-  (`'unsafe-eval'` in `next dev` only), `connect-src 'self'` (plus the Firebase origins on `/admin/*`),
+  (`'unsafe-eval'` in `next dev` only), `connect-src 'self'` plus the API origin (and the Firebase
+  origins on `/admin/*`),
   `frame-ancestors 'none'`, `object-src 'none'` and `base-uri 'none'`;
 - puts the CSP on the forwarded request headers, so Next nonces its inline scripts, and on the response;
 - sets `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and `X-Robots-Tag: noindex, nofollow` on
-  registration, stay and admin pages.
+  registration, stay and admin pages. Their `Referrer-Policy: no-referrer` also applies to their
+  cross-origin API calls, so those carry no `Referer`. The edit token travels only in the URL
+  fragment and the `Authorization: Bearer` header, never in a request URL.
 
 Because of the nonce, every page is rendered dynamically.
 
@@ -111,6 +118,11 @@ firebase emulators:start --only auth --project demo-sakunoie     # :9099
 NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 npm run dev
 ```
 
+In development `NEXT_PUBLIC_API_BASE_URL` is usually unset, so the browser calls `/api/v1` on the
+Next origin and the rewrite forwards it to `API_PROXY_TARGET`. To try the production (cross-origin)
+path, set `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8080` and start the API with
+`CORS_ALLOWED_ORIGINS=http://localhost:3000`.
+
 If another project's `next dev` already uses :3000, use another port, e.g.
 `API_PROXY_TARGET=http://127.0.0.1:8180 npx next dev --turbopack -p 3100`. `allowedDevOrigins`
 permits `127.0.0.1`.
@@ -129,13 +141,16 @@ npx next build
 `output: 'standalone'` produces `.next/standalone/server.js`. `next start` does not support this mode.
 
 ```bash
-API_PROXY_TARGET=http://127.0.0.1:8080 \
+NEXT_PUBLIC_API_BASE_URL=https://api.sakunoie.example \
 NEXT_PUBLIC_FIREBASE_API_KEY=… NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=… NEXT_PUBLIC_FIREBASE_PROJECT_ID=… \
   npx next build
 cp -a public .next/standalone/public
 cp -a .next/static .next/standalone/.next/static
-PORT=3000 HOSTNAME=0.0.0.0 node .next/standalone/server.js
+PORT=3000 HOSTNAME=127.0.0.1 node .next/standalone/server.js
 ```
+
+In production, Next and the API are reached through Cloudflare Tunnel on two hostnames, and both bind
+to `127.0.0.1` (`../backend/README.md` "Cloudflare Tunnel deployment"). There is no `/api` rewrite.
 
 Next 16.4 may stop a build once with a `SecurityFatalError` while it checks for advisories. If it
 does, run the build again. Upgrading Next is a separate decision (see the open items in the root
@@ -169,9 +184,11 @@ bash scripts/e2e-stack.sh stop            # stops only its own PIDs, then compos
 4. builds and starts the API on :8180 with `APP_ENV=test`, per-run random passport and HMAC keys
    (exported, never on a command line), the emulator, `RATE_LIMIT_*_PER_MIN=1000` and
    `SURVEY_MIN_RESPONSES=1`;
-5. runs `next build` with `API_PROXY_TARGET=http://127.0.0.1:8180` and
+5. runs `next build` with `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8180` and
    `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`, copies `public` and `.next/static` into
-   the standalone output, and runs it on :3100;
+   the standalone output, and runs it on :3100. The browser calls the API cross-origin
+   (:3100 → :8180), so the API runs with `CORS_ALLOWED_ORIGINS=http://127.0.0.1:3100` and CORS is
+   exercised by every spec;
 6. records the PIDs and logs in `.e2e-stack/` (git-ignored).
 
 `e2e/global-setup.ts` checks that the stack is reachable. It then clears the emulator accounts,
@@ -182,6 +199,7 @@ and grants the admin user the owner role through `go run ./cmd/admin-grant` agai
 | Variable | Default | Purpose |
 |---|---|---|
 | `E2E_BASE_URL` | `http://127.0.0.1:3100` | Playwright `baseURL` |
+| `E2E_API_URL` | `http://127.0.0.1:8180` | API origin for seeding and direct API checks (the web origin has no `/api` rewrite in this mode) |
 | `GORM_DATABASE_URL_E2E` | compose `lodging_e2e` | API DSN for the stack and the admin grant; must be compose `lodging_e2e` |
 | `TEST_DB_PORT` | `33306` | compose MariaDB host port |
 | `E2E_STATE_DIR` | `.e2e-stack` | logs, PIDs and the API binary |

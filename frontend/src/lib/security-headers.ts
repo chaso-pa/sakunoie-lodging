@@ -9,18 +9,24 @@ type CspOptions = {
   nonce: string;
   isDev: boolean;
   isAdmin: boolean;
+  /** API origin from `NEXT_PUBLIC_API_BASE_URL` (cross-origin mode); allowed in `connect-src` on every page. */
+  apiOrigin?: string;
   /** `host:port` of the Firebase Auth Emulator, when used (dev/E2E). */
   firebaseAuthEmulatorHost?: string;
 };
 
 export const isAdminPath = (pathname: string) => pathname === '/admin' || pathname.startsWith('/admin/');
 
-/** Guest-registration pages carry an edit token or PII: no referrer, no indexing. */
+/**
+ * Guest-registration pages carry an edit token or PII: no referrer, no indexing. The page policy also
+ * covers their cross-origin API calls, which therefore carry no `Referer`.
+ */
 export const isSensitivePath = (pathname: string) =>
   isAdminPath(pathname) || /^\/[^/]+\/(registration|stays)(\/|$)/.test(pathname);
 
-export const buildCsp = ({ nonce, isDev, isAdmin, firebaseAuthEmulatorHost }: CspOptions) => {
+export const buildCsp = ({ nonce, isDev, isAdmin, apiOrigin, firebaseAuthEmulatorHost }: CspOptions) => {
   const connectSrc = ["'self'"];
+  if (apiOrigin) connectSrc.push(apiOrigin);
   if (isAdmin) {
     if (firebaseAuthEmulatorHost) {
       connectSrc.push(`http://${firebaseAuthEmulatorHost}`);
