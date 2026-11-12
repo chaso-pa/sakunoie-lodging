@@ -1,5 +1,5 @@
 {
-  "_todo": "要差し替え: airbnbUrl is a placeholder (Airbnb top page), photos are generated placeholder graphics, and amenities list only what the contract confirms (a private room in a host-occupied home with some shared spaces). Replace with the real listing URL, licensed photos (keep alt, aspectRatio and focalPoint) and confirmed amenities before launch.",
+  "_todo": "要差し替え: airbnbUrl is flagged as a placeholder (airbnbUrlIsPlaceholder) and amenities list only what the contract confirms (a private room in a host-occupied home with some shared spaces). Photos are the owner's Airbnb listing photos; when replacing one, keep alt (4 locales), aspectRatio (pixel ratio of the file) and focalPoint. Confirm the listing URL and amenities before launch.",
   "code": "saku-no-ie",
   "name": {
     "ja": "佐久の家",
@@ -50,67 +50,132 @@
   "photos": [
     {
       "id": "hero",
-      "src": "/images/placeholder/hero.svg",
-      "aspectRatio": "16:9",
-      "focalPoint": "40% 55%",
-      "placeholder": true,
+      "src": "/images/saku-no-ie/guest-room-bed-and-windows.jpg",
+      "aspectRatio": "3:2",
+      "focalPoint": "50% 60%",
+      "placeholder": false,
       "alt": {
-        "ja": "仮画像：客室のイメージ（暖色の壁と窓、ベッドを描いた図形）",
-        "en": "Placeholder image: illustration of a guest room with a warm wall, a window and a bed",
-        "zh-CN": "占位图：客房示意图（暖色墙面、窗户和床的图形）",
-        "ko": "임시 이미지: 따뜻한 색 벽과 창문, 침대를 그린 객실 일러스트"
+        "ja": "客室。テラコッタ色の壁に絵が掛かり、ベッドの向こうに緑の見える縦長の窓が2つ並んでいます",
+        "en": "The guest room: a made-up bed against a terracotta accent wall with a painting, and two tall windows looking out on greenery",
+        "zh-CN": "客房：挂着画的赤陶色墙边摆着一张床，两扇竖长的窗户外可见绿树",
+        "ko": "객실: 그림이 걸린 테라코타색 벽 옆에 침대가 놓여 있고, 세로로 긴 창문 두 개 너머로 초록이 보입니다"
       }
     },
     {
       "id": "room",
-      "src": "/images/placeholder/room.svg",
-      "aspectRatio": "4:3",
-      "focalPoint": "50% 60%",
-      "placeholder": true,
+      "src": "/images/saku-no-ie/guest-room-bed-and-desk.jpg",
+      "aspectRatio": "3:2",
+      "focalPoint": "45% 60%",
+      "placeholder": false,
       "alt": {
-        "ja": "仮画像：個室のイメージ（ベッドとランプの図形）",
-        "en": "Placeholder image: illustration of the private room with a bed and a lamp",
-        "zh-CN": "占位图：独立客房示意图（床和台灯的图形）",
-        "ko": "임시 이미지: 침대와 스탠드가 있는 개인 객실 일러스트"
+        "ja": "客室のベッドと、植物柄の壁紙の前に置かれた木の小さなデスクとスツール、荷物台",
+        "en": "The guest room: a bed, a small wooden desk with a stool against botanical wallpaper, and a luggage rack",
+        "zh-CN": "客房：一张床，植物图案壁纸前的小木桌和凳子，以及行李架",
+        "ko": "객실: 침대와 식물 무늬 벽지 앞의 작은 나무 책상과 스툴, 짐 받침대"
       }
     },
     {
       "id": "shared",
-      "src": "/images/placeholder/shared-space.svg",
-      "aspectRatio": "4:3",
-      "focalPoint": "50% 50%",
-      "placeholder": true,
+      "src": "/images/saku-no-ie/shared-living-room.jpg",
+      "aspectRatio": "3:2",
+      "focalPoint": "55% 55%",
+      "placeholder": false,
       "alt": {
-        "ja": "仮画像：共用スペースのイメージ（テーブルと椅子の図形）",
-        "en": "Placeholder image: illustration of a shared space with a table and chairs",
-        "zh-CN": "占位图：共用空间示意图（桌椅的图形）",
-        "ko": "임시 이미지: 테이블과 의자가 있는 공용 공간 일러스트"
+        "ja": "共用のリビング。大きなマスタード色のソファの奥に、ダイニングテーブルとキッチンがあります",
+        "en": "The shared living room: a large mustard-yellow sofa, with the dining table and kitchen beyond",
+        "zh-CN": "共用客厅：一张大号芥末黄色沙发，后方是餐桌和厨房",
+        "ko": "공용 거실: 큰 머스터드색 소파 너머로 식탁과 주방이 보입니다"
+      }
+    },
+    {
+      "id": "dining",
+      "src": "/images/saku-no-ie/shared-dining-and-kitchen.jpg",
+      "aspectRatio": "3:2",
+      "focalPoint": "50% 60%",
+      "placeholder": false,
+      "alt": {
+        "ja": "共用のダイニング。木のテーブルと椅子、ベンチがあり、隣にシンク付きのキッチンカウンターがあります",
+        "en": "The shared dining area: a wooden table with chairs and a bench, next to the kitchen counter with a sink",
+        "zh-CN": "共用餐厅：木制餐桌配椅子和长凳，旁边是带水槽的厨房台面",
+        "ko": "공용 다이닝: 나무 식탁과 의자, 벤치가 있고 옆에 싱크대가 있는 주방 카운터가 있습니다"
+      }
+    },
+    {
+      "id": "exterior",
+      "src": "/images/saku-no-ie/house-exterior.jpg",
+      "aspectRatio": "3:2",
+      "focalPoint": "60% 55%",
+      "placeholder": false,
+      "alt": {
+        "ja": "家の外観。濃いグレーグリーンの外壁で、玄関までタイルの階段が続き、芝生とウッドデッキがあります",
+        "en": "The house from outside: dark grey-green walls, tiled steps up to the entrance, a lawn and a wooden deck",
+        "zh-CN": "房屋外观：深灰绿色外墙，瓷砖台阶通往入口，旁边有草坪和木平台",
+        "ko": "집 외관: 짙은 회녹색 외벽에 현관까지 타일 계단이 이어지고, 잔디밭과 나무 데크가 있습니다"
+      }
+    },
+    {
+      "id": "room-lights",
+      "src": "/images/saku-no-ie/guest-room-bed-and-wall-lights.jpg",
+      "aspectRatio": "720:631",
+      "focalPoint": "50% 55%",
+      "placeholder": false,
+      "alt": {
+        "ja": "客室のベッド。テラコッタ色の壁に2つの壁付けライトがあり、ニットのクッションが置かれています",
+        "en": "The bed in the guest room, with knitted cushions, under two wall-mounted lights on the terracotta wall",
+        "zh-CN": "客房里的床，放着针织靠垫，赤陶色墙上有两盏壁灯",
+        "ko": "객실 침대: 니트 쿠션이 놓여 있고 테라코타색 벽에 벽등 두 개가 있습니다"
+      }
+    },
+    {
+      "id": "washroom",
+      "src": "/images/saku-no-ie/shared-washroom.jpg",
+      "aspectRatio": "2:3",
+      "focalPoint": "50% 50%",
+      "placeholder": false,
+      "alt": {
+        "ja": "共用の脱衣所。かごを置いた棚があり、その先に浴槽とシャワーのある浴室が見えます",
+        "en": "The shared changing area with open shelves and baskets, leading to the bathroom with a bathtub and shower",
+        "zh-CN": "共用更衣区：开放式置物架上放着篮子，里面通往带浴缸和淋浴的浴室",
+        "ko": "공용 탈의 공간: 바구니가 놓인 선반이 있고, 그 안쪽으로 욕조와 샤워기가 있는 욕실이 보입니다"
+      }
+    },
+    {
+      "id": "bathroom",
+      "src": "/images/saku-no-ie/shared-bathroom.jpg",
+      "aspectRatio": "2:3",
+      "focalPoint": "50% 60%",
+      "placeholder": false,
+      "alt": {
+        "ja": "共用の浴室。浴槽とシャワー、グレーの石目調の壁があります",
+        "en": "The shared bathroom with a bathtub and a shower against a grey stone-pattern wall",
+        "zh-CN": "共用浴室：浴缸和淋浴，墙面为灰色石纹",
+        "ko": "공용 욕실: 욕조와 샤워기, 회색 석재 무늬 벽이 있습니다"
+      }
+    },
+    {
+      "id": "laundry",
+      "src": "/images/saku-no-ie/shared-laundry-area.jpg",
+      "aspectRatio": "2:3",
+      "focalPoint": "50% 65%",
+      "placeholder": false,
+      "alt": {
+        "ja": "共用のランドリーエリア。ドラム式洗濯機と物干しバー、窓の下に木のカウンターがあります",
+        "en": "The shared laundry area: a front-loading washing machine, a ceiling drying rail and a wooden counter under a window",
+        "zh-CN": "共用洗衣区：滚筒洗衣机、晾衣杆，窗下有一张木台面",
+        "ko": "공용 세탁 공간: 드럼 세탁기와 빨래 건조 봉, 창문 아래 나무 카운터가 있습니다"
       }
     },
     {
       "id": "entrance",
-      "src": "/images/placeholder/entrance.svg",
-      "aspectRatio": "4:3",
-      "focalPoint": "50% 50%",
-      "placeholder": true,
+      "src": "/images/saku-no-ie/entrance-hall.jpg",
+      "aspectRatio": "2:3",
+      "focalPoint": "50% 60%",
+      "placeholder": false,
       "alt": {
-        "ja": "仮画像：玄関のイメージ（扉の図形）",
-        "en": "Placeholder image: illustration of an entrance door",
-        "zh-CN": "占位图：入口示意图（门的图形）",
-        "ko": "임시 이미지: 현관문 일러스트"
-      }
-    },
-    {
-      "id": "neighborhood",
-      "src": "/images/placeholder/neighborhood.svg",
-      "aspectRatio": "4:3",
-      "focalPoint": "50% 50%",
-      "placeholder": true,
-      "alt": {
-        "ja": "仮画像：周辺環境のイメージ（道と木々の図形）",
-        "en": "Placeholder image: illustration of a road with trees",
-        "zh-CN": "占位图：周边环境示意图（道路和树木的图形）",
-        "ko": "임시 이미지: 길과 나무가 있는 주변 환경 일러스트"
+        "ja": "玄関。一段上がった木の床にスリッパが並び、奥にリビングとダイニングが見えます",
+        "en": "The entrance hall: slippers on the raised wooden floor, looking through to the living and dining area",
+        "zh-CN": "玄关：抬高的木地板上摆着拖鞋，往里可以看到客厅和餐厅",
+        "ko": "현관: 한 단 높은 나무 바닥에 슬리퍼가 놓여 있고, 안쪽으로 거실과 다이닝이 보입니다"
       }
     }
   ]

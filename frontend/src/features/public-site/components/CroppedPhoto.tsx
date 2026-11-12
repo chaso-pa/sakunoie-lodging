@@ -14,10 +14,10 @@ type Props = {
 };
 
 /**
- * A facility photo cropped around its focal point. Placeholder assets carry a visible badge.
- * SVG placeholders are served as-is (`unoptimized`).
+ * A facility photo cropped around its focal point inside a fixed-ratio box, so it causes no layout
+ * shift. A photo flagged `placeholder` carries a visible badge. Files are served as-is (`unoptimized`).
  */
-export function PlaceholderPhoto({ photo, alt, badge, ratio, sizes = '100vw', priority, radius = 14 }: Props) {
+export function CroppedPhoto({ photo, alt, badge, ratio, sizes = '100vw', priority, radius = 14 }: Props) {
   const [w, h] = photo.aspectRatio.split(':').map(Number);
   return (
     <AspectRatio ratio={ratio ?? w / h} style={{ borderRadius: radius, overflow: 'hidden', position: 'relative' }}>

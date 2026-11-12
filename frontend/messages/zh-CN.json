@@ -231,7 +231,7 @@
   },
   "publicSite": {
     "placeholderTitle": "要差し替え / Placeholder content",
-    "placeholderBody": "本页面为占位内容，上线前将替换为已确认的信息。所有照片均为占位图。",
+    "placeholderBody": "本页面为占位内容，上线前将替换为已确认的信息。",
     "placeholderPhoto": "占位图",
     "version": "版本：{version}",
     "effectiveDate": "生效日期：{date}",

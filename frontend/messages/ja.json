@@ -231,7 +231,7 @@
   },
   "publicSite": {
     "placeholderTitle": "要差し替え / Placeholder content",
-    "placeholderBody": "このページは仮のコンテンツです。公開前に確認済みの情報に差し替えます。写真はすべて仮画像です。",
+    "placeholderBody": "このページは仮のコンテンツです。公開前に確認済みの情報に差し替えます。",
     "placeholderPhoto": "仮画像",
     "version": "版: {version}",
     "effectiveDate": "施行日: {date}",

@@ -231,7 +231,7 @@
   },
   "publicSite": {
     "placeholderTitle": "要差し替え / Placeholder content",
-    "placeholderBody": "이 페이지는 임시 콘텐츠입니다. 공개 전에 확인된 정보로 교체합니다. 사진은 모두 임시 이미지입니다.",
+    "placeholderBody": "이 페이지는 임시 콘텐츠입니다. 공개 전에 확인된 정보로 교체합니다.",
     "placeholderPhoto": "임시 이미지",
     "version": "버전: {version}",
     "effectiveDate": "시행일: {date}",

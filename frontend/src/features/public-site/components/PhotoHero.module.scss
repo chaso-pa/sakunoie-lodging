@@ -1,6 +1,8 @@
 .hero {
   position: relative;
   overflow: hidden;
+  // Without an explicit width, max-height would shrink the width through aspect-ratio.
+  width: 100%;
   aspect-ratio: 4 / 5;
   max-height: 78svh;
   min-height: mantine.rem(420px);

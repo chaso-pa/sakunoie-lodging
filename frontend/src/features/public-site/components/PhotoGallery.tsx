@@ -5,8 +5,8 @@ import { useReducedMotion } from '@mantine/hooks';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { type KeyboardEvent, useRef, useState } from 'react';
 import type { FacilityPhoto } from '@/config/site';
+import { CroppedPhoto } from '@/features/public-site/components/CroppedPhoto';
 import classes from '@/features/public-site/components/PhotoGallery.module.scss';
-import { PlaceholderPhoto } from '@/features/public-site/components/PlaceholderPhoto';
 
 export type GalleryPhoto = { photo: FacilityPhoto; alt: string };
 
@@ -57,16 +57,10 @@ export function PhotoGallery({ photos, badge, labels }: Props) {
   return (
     <>
       <div className={classes.mosaic}>
-        <PlaceholderPhoto
-          photo={main.photo}
-          alt={main.alt}
-          badge={badge}
-          ratio={4 / 3}
-          sizes='(min-width: 768px) 66vw'
-        />
+        <CroppedPhoto photo={main.photo} alt={main.alt} badge={badge} ratio={4 / 3} sizes='(min-width: 768px) 66vw' />
         <div className={classes.mosaicSide}>
           {rest.slice(0, 3).map((p) => (
-            <PlaceholderPhoto
+            <CroppedPhoto
               key={p.photo.id}
               photo={p.photo}
               alt={p.alt}
@@ -88,7 +82,7 @@ export function PhotoGallery({ photos, badge, labels }: Props) {
               className={classes.slide}
               aria-label={format(labels.positionTemplate, i + 1, total)}
             >
-              <PlaceholderPhoto photo={p.photo} alt={p.alt} badge={badge} ratio={4 / 3} sizes='100vw' />
+              <CroppedPhoto photo={p.photo} alt={p.alt} badge={badge} ratio={4 / 3} sizes='100vw' />
             </figure>
           ))}
         </div>

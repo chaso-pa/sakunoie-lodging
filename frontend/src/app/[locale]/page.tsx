@@ -6,7 +6,7 @@ import { ButtonLink } from '@/components/ButtonLink';
 import { InfoBanner } from '@/components/InfoBanner';
 import { paths } from '@/config/paths';
 import { defaultFacility, defaultFacilityCode } from '@/config/site';
-import { FeatureCard, loadPage, MarkdownContent, PhotoHero, PlaceholderPhoto } from '@/features/public-site';
+import { CroppedPhoto, FeatureCard, loadPage, MarkdownContent, PhotoHero } from '@/features/public-site';
 import { PlaceholderBanner } from '@/features/public-site/components/PlaceholderBanner';
 import type { Locale } from '@/i18n/routing';
 
@@ -25,7 +25,7 @@ export default async function HomePage({ params }: PageProps) {
   const t = await getTranslations({ locale });
   const { meta, body } = await loadPage(locale, 'home');
   const photo = (id: string) => defaultFacility.photos.find((p) => p.id === id) ?? defaultFacility.photos[0];
-  const previews = ['room', 'shared', 'neighborhood'].map(photo);
+  const previews = ['room', 'shared', 'dining'].map(photo);
 
   return (
     <>
@@ -75,7 +75,7 @@ export default async function HomePage({ params }: PageProps) {
             </Group>
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing='lg'>
               {previews.map((p) => (
-                <PlaceholderPhoto
+                <CroppedPhoto
                   key={p.id}
                   photo={p}
                   alt={p.alt[locale]}

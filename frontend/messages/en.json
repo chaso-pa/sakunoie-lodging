@@ -231,7 +231,7 @@
   },
   "publicSite": {
     "placeholderTitle": "要差し替え / Placeholder content",
-    "placeholderBody": "This page has placeholder content. It will be replaced with confirmed information before launch. All photos are placeholder images.",
+    "placeholderBody": "This page has placeholder content. It will be replaced with confirmed information before launch.",
     "placeholderPhoto": "Placeholder image",
     "version": "Version: {version}",
     "effectiveDate": "Effective: {date}",

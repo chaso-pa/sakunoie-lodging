@@ -31,4 +31,4 @@ sections:
       The home is in Saku, Nagano. The exact address and directions are shared through Airbnb messages after your booking is confirmed (placeholder).
 ---
 
-A private, hotel-like room in a home where the host lives. All photos are placeholder images.
+A private, hotel-like room in a home where the host lives.

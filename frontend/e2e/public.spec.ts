@@ -72,6 +72,30 @@ test.describe('public site', () => {
     await expect(cta).toHaveAttribute('href', facility.airbnbUrl);
   });
 
+  test('real photos load with alt text and no placeholder badge; gallery counts every photo', async ({ page }) => {
+    const gallery = facility.photos.filter((p) => p.id !== 'hero');
+    const hero = facility.photos.find((p) => p.id === 'hero');
+    const loaded = (img: HTMLImageElement) => img.complete && img.naturalWidth > 0;
+
+    await page.goto('/ja');
+    await expect(page.getByRole('img', { name: hero?.alt.ja })).toBeVisible();
+    await expect(page.getByText('仮画像')).toHaveCount(0);
+    for (const img of await page.locator('main img').all()) {
+      await img.scrollIntoViewIfNeeded();
+      await expect.poll(() => img.evaluate(loaded), (await img.getAttribute('src')) ?? 'img').toBe(true);
+    }
+
+    await page.goto('/ja/facilities');
+    await expect(page.getByText('仮画像')).toHaveCount(0);
+    // Desktop mosaic: the room photo and three supporting photos.
+    for (const p of gallery.slice(0, 4)) await expect(page.getByRole('img', { name: p.alt.ja }).first()).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText(`1 / ${gallery.length}`)).toBeVisible();
+    await page.getByRole('button', { name: '次の写真' }).click();
+    await expect(page.getByText(`2 / ${gallery.length}`)).toBeVisible();
+  });
+
   test('unknown localized path renders the localized 404', async ({ page }) => {
     const ja = await page.goto('/ja/does-not-exist');
     expect(ja?.status()).toBe(404);
