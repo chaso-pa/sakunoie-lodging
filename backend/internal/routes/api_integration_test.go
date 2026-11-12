@@ -309,7 +309,7 @@ func TestIntegrationHTTPManageFlow(t *testing.T) {
 
 	// Public facility endpoint.
 	w = h.do(http.MethodGet, "/api/v1/facilities/saku-no-ie/public", nil, nil)
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"terms_version":"2026-11-01"`) || strings.Contains(w.Body.String(), `"id"`) {
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"terms_version":"2026-10-01"`) || strings.Contains(w.Body.String(), `"id"`) {
 		t.Fatalf("facility: %d %s", w.Code, w.Body.String())
 	}
 	w = h.do(http.MethodGet, "/api/v1/facilities/unknown/public", nil, nil)

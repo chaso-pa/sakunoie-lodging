@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { type APIRequestContext, expect } from '@playwright/test';
-import { FACILITY_CODE, POLICY_VERSION, SYNTHETIC_PASSPORT, uniqueStay } from './synthetic';
+import { FACILITY_CODE, PRIVACY_VERSION, SYNTHETIC_PASSPORT, TERMS_VERSION, uniqueStay } from './synthetic';
 
 type Guest = {
   is_representative: boolean;
@@ -67,8 +67,8 @@ export const seedRegistration = async (
       planned_guest_count: overrides.plannedGuestCount ?? 3,
       booking_source: 'airbnb',
       booking_reference: overrides.bookingReference,
-      terms_version: POLICY_VERSION,
-      privacy_version: POLICY_VERSION,
+      terms_version: TERMS_VERSION,
+      privacy_version: PRIVACY_VERSION,
       terms_accepted: true,
       privacy_accepted: true,
       guests: overrides.guests ?? defaultGuests()

@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 
 // Synthetic data only (contract §12): no real names, passports, addresses or tokens.
 export const FACILITY_CODE = 'saku-no-ie';
-export const POLICY_VERSION = '2026-11-01';
+// Must equal backend/internal/services/policy_versions.json (the API rejects other versions).
+export const TERMS_VERSION = '2026-10-01';
+export const PRIVACY_VERSION = '2026-11-12';
 export const SYNTHETIC_PASSPORT = 'TESTPP1234';
 
 export const uid8 = () => randomUUID().replace(/-/g, '').slice(0, 8);

@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import facility from '@content/facilities/saku-no-ie.json';
 import { expect, type Page, test } from '@playwright/test';
+import matter from 'gray-matter';
 import { API_URL } from './fixtures/api-context';
 import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 
@@ -12,11 +14,15 @@ const switchLocale = async (page: Page, label: RegExp, language: string) => {
   await page.getByRole('menuitem', { name: language }).click();
 };
 
+/** Whether `content/<locale>/<page>.md` still says `placeholder: true` (the page then shows the banner). */
+const isPlaceholder = (locale: string, p: string) =>
+  matter(readFileSync(`content/${locale}/${p.slice(1) || 'home'}.md`, 'utf8')).data.placeholder === true;
+
 const LOCALES = ['ja', 'en', 'zh-CN', 'ko'] as const;
 const PAGES = ['', '/facilities', '/guide', '/faq', '/rates', '/terms', '/privacy', '/survey'] as const;
 
 test.describe('public site', () => {
-  test('8 pages x 4 locales: 200, html lang, one localized h1, placeholder banner', async ({ page }) => {
+  test('8 pages x 4 locales: 200, html lang, one localized h1, banner only on placeholder pages', async ({ page }) => {
     const h1ByPage = new Map<string, Set<string>>();
     for (const locale of LOCALES) {
       for (const p of PAGES) {
@@ -29,7 +35,9 @@ test.describe('public site', () => {
         expect(text, `/${locale}${p} h1`).not.toBe('');
         h1ByPage.set(p, (h1ByPage.get(p) ?? new Set()).add(text));
         if (p !== '/survey') {
-          await expect(page.getByText('要差し替え / Placeholder content').first()).toBeVisible();
+          const banner = page.getByText('要差し替え / Placeholder content');
+          if (isPlaceholder(locale, p)) await expect(banner.first()).toBeVisible();
+          else await expect(banner).toHaveCount(0);
         }
       }
     }
@@ -100,6 +108,18 @@ test.describe('public site', () => {
     await expect(page.getByText(`1 / ${gallery.length}`)).toBeVisible();
     await page.getByRole('button', { name: '次の写真' }).click();
     await expect(page.getByText(`2 / ${gallery.length}`)).toBeVisible();
+  });
+
+  test('terms show the appended tables and the operator block; rates link to them', async ({ page }) => {
+    await page.goto('/ja/terms');
+    const penalties = page.getByRole('table').filter({ hasText: '契約解除の通知を受けた日' });
+    await expect(penalties.getByRole('cell', { name: 'なし（全額返金）' })).toBeVisible();
+    await expect(page.getByText('長野県佐久保健所指令07佐保第11-68号')).toBeVisible();
+
+    await page.goto('/ja/rates');
+    await expect(page.getByRole('cell', { name: '15,000円 〜 28,000円' })).toBeVisible();
+    await page.getByRole('main').getByRole('link', { name: '宿泊約款' }).click();
+    await expect(page).toHaveURL(/\/ja\/terms$/);
   });
 
   test('unknown localized path renders the localized 404', async ({ page }) => {
