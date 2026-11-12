@@ -44,8 +44,9 @@ func HumaConfig(docsEnabled bool) huma.Config {
 	cfg.CreateHooks = nil
 	cfg.Transformers = []huma.Transformer{models.RequestIDTransformer}
 	cfg.Info.Description = "Guest registration API for Saku no Ie. Errors use the envelope {code, message, details, request_id}."
-	// Same origin: the web app proxies /api/* to this server (paths already carry /api/v1).
-	cfg.Servers = []*huma.Server{{URL: "/", Description: "Same origin as the web app"}}
+	// The API origin itself (paths already carry /api/v1). Browsers call it
+	// cross-origin under the CORS allowlist (CORS_ALLOWED_ORIGINS).
+	cfg.Servers = []*huma.Server{{URL: "/", Description: "The API origin"}}
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		"adminBearer": {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "Firebase ID token (admin endpoints)"},
 		"editToken":   {Type: "http", Scheme: "bearer", Description: "Guest edit token from the manage URL fragment"},
@@ -80,10 +81,10 @@ func Register(api huma.API, deps Deps) {
 
 // NewEngine builds the Gin engine with the middleware chain used in
 // production: security headers → request ID → recovery → request log →
-// rate limit.
+// CORS (answers preflights) → rate limit.
 func NewEngine(cfg *config.Config, db *gorm.DB, deps Deps, logger *slog.Logger) (*gin.Engine, error) {
 	r := gin.New()
-	if err := middlewares.ConfigureClientIP(r, cfg.TrustedProxies); err != nil {
+	if err := middlewares.ConfigureClientIP(r, cfg.TrustedProxies, cfg.ClientIPHeader); err != nil {
 		return nil, err
 	}
 	limiter := middlewares.NewRateLimiter(map[string]int{
@@ -91,7 +92,8 @@ func NewEngine(cfg *config.Config, db *gorm.DB, deps Deps, logger *slog.Logger) 
 		middlewares.LimitManage: cfg.RateLimitManagePerMin,
 		middlewares.LimitSurvey: cfg.RateLimitSurveyPerMin,
 	}, logger)
-	r.Use(middlewares.SecurityHeaders(), middlewares.RequestID(), middlewares.Recovery(logger), middlewares.RequestLogger(logger), limiter.Middleware())
+	r.Use(middlewares.SecurityHeaders(), middlewares.RequestID(), middlewares.Recovery(logger), middlewares.RequestLogger(logger),
+		middlewares.CORS(cfg.CORSOrigins), limiter.Middleware())
 	r.NoRoute(middlewares.NoRoute)
 	SetupStaticRoutes(r, db)
 	NewAPI(r, cfg.DocsEnabled(), deps)

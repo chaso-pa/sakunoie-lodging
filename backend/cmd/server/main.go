@@ -78,14 +78,15 @@ func run(logger *slog.Logger) error {
 	janitorDone := idem.StartJanitor(ctx)
 
 	srv := &http.Server{
-		Addr:              ":" + cfg.Port,
+		Addr:              cfg.ListenAddr(),
 		Handler:           engine,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("server starting", "port", cfg.Port, "app_env", cfg.AppEnv, "docs", cfg.DocsEnabled(),
-			"firebase_emulator", cfg.FirebaseEmulatorHost != "")
+		logger.Info("server starting", "addr", cfg.ListenAddr(), "app_env", cfg.AppEnv, "docs", cfg.DocsEnabled(),
+			"firebase_emulator", cfg.FirebaseEmulatorHost != "", "client_ip_header", cfg.ClientIPHeader,
+			"cors_origins", len(cfg.CORSOrigins))
 		errCh <- srv.ListenAndServe()
 	}()
 

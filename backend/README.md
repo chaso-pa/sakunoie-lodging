@@ -58,7 +58,10 @@ throwaway compose URLs.
 | `SHADOW_DATABASE_URL` | Prisma, optional | compose `lodging_shadow`, set inline for `migrate dev`/`diff` only |
 | `TEST_DATABASE_URL` | integration tests | compose `lodging_test` (or `lodging_e2e`). Without it, the integration tests skip. |
 | `PORT` | no (8080) | listen port |
-| `TRUSTED_PROXIES` | no (`127.0.0.1,::1`) | peers whose `X-Real-IP` is trusted as the client IP. List only the hop that sits between the edge and Go (see [Client IP and the edge proxy](#client-ip-and-the-edge-proxy)). `X-Forwarded-For` is never read. |
+| `BIND_ADDR` | no (`127.0.0.1` in production, every interface otherwise) | listen IP (an IP literal: `127.0.0.1`, `::1`, `0.0.0.0`). Production listens on loopback, so only cloudflared on the same host can reach Go (see [Cloudflare Tunnel deployment](#cloudflare-tunnel-deployment)). |
+| `TRUSTED_PROXIES` | no (`127.0.0.1,::1`) | peers whose `CLIENT_IP_HEADER` is trusted as the client IP. List only the hop that connects to Go (cloudflared). |
+| `CLIENT_IP_HEADER` | no (`X-Real-IP`) | the **one** header read from a `TRUSTED_PROXIES` peer. Production behind Cloudflare: `CF-Connecting-IP`. A single header-name token; `X-Forwarded-For` and `Forwarded` are refused at startup, and XFF is never read. |
+| `CORS_ALLOWED_ORIGINS` | **production** | comma-separated exact origins allowed to call the API from a browser, e.g. `https://sakunoie.example`. Lower-case `scheme://host[:port]` with no path, trailing slash or default port; `*` and `null` are refused. Empty disables CORS (same origin only). See [CORS](#cors). |
 | `PASSPORT_ENC_KEYS` | yes | `1:<base64 32 bytes>[,2:<…>]`, AES-256-GCM keys by ID |
 | `PASSPORT_ENC_ACTIVE_KEY_ID` | yes | the key ID used for new encryptions |
 | `IDEMPOTENCY_HMAC_KEY` | yes | base64 of 32 bytes (HMAC of create request bodies) |
@@ -67,26 +70,87 @@ throwaway compose URLs.
 | `RATE_LIMIT_CREATE_PER_MIN`, `RATE_LIMIT_MANAGE_PER_MIN`, `RATE_LIMIT_SURVEY_PER_MIN` | no (10/60/10) | per-IP limits. The E2E stack uses 1000. |
 | `SURVEY_MIN_RESPONSES` | no (5) | small-cell threshold of the survey summary |
 
-### Client IP and the edge proxy
+### Cloudflare Tunnel deployment
 
-The per-IP rate limiter keys on `c.ClientIP()`. Go reads **only `X-Real-IP`**, and only when the TCP
-peer is in `TRUSTED_PROXIES`; `X-Forwarded-For` is ignored. Reason: the Next rewrite
-(`/api/:path*` → `API_PROXY_TARGET`) forwards the client's `X-Forwarded-For` unchanged and does not
-append the peer address, so behind it XFF is entirely client-controlled. With no trusted header,
-every request through Next arrives from `127.0.0.1` and all clients share one bucket.
+Production topology: browser → Cloudflare → Cloudflare Tunnel (`cloudflared`) → Next and Go, each on
+its own hostname. The browser calls the API origin directly (cross-origin; root `CLAUDE.md` §13
+"Decision B revised"). Neither server has a public port.
 
-Production deployment requirements:
+| Hostname | cloudflared service | Process |
+|---|---|---|
+| `sakunoie.example` | `http://127.0.0.1:3000` | Next standalone (`HOSTNAME=127.0.0.1 PORT=3000`) |
+| `api.sakunoie.example` | `http://127.0.0.1:8080` | Go API (`BIND_ADDR=127.0.0.1 PORT=8080`) |
 
-- The edge (nginx, Caddy or the load balancer) **must overwrite `X-Real-IP` with the peer address
-  and drop any client-supplied value**, e.g. nginx `proxy_set_header X-Real-IP $remote_addr;`, Caddy
-  `header_up X-Real-IP {remote_host}`. Next passes the header through to Go unchanged.
-- Alternatively, route `/api/` from the edge straight to Go (bypassing Next) with the same header.
-- `TRUSTED_PROXIES` must list **only** the hop that connects to Go (the Next server, or the edge when
-  `/api/` bypasses Next). Never list a range that clients can reach directly.
-- HSTS is set at the edge (TLS terminates there), not by Go. Go sets
+`cloudflared` ingress (`/etc/cloudflared/config.yml`):
+
+```yaml
+tunnel: <tunnel-id>
+credentials-file: /etc/cloudflared/<tunnel-id>.json
+ingress:
+  - hostname: sakunoie.example
+    service: http://127.0.0.1:3000
+  - hostname: api.sakunoie.example
+    service: http://127.0.0.1:8080
+  - service: http_status:404
+```
+
+Go environment for this layout:
+
+```bash
+APP_ENV=production
+BIND_ADDR=127.0.0.1                         # the production default; loopback only
+PORT=8080
+TRUSTED_PROXIES=127.0.0.1,::1               # cloudflared on the same host
+CLIENT_IP_HEADER=CF-Connecting-IP
+CORS_ALLOWED_ORIGINS=https://sakunoie.example
+```
+
+- **Bind both servers to loopback.** Go defaults to `127.0.0.1` in production (`BIND_ADDR`); run Next
+  with `HOSTNAME=127.0.0.1`. If cloudflared runs in Docker, bind to the Docker bridge address (or
+  `0.0.0.0` with a firewall) and set `TRUSTED_PROXIES` to the cloudflared container IP or subnet only.
+- **Client IP.** Cloudflare sets `CF-Connecting-IP` to the visitor address and overwrites a
+  client-supplied value. Go reads only that header, and only from a `TRUSTED_PROXIES` peer;
+  `X-Forwarded-For` is never read. With `TRUSTED_PROXIES` wrong, every client either shares one
+  bucket (cloudflared not trusted) or can choose its key (a client-reachable range trusted).
+- **Warning: no other path to the origin.** `CF-Connecting-IP` is trustworthy only because the sole
+  route to Go is the tunnel. Anything else that can reach the API port, such as a public listener,
+  a port forward, another reverse proxy or a second tunnel without Cloudflare in front, lets a client
+  send its own `CF-Connecting-IP` and pick its rate-limit bucket. Keep Go on loopback and do not add
+  a hop to `TRUSTED_PROXIES` that is not cloudflared.
+- **TLS and HSTS live at Cloudflare.** Turn on "Always Use HTTPS" and HSTS (SSL/TLS → Edge
+  Certificates) for both hostnames. Go does not send HSTS. It sends
   `X-Content-Type-Options: nosniff` on every response (`middlewares.SecurityHeaders`).
+- **Docs stay off.** `/docs`, `/openapi.*` and `/schemas/*` are not registered with
+  `APP_ENV=production` (`TestDocsGating`), so the API hostname does not serve them.
+- Build Next with `NEXT_PUBLIC_API_BASE_URL=https://api.sakunoie.example` (`../frontend/README.md`).
+  Production does not use the Next rewrite.
 - The limiter keeps at most 100,000 buckets in memory; past that it drops expired and then
-  arbitrary buckets down to 90% and logs one WARN.
+  arbitrary buckets down to 90% and logs one WARN. It is per process (one API instance).
+
+For local development without Cloudflare, the defaults (`CLIENT_IP_HEADER=X-Real-IP`,
+`TRUSTED_PROXIES=127.0.0.1,::1`) apply. Behind the dev rewrite, every client shares one bucket unless
+a proxy sets `X-Real-IP`.
+
+### CORS
+
+`middlewares.CORS` runs in the Gin chain before the rate limiter, admin auth and Huma.
+
+- An `Origin` that exactly matches an entry of `CORS_ALLOWED_ORIGINS` gets
+  `Access-Control-Allow-Origin: <origin>` and
+  `Access-Control-Expose-Headers: ETag, X-Request-ID, Retry-After, Content-Disposition` on every
+  response, including 4xx/5xx error envelopes, so the browser can read the error code.
+  `Content-Disposition` is exposed for the admin CSV filename. Every response has `Vary: Origin`.
+- `Access-Control-Allow-Credentials` is never sent: the app uses `Authorization: Bearer`, not cookies.
+- A preflight (`OPTIONS` with `Access-Control-Request-Method`) is answered **204** right away and is
+  never counted by the rate limiter. For an allowed origin it carries
+  `Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS`,
+  `Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, If-Match, X-Request-ID`
+  and `Access-Control-Max-Age: 600`.
+- A disallowed origin gets the same plain **204** for a preflight, and normal responses for other
+  requests, but no `Access-Control-*` header, so the browser blocks the call. A 204 was chosen over a
+  403 so that the response does not reveal whether an origin is on the list.
+- With `CORS_ALLOWED_ORIGINS` empty (development and tests by default), no CORS header is sent and
+  preflights fall through to the 404 envelope.
 
 ### Generating keys
 

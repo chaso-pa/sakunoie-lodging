@@ -1993,5 +1993,5 @@ paths:
       tags:
         - Surveys
 servers:
-  - description: Same origin as the web app
+  - description: The API origin
     url: /

@@ -14,10 +14,14 @@ import (
 )
 
 func newLimitedEngine(t *testing.T, perMin int, logs *bytes.Buffer) *gin.Engine {
+	return newLimitedEngineHeader(t, perMin, logs, "X-Real-IP")
+}
+
+func newLimitedEngineHeader(t *testing.T, perMin int, logs *bytes.Buffer, header string) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if err := ConfigureClientIP(r, []string{"127.0.0.1", "::1"}); err != nil {
+	if err := ConfigureClientIP(r, []string{"127.0.0.1", "::1"}, header); err != nil {
 		t.Fatal(err)
 	}
 	logger := slog.New(slog.NewJSONHandler(logs, nil))
@@ -112,6 +116,57 @@ func TestRateLimitClientIPTrustBoundary(t *testing.T) {
 	}
 	if w := postHeaders(r, "127.0.0.1:1", "", "192.0.2.1"); w.Code != http.StatusTooManyRequests {
 		t.Fatalf("same X-Real-IP client must be limited: %d", w.Code)
+	}
+
+	// CLIENT_IP_HEADER=CF-Connecting-IP (Cloudflare Tunnel; cloudflared is the trusted hop).
+	cf := func(r *gin.Engine, remote, xff, realIP, cfIP string) int {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/guest-registrations", nil)
+		req.RemoteAddr = remote
+		for k, v := range map[string]string{"X-Forwarded-For": xff, "X-Real-IP": realIP, "CF-Connecting-IP": cfIP} {
+			if v != "" {
+				req.Header.Set(k, v)
+			}
+		}
+		r.ServeHTTP(w, req)
+		return w.Code
+	}
+
+	// Trusted hop: CF-Connecting-IP is the client key; X-Real-IP is no longer read.
+	r = newLimitedEngineHeader(t, 1, &logs, "CF-Connecting-IP")
+	if code := cf(r, "127.0.0.1:1", "", "203.0.113.50", "192.0.2.1"); code != http.StatusCreated {
+		t.Fatalf("first: %d", code)
+	}
+	if code := cf(r, "127.0.0.1:1", "", "203.0.113.50", "192.0.2.2"); code != http.StatusCreated {
+		t.Fatalf("distinct CF-Connecting-IP clients behind a trusted hop share a bucket: %d", code)
+	}
+	if code := cf(r, "127.0.0.1:1", "", "203.0.113.51", "192.0.2.1"); code != http.StatusTooManyRequests {
+		t.Fatalf("same CF-Connecting-IP client must be limited even with another X-Real-IP: %d", code)
+	}
+
+	// Untrusted peer: a client-sent CF-Connecting-IP is ignored (RemoteAddr bucket).
+	r = newLimitedEngineHeader(t, 1, &logs, "CF-Connecting-IP")
+	if code := cf(r, "198.51.100.1:1", "", "", "192.0.2.1"); code != http.StatusCreated {
+		t.Fatalf("first: %d", code)
+	}
+	if code := cf(r, "198.51.100.1:1", "", "", "192.0.2.2"); code != http.StatusTooManyRequests {
+		t.Fatalf("CF-Connecting-IP from an untrusted peer must be ignored, got %d", code)
+	}
+
+	// Trusted hop: a spoofed X-Forwarded-For neither changes the bucket nor
+	// replaces a missing CF-Connecting-IP.
+	r = newLimitedEngineHeader(t, 1, &logs, "CF-Connecting-IP")
+	if code := cf(r, "127.0.0.1:1", "192.0.2.1", "", "192.0.2.9"); code != http.StatusCreated {
+		t.Fatalf("first: %d", code)
+	}
+	if code := cf(r, "127.0.0.1:1", "192.0.2.2", "", "192.0.2.9"); code != http.StatusTooManyRequests {
+		t.Fatalf("rotating X-Forwarded-For escaped the CF-Connecting-IP bucket: %d", code)
+	}
+	if code := cf(r, "127.0.0.1:1", "192.0.2.3", "", ""); code != http.StatusCreated {
+		t.Fatalf("first request keyed on the peer: %d", code)
+	}
+	if code := cf(r, "127.0.0.1:1", "192.0.2.4", "", ""); code != http.StatusTooManyRequests {
+		t.Fatalf("without CF-Connecting-IP, X-Forwarded-For must not become the key: %d", code)
 	}
 }
 

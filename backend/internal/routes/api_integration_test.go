@@ -62,6 +62,8 @@ func newHarness(t *testing.T) *harness {
 	cfg := &config.Config{
 		AppEnv:                config.EnvTest,
 		TrustedProxies:        []string{"127.0.0.1", "::1"},
+		ClientIPHeader:        "X-Real-IP",
+		CORSOrigins:           []string{testWebOrigin},
 		RateLimitCreatePerMin: 1000,
 		RateLimitManagePerMin: 1000,
 		RateLimitSurveyPerMin: 1000,

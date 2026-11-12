@@ -39,13 +39,14 @@ type bucket struct {
 	lastSeen time.Time
 }
 
-// ConfigureClientIP makes c.ClientIP() trust only an X-Real-IP header that a
-// TRUSTED_PROXIES peer sent. X-Forwarded-For is never read: the Next rewrite
-// forwards the client's XFF unchanged without appending the peer, so a
-// trusted-hop XFF is client-controlled. The edge proxy must overwrite
-// X-Real-IP with the peer address (see README "Client IP").
-func ConfigureClientIP(r *gin.Engine, trusted []string) error {
-	r.RemoteIPHeaders = []string{"X-Real-IP"}
+// ConfigureClientIP makes c.ClientIP() trust exactly one header
+// (CLIENT_IP_HEADER: X-Real-IP by default, CF-Connecting-IP behind Cloudflare),
+// and only when the TCP peer is in TRUSTED_PROXIES. X-Forwarded-For is never
+// read: a client can append to it, and the Next rewrite forwards it unchanged
+// (security review HIGH-1). config.Load refuses XFF as the header. The hop in
+// front of Go must overwrite the header (README "Cloudflare Tunnel deployment").
+func ConfigureClientIP(r *gin.Engine, trusted []string, header string) error {
+	r.RemoteIPHeaders = []string{header}
 	return r.SetTrustedProxies(trusted)
 }
 

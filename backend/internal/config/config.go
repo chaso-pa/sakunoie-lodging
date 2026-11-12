@@ -6,6 +6,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -22,9 +25,12 @@ const (
 // are never formatted into errors or logs.
 type Config struct {
 	AppEnv         string
+	BindAddr       string // BIND_ADDR; "" listens on every interface
 	Port           string
 	DatabaseURL    string // GORM_DATABASE_URL
 	TrustedProxies []string
+	ClientIPHeader string   // CLIENT_IP_HEADER, the one header trusted from TRUSTED_PROXIES
+	CORSOrigins    []string // CORS_ALLOWED_ORIGINS; empty = CORS disabled (same origin only)
 
 	PassportKeys        map[byte][]byte
 	PassportActiveKeyID byte
@@ -38,6 +44,9 @@ type Config struct {
 	RateLimitSurveyPerMin int
 	SurveyMinResponses    int
 }
+
+// ListenAddr is the http.Server address (BIND_ADDR:PORT).
+func (c *Config) ListenAddr() string { return net.JoinHostPort(c.BindAddr, c.Port) }
 
 // DocsEnabled reports whether /docs, /schemas and /openapi.* are served.
 func (c *Config) DocsEnabled() bool { return c.AppEnv != EnvProduction }
@@ -106,6 +115,32 @@ func Load(getenv func(string) string) (*Config, error) {
 
 	c.TrustedProxies = splitList(orDefault(getenv("TRUSTED_PROXIES"), "127.0.0.1,::1"))
 
+	c.ClientIPHeader = orDefault(getenv("CLIENT_IP_HEADER"), "X-Real-IP")
+	if err := validateClientIPHeader(c.ClientIPHeader); err != nil {
+		return nil, err
+	}
+
+	for _, o := range splitList(getenv("CORS_ALLOWED_ORIGINS")) {
+		if err := validateOrigin(o); err != nil {
+			return nil, err
+		}
+		c.CORSOrigins = append(c.CORSOrigins, o)
+	}
+	if c.AppEnv == EnvProduction && len(c.CORSOrigins) == 0 {
+		return nil, errors.New("config: CORS_ALLOWED_ORIGINS is required with APP_ENV=production (the web origin, e.g. https://sakunoie.example)")
+	}
+
+	// Production listens on loopback unless told otherwise: only cloudflared on
+	// the same host reaches it (README "Cloudflare Tunnel deployment").
+	bindDefault := ""
+	if c.AppEnv == EnvProduction {
+		bindDefault = "127.0.0.1"
+	}
+	c.BindAddr = orDefault(getenv("BIND_ADDR"), bindDefault)
+	if c.BindAddr != "" && net.ParseIP(c.BindAddr) == nil {
+		return nil, errors.New("config: BIND_ADDR must be an IP address (e.g. 127.0.0.1, ::1 or 0.0.0.0)")
+	}
+
 	for _, f := range []struct {
 		name string
 		dst  *int
@@ -123,6 +158,43 @@ func Load(getenv func(string) string) (*Config, error) {
 		*f.dst = v
 	}
 	return c, nil
+}
+
+// headerToken is an RFC 9110 field-name token.
+var headerToken = regexp.MustCompile("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
+
+// validateClientIPHeader accepts one header name. X-Forwarded-For and
+// Forwarded are refused: a client can append to them and the Next rewrite
+// forwards them unchanged (security review HIGH-1).
+func validateClientIPHeader(h string) error {
+	if !headerToken.MatchString(h) {
+		return errors.New("config: CLIENT_IP_HEADER must be a single header name (e.g. X-Real-IP or CF-Connecting-IP)")
+	}
+	if strings.EqualFold(h, "X-Forwarded-For") || strings.EqualFold(h, "Forwarded") {
+		return errors.New("config: CLIENT_IP_HEADER must not be X-Forwarded-For or Forwarded (client-appendable)")
+	}
+	return nil
+}
+
+// validateOrigin accepts an exact, canonical browser origin: http(s)://host[:port]
+// in lower case, without path, query, fragment, user info or a default port,
+// because the Origin header is compared byte for byte.
+func validateOrigin(o string) error {
+	bad := fmt.Errorf("config: CORS_ALLOWED_ORIGINS: %q is not an exact origin like https://sakunoie.example", o)
+	if o == "*" || o == "null" {
+		return fmt.Errorf("config: CORS_ALLOWED_ORIGINS must list exact origins, not %q", o)
+	}
+	u, err := url.Parse(o)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.Hostname() == "" ||
+		u.User != nil || u.Opaque != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery || u.Path != "" ||
+		strings.Contains(u.Host, "*") {
+		return bad
+	}
+	if (u.Scheme == "https" && u.Port() == "443") || (u.Scheme == "http" && u.Port() == "80") ||
+		u.Scheme+"://"+strings.ToLower(u.Host) != o {
+		return bad
+	}
+	return nil
 }
 
 func orDefault(v, def string) string {

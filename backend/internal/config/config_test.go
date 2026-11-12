@@ -35,6 +35,9 @@ func TestLoadDefaults(t *testing.T) {
 	if strings.Join(c.TrustedProxies, ",") != "127.0.0.1,::1" {
 		t.Fatalf("trusted proxies: %v", c.TrustedProxies)
 	}
+	if c.ClientIPHeader != "X-Real-IP" || c.CORSOrigins != nil || c.BindAddr != "" || c.ListenAddr() != ":8080" {
+		t.Fatalf("client IP header %q, CORS %v, listen %q", c.ClientIPHeader, c.CORSOrigins, c.ListenAddr())
+	}
 	if !c.DocsEnabled() {
 		t.Fatal("docs must be enabled in test")
 	}
@@ -65,7 +68,16 @@ func TestLoadRefusals(t *testing.T) {
 		"hmac_short": func(e map[string]string) {
 			e["IDEMPOTENCY_HMAC_KEY"] = base64.StdEncoding.EncodeToString([]byte("short"))
 		},
-		"rate_limit_invalid": func(e map[string]string) { e["RATE_LIMIT_CREATE_PER_MIN"] = "0" },
+		"rate_limit_invalid":      func(e map[string]string) { e["RATE_LIMIT_CREATE_PER_MIN"] = "0" },
+		"production_without_cors": func(e map[string]string) { e["APP_ENV"] = "production" },
+		"client_ip_xff":           func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Forwarded-For" },
+		"client_ip_xff_lower":     func(e map[string]string) { e["CLIENT_IP_HEADER"] = "x-forwarded-for" },
+		"client_ip_forwarded":     func(e map[string]string) { e["CLIENT_IP_HEADER"] = "Forwarded" },
+		"client_ip_list":          func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Real-IP,CF-Connecting-IP" },
+		"client_ip_space":         func(e map[string]string) { e["CLIENT_IP_HEADER"] = "CF Connecting IP" },
+		"client_ip_colon":         func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Real-IP:" },
+		"bind_not_ip":             func(e map[string]string) { e["BIND_ADDR"] = "localhost" },
+		"bind_with_port":          func(e map[string]string) { e["BIND_ADDR"] = "127.0.0.1:8080" },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -91,14 +103,64 @@ func TestEmulatorAllowedOutsideProduction(t *testing.T) {
 	}
 }
 
-func TestProductionDisablesDocs(t *testing.T) {
+func TestProductionDefaults(t *testing.T) {
 	env := baseEnv()
 	env["APP_ENV"] = "production"
+	env["CORS_ALLOWED_ORIGINS"] = "https://sakunoie.example"
 	c, err := load(env)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if c.DocsEnabled() {
 		t.Fatal("docs must be disabled in production")
+	}
+	// Loopback by default: only cloudflared on the same host reaches the API.
+	if c.BindAddr != "127.0.0.1" || c.ListenAddr() != "127.0.0.1:8080" {
+		t.Fatalf("production listen address %q", c.ListenAddr())
+	}
+	env["BIND_ADDR"] = "0.0.0.0"
+	if c, err = load(env); err != nil || c.ListenAddr() != "0.0.0.0:8080" {
+		t.Fatalf("explicit BIND_ADDR: %v %v", c, err)
+	}
+}
+
+func TestCORSOriginValidation(t *testing.T) {
+	bad := []string{
+		"*", "null", "https://*.sakunoie.example", "sakunoie.example", "//sakunoie.example",
+		"https://sakunoie.example/", "https://sakunoie.example/app", "https://sakunoie.example?x=1",
+		"https://sakunoie.example#f", "https://user@sakunoie.example", "ftp://sakunoie.example",
+		"HTTPS://sakunoie.example", "https://Sakunoie.example", "https://sakunoie.example:443",
+		"http://127.0.0.1:80", "https://", "https://:8443",
+		"https://ok.example,*",
+	}
+	for _, o := range bad {
+		env := baseEnv()
+		env["CORS_ALLOWED_ORIGINS"] = o
+		if _, err := load(env); err == nil {
+			t.Errorf("%q: expected refusal", o)
+		}
+	}
+	env := baseEnv()
+	env["CORS_ALLOWED_ORIGINS"] = " https://sakunoie.example , http://127.0.0.1:3100,http://[::1]:3100 "
+	c, err := load(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(c.CORSOrigins, " ") != "https://sakunoie.example http://127.0.0.1:3100 http://[::1]:3100" {
+		t.Fatalf("origins: %v", c.CORSOrigins)
+	}
+}
+
+func TestClientIPHeaderAndBindAddr(t *testing.T) {
+	env := baseEnv()
+	env["CLIENT_IP_HEADER"] = "CF-Connecting-IP"
+	env["BIND_ADDR"] = "::1"
+	env["PORT"] = "8181"
+	c, err := load(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.ClientIPHeader != "CF-Connecting-IP" || c.ListenAddr() != "[::1]:8181" {
+		t.Fatalf("header %q, listen %q", c.ClientIPHeader, c.ListenAddr())
 	}
 }
