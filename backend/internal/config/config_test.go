@@ -70,14 +70,18 @@ func TestLoadRefusals(t *testing.T) {
 		},
 		"rate_limit_invalid":      func(e map[string]string) { e["RATE_LIMIT_CREATE_PER_MIN"] = "0" },
 		"production_without_cors": func(e map[string]string) { e["APP_ENV"] = "production" },
-		"client_ip_xff":           func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Forwarded-For" },
-		"client_ip_xff_lower":     func(e map[string]string) { e["CLIENT_IP_HEADER"] = "x-forwarded-for" },
-		"client_ip_forwarded":     func(e map[string]string) { e["CLIENT_IP_HEADER"] = "Forwarded" },
-		"client_ip_list":          func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Real-IP,CF-Connecting-IP" },
-		"client_ip_space":         func(e map[string]string) { e["CLIENT_IP_HEADER"] = "CF Connecting IP" },
-		"client_ip_colon":         func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Real-IP:" },
-		"bind_not_ip":             func(e map[string]string) { e["BIND_ADDR"] = "localhost" },
-		"bind_with_port":          func(e map[string]string) { e["BIND_ADDR"] = "127.0.0.1:8080" },
+		"production_without_client_ip_header": func(e map[string]string) {
+			e["APP_ENV"] = "production"
+			e["CORS_ALLOWED_ORIGINS"] = "https://sakunoie.example"
+		},
+		"client_ip_xff":       func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Forwarded-For" },
+		"client_ip_xff_lower": func(e map[string]string) { e["CLIENT_IP_HEADER"] = "x-forwarded-for" },
+		"client_ip_forwarded": func(e map[string]string) { e["CLIENT_IP_HEADER"] = "Forwarded" },
+		"client_ip_list":      func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Real-IP,CF-Connecting-IP" },
+		"client_ip_space":     func(e map[string]string) { e["CLIENT_IP_HEADER"] = "CF Connecting IP" },
+		"client_ip_colon":     func(e map[string]string) { e["CLIENT_IP_HEADER"] = "X-Real-IP:" },
+		"bind_not_ip":         func(e map[string]string) { e["BIND_ADDR"] = "localhost" },
+		"bind_with_port":      func(e map[string]string) { e["BIND_ADDR"] = "127.0.0.1:8080" },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -107,6 +111,7 @@ func TestProductionDefaults(t *testing.T) {
 	env := baseEnv()
 	env["APP_ENV"] = "production"
 	env["CORS_ALLOWED_ORIGINS"] = "https://sakunoie.example"
+	env["CLIENT_IP_HEADER"] = "CF-Connecting-IP"
 	c, err := load(env)
 	if err != nil {
 		t.Fatal(err)

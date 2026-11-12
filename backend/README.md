@@ -60,7 +60,7 @@ throwaway compose URLs.
 | `PORT` | no (8080) | listen port |
 | `BIND_ADDR` | no (`127.0.0.1` in production, every interface otherwise) | listen IP (an IP literal: `127.0.0.1`, `::1`, `0.0.0.0`). Production listens on loopback, so only cloudflared on the same host can reach Go (see [Cloudflare Tunnel deployment](#cloudflare-tunnel-deployment)). |
 | `TRUSTED_PROXIES` | no (`127.0.0.1,::1`) | peers whose `CLIENT_IP_HEADER` is trusted as the client IP. List only the hop that connects to Go (cloudflared). |
-| `CLIENT_IP_HEADER` | no (`X-Real-IP`) | the **one** header read from a `TRUSTED_PROXIES` peer. Production behind Cloudflare: `CF-Connecting-IP`. A single header-name token; `X-Forwarded-For` and `Forwarded` are refused at startup, and XFF is never read. |
+| `CLIENT_IP_HEADER` | production: **yes**; otherwise no (`X-Real-IP`) | the **one** header read from a `TRUSTED_PROXIES` peer. Production behind Cloudflare: `CF-Connecting-IP`. A single header-name token; `X-Forwarded-For` and `Forwarded` are refused at startup, and XFF is never read. |
 | `CORS_ALLOWED_ORIGINS` | **production** | comma-separated exact origins allowed to call the API from a browser, e.g. `https://sakunoie.example`. Lower-case `scheme://host[:port]` with no path, trailing slash or default port; `*` and `null` are refused. Empty disables CORS (same origin only). See [CORS](#cors). |
 | `PASSPORT_ENC_KEYS` | yes | `1:<base64 32 bytes>[,2:<…>]`, AES-256-GCM keys by ID |
 | `PASSPORT_ENC_ACTIVE_KEY_ID` | yes | the key ID used for new encryptions |

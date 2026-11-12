@@ -115,6 +115,12 @@ func Load(getenv func(string) string) (*Config, error) {
 
 	c.TrustedProxies = splitList(orDefault(getenv("TRUSTED_PROXIES"), "127.0.0.1,::1"))
 
+	// Production must name the header explicitly: behind Cloudflare a client-sent
+	// X-Real-IP passes through untouched, so a silent default would let any visitor
+	// pick their own rate-limit bucket.
+	if c.AppEnv == EnvProduction && strings.TrimSpace(getenv("CLIENT_IP_HEADER")) == "" {
+		return nil, errors.New("config: CLIENT_IP_HEADER is required with APP_ENV=production (CF-Connecting-IP behind Cloudflare)")
+	}
 	c.ClientIPHeader = orDefault(getenv("CLIENT_IP_HEADER"), "X-Real-IP")
 	if err := validateClientIPHeader(c.ClientIPHeader); err != nil {
 		return nil, err
