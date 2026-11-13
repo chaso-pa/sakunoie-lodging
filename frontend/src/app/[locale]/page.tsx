@@ -26,13 +26,25 @@ export default async function HomePage({ params }: PageProps) {
   const { meta, body } = await loadPage(locale, 'home');
   const photo = (id: string) => defaultFacility.photos.find((p) => p.id === id) ?? defaultFacility.photos[0];
   const previews = ['room', 'shared', 'dining'].map(photo);
+  const heroSlides = ['room', 'shared', 'dining'].map(photo);
 
   return (
     <>
       <PhotoHero
-        photo={photo('hero')}
-        alt={photo('hero').alt[locale]}
-        badge={t('publicSite.placeholderPhoto')}
+        slides={heroSlides.map((p) => ({
+          src: p.src,
+          alt: p.alt[locale],
+          focalPoint: p.focalPoint,
+          placeholder: p.placeholder
+        }))}
+        labels={{
+          region: t('publicSite.heroSlidesLabel'),
+          roleDescription: t('publicSite.galleryRoleDescription'),
+          pause: t('publicSite.heroPause'),
+          play: t('publicSite.heroPlay'),
+          goTo: heroSlides.map((_, i) => t('publicSite.heroGoTo', { n: i + 1 })),
+          badge: t('publicSite.placeholderPhoto')
+        }}
         title={meta.title}
         lead={meta.lead}
         actions={

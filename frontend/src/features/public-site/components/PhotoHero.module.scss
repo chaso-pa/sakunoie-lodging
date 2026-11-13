@@ -36,3 +36,90 @@
   top: mantine.rem(12px);
   right: mantine.rem(12px);
 }
+
+.slides {
+  position: absolute;
+  inset: 0;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1000ms ease;
+
+  &[data-active] {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+// Top-right on mobile (the stacked CTAs fill the bottom); bottom-right on desktop.
+.controls {
+  position: absolute;
+  z-index: 1;
+  top: mantine.rem(8px);
+  right: mantine.rem(8px);
+  display: flex;
+  align-items: center;
+  gap: mantine.rem(2px);
+  padding: 0 mantine.rem(4px);
+  border-radius: var(--mantine-radius-xl);
+  background: rgba(23, 26, 24, 0.35);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    top: auto;
+    right: mantine.rem(24px);
+    bottom: mantine.rem(24px);
+  }
+}
+
+// 44px hit area around an 8px dot.
+.dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: mantine.rem(28px);
+  height: mantine.rem(44px);
+
+  span {
+    display: block;
+    width: mantine.rem(8px);
+    height: mantine.rem(8px);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    transition:
+      width 200ms ease,
+      background-color 200ms ease;
+  }
+
+  &[data-active] span {
+    width: mantine.rem(22px);
+    border-radius: mantine.rem(4px);
+    background: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -6px;
+    border-radius: var(--mantine-radius-sm);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    span {
+      transition: none;
+    }
+  }
+}
+
+.playPause {
+  color: #fff;
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -4px;
+  }
+}

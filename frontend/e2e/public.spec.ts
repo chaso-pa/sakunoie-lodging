@@ -88,11 +88,19 @@ test.describe('public site', () => {
 
   test('real photos load with alt text and no placeholder badge; gallery counts every photo', async ({ page }) => {
     const gallery = facility.photos.filter((p) => p.id !== 'hero');
-    const hero = facility.photos.find((p) => p.id === 'hero');
+    const heroSlides = ['room', 'shared', 'dining'].map((id) => facility.photos.find((p) => p.id === id));
     const loaded = (img: HTMLImageElement) => img.complete && img.naturalWidth > 0;
 
     await page.goto('/ja');
-    await expect(page.getByRole('img', { name: hero?.alt.ja })).toBeVisible();
+    // Hero slideshow: the first slide is exposed; dots switch slides and pause toggles autoplay.
+    const hero = page.locator('section[aria-labelledby="hero-title"]');
+    await waitForHydrated(page, 'section[aria-labelledby="hero-title"] button');
+    await expect(hero.getByRole('img', { name: heroSlides[0]?.alt.ja })).toBeVisible();
+    await hero.getByRole('button', { name: 'スライドショーを一時停止' }).click();
+    await expect(hero.getByRole('button', { name: 'スライドショーを再生' })).toBeVisible();
+    await hero.getByRole('button', { name: '3枚目の写真を表示' }).click();
+    await expect(hero.getByRole('img', { name: heroSlides[2]?.alt.ja })).toBeVisible();
+    await expect(hero.getByRole('img', { name: heroSlides[0]?.alt.ja })).toHaveCount(0);
     await expect(page.getByText('仮画像')).toHaveCount(0);
     for (const img of await page.locator('main img').all()) {
       await img.scrollIntoViewIfNeeded();

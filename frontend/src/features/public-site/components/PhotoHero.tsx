@@ -1,30 +1,21 @@
-import { Badge, Container, Stack, Text, Title } from '@mantine/core';
-import Image from 'next/image';
+import { Container, Stack, Text, Title } from '@mantine/core';
 import type { ReactNode } from 'react';
-import type { FacilityPhoto } from '@/config/site';
+import { type HeroSlide, HeroSlideshow } from '@/features/public-site/components/HeroSlideshow';
 import classes from '@/features/public-site/components/PhotoHero.module.scss';
 
-type Props = { photo: FacilityPhoto; alt: string; badge: string; title: string; lead: string; actions: ReactNode };
+type Props = {
+  slides: HeroSlide[];
+  labels: { region: string; roleDescription: string; pause: string; play: string; goTo: string[]; badge: string };
+  title: string;
+  lead: string;
+  actions: ReactNode;
+};
 
-/** Edge-to-edge hero: portrait crop on mobile, wide on desktop, text on a dark scrim (DESIGN §5.1). */
-export function PhotoHero({ photo, alt, badge, title, lead, actions }: Props) {
+/** Edge-to-edge hero: cross-fading photos, portrait crop on mobile, wide on desktop, text on a dark scrim (DESIGN §5.1). */
+export function PhotoHero({ slides, labels, title, lead, actions }: Props) {
   return (
     <section className={classes.hero} aria-labelledby='hero-title'>
-      <Image
-        src={photo.src}
-        alt={alt}
-        fill
-        priority
-        unoptimized
-        sizes='100vw'
-        style={{ objectFit: 'cover', objectPosition: photo.focalPoint }}
-      />
-      <div className={classes.scrim} aria-hidden />
-      {photo.placeholder ? (
-        <Badge className={classes.badge} color='dark' variant='filled' radius='sm' style={{ textTransform: 'none' }}>
-          {badge}
-        </Badge>
-      ) : null}
+      <HeroSlideshow slides={slides} labels={labels} />
       <div className={classes.content}>
         <Container size={1200}>
           <Stack gap='md' maw={680}>
