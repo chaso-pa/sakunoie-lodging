@@ -3,6 +3,7 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import { cache } from 'react';
 import { z } from 'zod';
+import { featureIconNames } from '@/features/public-site/types/icons';
 import { type Locale, routing } from '@/i18n/routing';
 
 /**
@@ -26,6 +27,9 @@ const baseSchema = z.object({
 });
 
 const featureIcon = z.enum(['door', 'users', 'map']);
+const text = z.string().min(1);
+const icon = z.enum(featureIconNames);
+const iconItem = z.object({ icon, text });
 
 export const frontMatterSchemas = {
   home: baseSchema.extend({
@@ -34,15 +38,37 @@ export const frontMatterSchemas = {
     features: z.array(z.object({ icon: featureIcon, title: z.string().min(1), body: z.string().min(1) })).length(3)
   }),
   facilities: baseSchema.extend({
-    sections: z
+    /** The decision-making facts right under the gallery (guests, check-in/out). Shown once only. */
+    keyFacts: z
       .array(
-        z.object({
-          id: z.enum(['room', 'shared', 'amenities', 'rules', 'access']),
-          title: z.string().min(1),
-          body: z.string().min(1)
-        })
+        z.union([
+          z.object({ icon, label: text, value: text }),
+          /** Several labelled values in one tile, e.g. check-in "IN 15:00〜" and check-out "OUT 〜10:00". */
+          z.object({ icon, label: text, lines: z.array(z.object({ tag: text, value: text })).min(2) })
+        ])
       )
       .min(1)
+      .max(4),
+    spaces: z.object({
+      title: text,
+      intro: text,
+      /** What only the guest uses. `photo` is a facility photo id; `items` must not repeat the key facts. */
+      private: z.object({ title: text, body: text, photo: text, items: z.array(iconItem).min(1) }),
+      /** What the guest shares (in part) with the host. `photos` are facility photo ids (1–3). */
+      shared: z.object({
+        title: text,
+        body: text,
+        photos: z.array(text).min(1).max(3),
+        items: z.array(iconItem).min(1)
+      }),
+      offLimits: text
+    }),
+    /** The grid itself comes from the facility JSON `amenities`; `note` flags what is still unconfirmed. */
+    amenities: z.object({ title: text, note: text.optional(), notePlaceholder: z.boolean() }),
+    rules: z.object({ title: text, items: z.array(z.object({ icon, title: text, body: text.optional() })).min(1) }),
+    access: z.object({ title: text, body: text, placeholder: z.boolean() }),
+    /** Summary of `rates.md` (same numbers; a test compares them) for the booking card. */
+    booking: z.object({ priceLabel: text, price: text, priceDetail: text, note: text })
   }),
   guide: baseSchema,
   faq: baseSchema.extend({

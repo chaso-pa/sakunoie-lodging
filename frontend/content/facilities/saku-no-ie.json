@@ -1,5 +1,5 @@
 {
-  "_todo": "要差し替え: airbnbUrl is flagged as a placeholder (airbnbUrlIsPlaceholder); confirm the listing URL before launch. Amenities list only facts the owner has confirmed (pricing page 宿泊料金表 as of 2026-10-01, and the terms): a private room in a host-occupied home, a queen bed, a projector, the LDK/pantry and laundry/bath shared in part with the host, coffee and snacks, free parking for 1 car and free Wi-Fi. Photos are the owner's Airbnb listing photos; when replacing one, keep alt (4 locales), aspectRatio (pixel ratio of the file) and focalPoint.",
+  "_todo": "airbnbUrl is the owner's Airbnb listing. Amenities list only facts the owner has confirmed (pricing page 宿泊料金表 as of 2026-10-01, and the terms) that the facilities page shows nowhere else: free parking for 1 car, free Wi-Fi, coffee and snacks in the pantry, towels, a toothbrush set, toner and lotion (towels confirmed by the owner 2026-11-15). The room size, queen bed, air conditioning and heating, and projector are in content/*/facilities.md (spaces.private), not here. Photos are the owner's Airbnb listing photos; when replacing one, keep alt (4 locales), aspectRatio (pixel ratio of the file) and focalPoint.",
   "code": "saku-no-ie",
   "name": {
     "ja": "佐久の家",
@@ -14,78 +14,8 @@
     "ko": "일본 나가노현 사쿠시"
   },
   "airbnbUrl": "https://www.airbnb.jp/rooms/1668838036170160414?adults=1&s=67&unique_share_id=5401bee4-9483-4701-9d61-7547ff1a6395",
-  "airbnbUrlIsPlaceholder": true,
+  "airbnbUrlIsPlaceholder": false,
   "amenities": [
-    {
-      "code": "private_room",
-      "icon": "door",
-      "label": {
-        "ja": "ゲスト用の個室",
-        "en": "Private guest room",
-        "zh-CN": "独立客房",
-        "ko": "게스트 전용 개인실"
-      }
-    },
-    {
-      "code": "host_on_site",
-      "icon": "home",
-      "label": {
-        "ja": "ホストが同じ家に在住",
-        "en": "Host lives in the home",
-        "zh-CN": "房东住在同一屋内",
-        "ko": "호스트가 같은 집에 거주"
-      }
-    },
-    {
-      "code": "queen_bed",
-      "icon": "bed",
-      "label": {
-        "ja": "クイーンベッド",
-        "en": "Queen bed",
-        "zh-CN": "大号双人床（Queen）",
-        "ko": "퀸 침대"
-      }
-    },
-    {
-      "code": "projector",
-      "icon": "projector",
-      "label": {
-        "ja": "プロジェクター",
-        "en": "Projector",
-        "zh-CN": "投影仪",
-        "ko": "프로젝터"
-      }
-    },
-    {
-      "code": "shared_ldk_pantry",
-      "icon": "sofa",
-      "label": {
-        "ja": "LDK・パントリー（一部ホストと共用）",
-        "en": "Living-dining-kitchen and pantry (partly shared with the host)",
-        "zh-CN": "客厅、餐厅、厨房和食品储藏室（部分与房东共用）",
-        "ko": "LDK·팬트리(일부 호스트와 공용)"
-      }
-    },
-    {
-      "code": "shared_laundry_bath",
-      "icon": "bath",
-      "label": {
-        "ja": "ランドリー・浴室（一部ホストと共用）",
-        "en": "Laundry room and bathroom (partly shared with the host)",
-        "zh-CN": "洗衣房和浴室（部分与房东共用）",
-        "ko": "세탁실·욕실(일부 호스트와 공용)"
-      }
-    },
-    {
-      "code": "coffee_snacks",
-      "icon": "coffee",
-      "label": {
-        "ja": "コーヒー・軽食",
-        "en": "Coffee and snacks",
-        "zh-CN": "咖啡和小零食",
-        "ko": "커피·간식"
-      }
-    },
     {
       "code": "free_parking",
       "icon": "parking",
@@ -104,6 +34,46 @@
         "en": "Free Wi-Fi",
         "zh-CN": "免费 Wi-Fi",
         "ko": "무료 Wi-Fi"
+      }
+    },
+    {
+      "code": "coffee_snacks",
+      "icon": "coffee",
+      "label": {
+        "ja": "コーヒー・軽食",
+        "en": "Coffee and snacks",
+        "zh-CN": "咖啡和小零食",
+        "ko": "커피·간식"
+      }
+    },
+    {
+      "code": "towels",
+      "icon": "towel",
+      "label": {
+        "ja": "タオル",
+        "en": "Towels",
+        "zh-CN": "毛巾",
+        "ko": "수건"
+      }
+    },
+    {
+      "code": "toothbrush_set",
+      "icon": "toothbrush",
+      "label": {
+        "ja": "歯磨きセット",
+        "en": "Toothbrush set",
+        "zh-CN": "牙刷套装",
+        "ko": "칫솔 세트"
+      }
+    },
+    {
+      "code": "skincare",
+      "icon": "skincare",
+      "label": {
+        "ja": "化粧水・乳液",
+        "en": "Toner and lotion",
+        "zh-CN": "化妆水、乳液",
+        "ko": "스킨·로션"
       }
     }
   ],

@@ -1,32 +1,58 @@
 import { Card, Text, ThemeIcon, Title } from '@mantine/core';
 import {
+  IconAirConditioning,
   IconBath,
   IconBed,
+  IconBottle,
+  IconClockHour3,
   IconCoffee,
+  IconDental,
   IconDeviceProjector,
   IconDoor,
   IconHome,
   IconMapPin,
+  IconMoodKid,
+  IconMoon,
+  IconMusicOff,
   IconParking,
+  IconRulerMeasure,
+  IconSmokingNo,
   IconSofa,
+  IconStack2,
+  IconToiletPaper,
+  IconUserCheck,
   IconUsers,
+  IconWashMachine,
   IconWifi
 } from '@tabler/icons-react';
+import type { FeatureIconName } from '@/features/public-site/types/icons';
 
-const icons = {
+const icons: Record<FeatureIconName, typeof IconHome> = {
   door: IconDoor,
   users: IconUsers,
   map: IconMapPin,
-  home: IconHome,
   bed: IconBed,
   projector: IconDeviceProjector,
   sofa: IconSofa,
   bath: IconBath,
   coffee: IconCoffee,
   parking: IconParking,
-  wifi: IconWifi
-} as const;
-export type FeatureIconName = keyof typeof icons;
+  wifi: IconWifi,
+  ruler: IconRulerMeasure,
+  clock: IconClockHour3,
+  toilet: IconToiletPaper,
+  laundry: IconWashMachine,
+  toothbrush: IconDental,
+  skincare: IconBottle,
+  // Tabler has no towel icon; a stack reads as folded towels.
+  towel: IconStack2,
+  airConditioning: IconAirConditioning,
+  smokingNo: IconSmokingNo,
+  moon: IconMoon,
+  musicOff: IconMusicOff,
+  userCheck: IconUserCheck,
+  child: IconMoodKid
+};
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {
   const Icon = icons[name as FeatureIconName] ?? IconHome;

@@ -1,0 +1,105 @@
+/* Mobile: one card, rows separated by hairlines. */
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--sakunoie-surface);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: mantine.rem(12px);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: mantine.rem(12px);
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: mantine.rem(16px);
+  }
+}
+
+.rule {
+  display: flex;
+  align-items: flex-start;
+  gap: mantine.rem(12px);
+  padding: mantine.rem(10px) mantine.rem(14px);
+
+  & + & {
+    border-top: 1px solid var(--sakunoie-border);
+  }
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    flex-direction: column;
+    gap: mantine.rem(12px);
+    padding: mantine.rem(20px);
+    background: var(--sakunoie-surface);
+    border: 1px solid var(--sakunoie-border);
+    border-radius: mantine.rem(12px);
+
+    & + & {
+      border-top: 1px solid var(--sakunoie-border);
+    }
+  }
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: mantine.rem(32px);
+  height: mantine.rem(32px);
+  border-radius: 50%;
+  color: var(--sakunoie-forest);
+  background: var(--mantine-color-forest-0);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    width: mantine.rem(44px);
+    height: mantine.rem(44px);
+    border-radius: mantine.rem(10px);
+  }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(2px);
+  min-width: 0;
+  padding-top: mantine.rem(2px);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    gap: mantine.rem(4px);
+    padding-top: 0;
+  }
+}
+
+.title {
+  margin: 0;
+  font-size: mantine.rem(15px);
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: auto-phrase;
+  text-wrap: balance;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    font-size: mantine.rem(16px);
+  }
+}
+
+.body {
+  margin: 0;
+  text-wrap: pretty;
+  font-size: mantine.rem(13px);
+  line-height: 1.6;
+  color: var(--mantine-color-dimmed);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    font-size: mantine.rem(14px);
+  }
+}

@@ -6,7 +6,9 @@ export function AmenityChip({ icon, label }: { icon: string; label: string }) {
   return (
     <Paper bg='var(--sakunoie-surface-muted)' radius='md' px='sm' py={10} mih={44}>
       <Group gap={8} wrap='nowrap'>
-        <FeatureIcon name={icon} size={20} />
+        <span style={{ display: 'inline-flex', flexShrink: 0 }}>
+          <FeatureIcon name={icon} size={20} />
+        </span>
         <Text size='sm' fw={500}>
           {label}
         </Text>

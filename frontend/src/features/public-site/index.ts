@@ -3,6 +3,15 @@ export { ContentPageHeader } from '@/features/public-site/components/ContentPage
 export { CroppedPhoto } from '@/features/public-site/components/CroppedPhoto';
 export { FaqList } from '@/features/public-site/components/FaqList';
 export { FeatureCard } from '@/features/public-site/components/FeatureCard';
+export { AmenityGrid } from '@/features/public-site/components/facility/AmenityGrid';
+export { ArrowLink } from '@/features/public-site/components/facility/ArrowLink';
+export { BookingCard, BookingReminder } from '@/features/public-site/components/facility/BookingCard';
+export { FacilityLayout } from '@/features/public-site/components/facility/FacilityLayout';
+export { FacilitySection, PlaceholderMark } from '@/features/public-site/components/facility/FacilitySection';
+export { KeyFacts } from '@/features/public-site/components/facility/KeyFacts';
+export { RuleCards } from '@/features/public-site/components/facility/RuleCards';
+export { SectionNav } from '@/features/public-site/components/facility/SectionNav';
+export { SpaceCards } from '@/features/public-site/components/facility/SpaceCards';
 export { MarkdownContent } from '@/features/public-site/components/MarkdownContent';
 export { PhotoGallery } from '@/features/public-site/components/PhotoGallery';
 export { PhotoHero } from '@/features/public-site/components/PhotoHero';

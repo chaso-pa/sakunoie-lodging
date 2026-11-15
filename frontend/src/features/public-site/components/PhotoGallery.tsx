@@ -82,7 +82,7 @@ export function PhotoGallery({ photos, badge, labels }: Props) {
               className={classes.slide}
               aria-label={format(labels.positionTemplate, i + 1, total)}
             >
-              <CroppedPhoto photo={p.photo} alt={p.alt} badge={badge} ratio={4 / 3} sizes='100vw' />
+              <CroppedPhoto photo={p.photo} alt={p.alt} badge={badge} ratio={3 / 2} sizes='100vw' />
             </figure>
           ))}
         </div>

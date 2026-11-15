@@ -1,51 +1,80 @@
 ---
 title: The home
-description: The guest room, shared spaces and house rules at Saku no Ie.
+description: The guest room, shared spaces, amenities, house rules and rates at Saku no Ie.
 version: "2026-11-01"
 effectiveDate: "2026-11-01"
-placeholder: true
-todo: "要差し替え: room, shared spaces, confirmed amenities and house rules come from the owner's rate table and terms (2026-10-01); location and other amenities are placeholder. List confirmed facts only."
-sections:
-  - id: room
+placeholder: false
+keyFacts:
+  - icon: users
+    label: Guests
+    value: 1–2
+  - icon: clock
+    label: Check-in / check-out
+    lines:
+      - tag: IN
+        value: from 15:00
+      - tag: OUT
+        value: by 10:00
+spaces:
+  title: Your room and shared spaces
+  intro: You stay in a private room in the home where the host lives. This is not an entire-home rental.
+  private:
     title: Guest room
-    body: |
-      You stay in a private guest room in the home where the host lives. This is not an entire-home rental.
-
-      - Size: 5.2 tatami mats
-      - Bed: 1 queen bed
-      - Capacity: 1–2 guests (stays above capacity cannot be accepted)
-      - Equipment: a projector
-      - The home does not adequately provide for the safety of infants and young children, so we ask guests to refrain from staying with children aged 5 or under
-  - id: shared
-    title: Shared spaces
-    body: |
-      Besides the guest room, you can use the LDK (living, dining and kitchen), pantry, laundry room, bathroom, changing room and toilet (partly shared with the host). Please do not enter the master bedroom or the study.
-  - id: amenities
-    title: Amenities
-    body: |
-      The following are confirmed:
-
-      - Coffee and snacks in the pantry
-      - A toothbrush set, toner and lotion
-      - Free parking (1 car)
-      - Free Wi-Fi
-
-      Other amenities (towels, heating and so on) will be added once confirmed (placeholder).
-  - id: rules
-    title: House rules
-    body: |
-      - Check-in: from 15:00 (please let us know your expected arrival time in advance)
-      - Check-out: by 10:00
-      - No smoking anywhere on the premises (including e-cigarettes and heated tobacco products)
-      - No curfew. 22:00–05:00 is quiet time; please avoid making noise
-      - No parties, loud music or anything else that disturbs the neighbors
-      - Only registered guests may enter the home
-
-      See the [terms of accommodation](/en/terms) for details.
-  - id: access
-    title: Location
-    body: |
-      The home is in Saku, Nagano. The exact address and directions are shared through Airbnb messages after your booking is confirmed (placeholder).
+    body: A private room used only by you and your companion.
+    photo: room-lights
+    items:
+      - icon: ruler
+        text: "Room size: 5.2 tatami mats"
+      - icon: bed
+        text: 1 queen bed
+      - icon: airConditioning
+        text: Air conditioning & heating
+      - icon: projector
+        text: With a projector
+  shared:
+    title: Shared with the host
+    body: You share these spaces, in part, with the host.
+    photos: [shared, bathroom, laundry]
+    items:
+      - icon: sofa
+        text: Living, dining and kitchen area, and the pantry
+      - icon: bath
+        text: Bathroom and changing room
+      - icon: toilet
+        text: Toilet
+      - icon: laundry
+        text: Laundry room
+  offLimits: Please do not enter the master bedroom or the study.
+amenities:
+  title: Amenities
+  notePlaceholder: false
+rules:
+  title: House rules
+  items:
+    - icon: smokingNo
+      title: No smoking anywhere
+      body: Including e-cigarettes and heated tobacco.
+    - icon: moon
+      title: Quiet hours 22:00–05:00
+      body: No curfew. Please be quiet at night.
+    - icon: musicOff
+      title: No parties or loud music
+      body: Please don't disturb the neighbors.
+    - icon: userCheck
+      title: Registered guests only
+      body: Only registered guests may enter the home.
+    - icon: child
+      title: Not suitable for children 5 and under
+      body: The home isn't equipped for young children's safety.
+access:
+  title: Location
+  body: The home is in Saku, Nagano. The exact address and directions are sent through Airbnb messages after your booking is confirmed.
+  placeholder: false
+booking:
+  priceLabel: Per night, taxes included
+  price: JPY 15,000–28,000
+  priceDetail: Per room; the same price for 1 or 2 guests
+  note: The price shown on the Airbnb booking screen applies. Airbnb may add its own fees.
 ---
 
 A private, hotel-like room in a home where the host lives.

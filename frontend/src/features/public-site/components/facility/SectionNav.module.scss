@@ -1,0 +1,55 @@
+.list {
+  display: flex;
+  gap: mantine.rem(8px);
+  margin: 0;
+  padding: mantine.rem(3px);
+  list-style: none;
+
+  /* Mobile: one horizontally scrollable row (the cut-off last chip shows there is more). */
+  @include mantine.smaller-than(mantine.$mantine-breakpoint-sm) {
+    margin: mantine.rem(-3px);
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    > li {
+      flex-shrink: 0;
+    }
+  }
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    flex-wrap: wrap;
+    margin: mantine.rem(-3px);
+  }
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: mantine.rem(44px);
+  padding: 0 mantine.rem(16px);
+  white-space: nowrap;
+  font-size: mantine.rem(14px);
+  font-weight: 600;
+  color: var(--mantine-color-text);
+  text-decoration: none;
+  background: var(--sakunoie-surface);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: 999px;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+
+  @include mantine.hover {
+    border-color: var(--sakunoie-forest);
+    background: var(--mantine-color-forest-0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sakunoie-forest);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

@@ -1,0 +1,75 @@
+.card,
+.reminder {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(16px);
+  padding: mantine.rem(24px);
+  background: var(--sakunoie-surface);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: mantine.rem(16px);
+  scroll-margin-top: mantine.rem(24px);
+}
+
+.card {
+  box-shadow:
+    0 1px 2px rgb(41 45 42 / 0.04),
+    0 8px 24px rgb(41 45 42 / 0.06);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    padding: mantine.rem(28px);
+  }
+}
+
+.title {
+  margin: 0;
+  font-size: mantine.rem(14px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--sakunoie-forest);
+}
+
+.priceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(2px);
+  margin: 0;
+}
+
+.priceLabel {
+  font-size: mantine.rem(14px);
+  color: var(--mantine-color-dimmed);
+}
+
+.price {
+  font-size: mantine.rem(28px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--mantine-color-text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  display: flex;
+  align-items: center;
+  gap: mantine.rem(8px);
+  margin: 0;
+  padding: mantine.rem(8px) mantine.rem(12px);
+  font-size: mantine.rem(14px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--sakunoie-forest);
+  background: var(--mantine-color-forest-0);
+  border-radius: mantine.rem(8px);
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.reminderTitle {
+  margin: 0;
+  font-size: mantine.rem(20px);
+  font-weight: 700;
+}

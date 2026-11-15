@@ -211,8 +211,8 @@ git-ignored, because they may contain synthetic tokens. CI runs the same steps (
 
 ## Placeholders to replace before launch
 
-- [ ] **Airbnb URL**: `content/facilities/saku-no-ie.json` `airbnbUrl` is the Airbnb top page. Set the
-      listing URL and `airbnbUrlIsPlaceholder: false`.
+- [x] **Airbnb URL**: `content/facilities/saku-no-ie.json` `airbnbUrl` is the owner's listing
+      (`airbnbUrlIsPlaceholder: false`).
 - [x] **Photos**: `public/images/saku-no-ie/*.jpg` are the owner's Airbnb listing photos (≤ 1600 px,
       metadata stripped). When replacing one, keep `alt` (4 locales), `aspectRatio` (the file's pixel
       ratio; a Vitest test checks it) and `focalPoint`.
@@ -231,5 +231,4 @@ git-ignored, because they may contain synthetic tokens. CI runs the same steps (
       shared LDK/pantry and laundry/bath, coffee and snacks, free parking for 1 car, free Wi-Fi).
 - [x] **Capacity**: `max_guests = 2` for `saku-no-ie` (owner decision). The insert-only seed inserts 2
       for fresh DBs; existing rows (the shared dev DB) are updated by hand.
-- [ ] Every other `placeholder: true` / `要差し替え` page (home, facilities, guide, FAQ: access, procedures,
-      other amenities such as towels and heating).
+- [ ] Every other `placeholder: true` / `要差し替え` page (home, guide, FAQ: access, procedures).
