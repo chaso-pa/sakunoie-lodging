@@ -26,16 +26,68 @@ const baseSchema = z.object({
   todo: z.string().optional()
 });
 
-const featureIcon = z.enum(['door', 'users', 'map']);
 const text = z.string().min(1);
 const icon = z.enum(featureIconNames);
 const iconItem = z.object({ icon, text });
+/** How long it takes and how: "徒歩約5分" with a walk icon. */
+const travelItem = z.object({ mode: z.enum(['walk', 'car', 'train']), text });
 
 export const frontMatterSchemas = {
+  /**
+   * Home landing page, top to bottom: hero, stay type, highlights, spaces, nearby, access. The price,
+   * check-in/out and booking card come from `facilities.md` (one source for those facts).
+   */
   home: baseSchema.extend({
-    lead: z.string().min(1),
-    stayType: z.object({ title: z.string().min(1), body: z.string().min(1) }),
-    features: z.array(z.object({ icon: featureIcon, title: z.string().min(1), body: z.string().min(1) })).length(3)
+    lead: text,
+    /** "What kind of stay": an appeal, with 2–3 chips (private room, shared in part, guests). */
+    stay: z.object({ eyebrow: text, title: text, body: text, chips: z.array(iconItem).min(2).max(3) }),
+    /** Confirmed facts only. `photo` is a facility photo id that is not a hero slide. */
+    highlights: z.object({
+      title: text,
+      items: z.array(z.object({ icon, title: text, body: text, photo: text.optional() })).length(3)
+    }),
+    /** Photo preview of what is private and what is shared (facility photo ids, not the hero slides). */
+    spaces: z.object({
+      title: text,
+      body: text,
+      private: z.object({ photo: text, label: text }),
+      shared: z
+        .array(z.object({ photo: text, label: text }))
+        .min(1)
+        .max(3)
+    }),
+    airbnb: z.object({ title: text, body: text }),
+    /** Nearby spots, owner-confirmed. The first is featured. `localName` is the Japanese name for maps. */
+    around: z.object({
+      title: text,
+      intro: text,
+      items: z
+        .array(
+          z.object({
+            icon,
+            name: text,
+            localName: text.optional(),
+            description: text,
+            travel: travelItem,
+            /** Optional background photo (featured card only): a local `/images/…jpg` path and its alt text. */
+            image: z.object({ src: z.string().regex(/^\/images\/[\w/-]+\.jpg$/), alt: text }).optional()
+          })
+        )
+        .min(2)
+        .max(6)
+    }),
+    /** Route from Tokyo (steps joined by legs), other nearby stations, and the address note. */
+    access: z.object({
+      title: text,
+      body: text,
+      route: z
+        .object({
+          steps: z.array(z.object({ name: text, note: text.optional() })).min(2),
+          legs: z.array(z.object({ travel: z.array(travelItem).min(1) }))
+        })
+        .refine((r) => r.legs.length === r.steps.length - 1, 'route needs one leg between each pair of steps'),
+      alternatives: z.array(z.object({ from: text, travel: z.array(travelItem).min(1) }))
+    })
   }),
   facilities: baseSchema.extend({
     /** The decision-making facts right under the gallery (guests, check-in/out). Shown once only. */

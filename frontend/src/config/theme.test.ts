@@ -29,6 +29,18 @@ describe('theme tokens meet WCAG AA (4.5:1) for normal text', () => {
     expect(contrast('#FFFFFF', tokens.forest)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('home bands: (translucent) white text on forest and forestDeep', () => {
+    /** `rgb(255 255 255 / alpha)` composited over `bg`. */
+    const whiteOver = (alpha: number, bg: string) => {
+      const ch = (i: number) => Math.round(alpha * 255 + (1 - alpha) * Number.parseInt(bg.slice(i, i + 2), 16));
+      return `#${[1, 3, 5].map((i) => ch(i).toString(16).padStart(2, '0')).join('')}`;
+    };
+    expect(contrast('#FFFFFF', tokens.forestDeep)).toBeGreaterThanOrEqual(4.5);
+    // Booking band intro (0.82–0.84) and the nearby featured card (0.8 local name, 0.88 description).
+    expect(contrast(whiteOver(0.82, tokens.forestDeep), tokens.forestDeep)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(whiteOver(0.8, tokens.forest), tokens.forest)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('documents why the DESIGN warning/terracotta shades are not used as text', () => {
     expect(contrast(tokens.warning, tokens.canvas)).toBeLessThan(4.5);
     expect(contrast(tokens.terracotta, tokens.canvas)).toBeLessThan(4.5);

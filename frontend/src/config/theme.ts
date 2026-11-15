@@ -81,6 +81,7 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     '--sakunoie-surface-muted': tokens.surfaceMuted,
     '--sakunoie-border': tokens.border,
     '--sakunoie-forest': tokens.forest,
+    '--sakunoie-forest-deep': tokens.forestDeep,
     '--sakunoie-success': tokens.success,
     '--sakunoie-warning-text': tokens.warningText,
     '--sakunoie-error': tokens.error

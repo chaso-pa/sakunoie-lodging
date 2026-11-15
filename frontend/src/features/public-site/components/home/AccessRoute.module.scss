@@ -1,0 +1,186 @@
+.wrap {
+  display: grid;
+  gap: mantine.rem(12px);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: mantine.rem(16px);
+  }
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: mantine.rem(20px);
+  }
+}
+
+/* The timeline: a rail on the left, a node per stop, the travel times on the rail between stops. */
+.route {
+  margin: 0;
+  padding: mantine.rem(20px);
+  list-style: none;
+  background: var(--sakunoie-surface);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: mantine.rem(16px);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    padding: mantine.rem(28px) mantine.rem(32px);
+  }
+}
+
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: mantine.rem(36px) minmax(0, 1fr);
+  column-gap: mantine.rem(14px);
+
+  /* Rail from this node down to the next one. */
+  &:not([data-last])::before {
+    content: '';
+    position: absolute;
+    top: mantine.rem(36px);
+    bottom: 0;
+    left: mantine.rem(17px);
+    width: 2px;
+    background: repeating-linear-gradient(
+      180deg,
+      var(--mantine-color-forest-2) 0 mantine.rem(6px),
+      transparent mantine.rem(6px) mantine.rem(10px)
+    );
+  }
+}
+
+.node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: mantine.rem(36px);
+  height: mantine.rem(36px);
+  color: var(--sakunoie-forest);
+  background: var(--mantine-color-forest-0);
+  border: 2px solid var(--mantine-color-forest-2);
+  border-radius: 50%;
+
+  [data-last] > & {
+    color: #fff;
+    background: var(--mantine-color-terracotta-6);
+    border-color: var(--mantine-color-terracotta-6);
+  }
+}
+
+.stop {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: mantine.rem(36px);
+}
+
+.name {
+  font-size: mantine.rem(17px);
+  font-weight: 700;
+  line-height: 1.4;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    font-size: mantine.rem(19px);
+  }
+}
+
+.note {
+  font-size: mantine.rem(14px);
+  line-height: 1.5;
+  color: var(--mantine-color-dimmed);
+}
+
+.leg {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: mantine.rem(6px);
+  padding-block: mantine.rem(12px) mantine.rem(16px);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(12px);
+}
+
+.alt {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(8px);
+  padding: mantine.rem(16px) mantine.rem(20px);
+  background: var(--sakunoie-surface);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: mantine.rem(16px);
+}
+
+.altFrom {
+  display: flex;
+  align-items: center;
+  gap: mantine.rem(8px);
+  margin: 0;
+  font-weight: 700;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--sakunoie-forest);
+  }
+}
+
+.altTimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: mantine.rem(6px);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: mantine.rem(8px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: mantine.rem(8px);
+  min-height: mantine.rem(40px);
+  padding: mantine.rem(6px) mantine.rem(14px);
+  font-size: mantine.rem(15px);
+  font-weight: 700;
+  background: var(--sakunoie-surface);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: mantine.rem(10px);
+
+  svg {
+    flex-shrink: 0;
+    color: var(--sakunoie-forest);
+  }
+}
+
+.address {
+  display: flex;
+  align-items: flex-start;
+  gap: mantine.rem(10px);
+  margin: 0;
+  padding: mantine.rem(12px) mantine.rem(14px);
+  font-size: mantine.rem(14px);
+  line-height: 1.65;
+  color: var(--mantine-color-dimmed);
+  background: var(--sakunoie-surface-muted);
+  border-radius: mantine.rem(12px);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: mantine.rem(3px);
+    color: var(--sakunoie-forest);
+  }
+}
+
+.area {
+  display: block;
+  font-weight: 700;
+  color: var(--mantine-color-text);
+}

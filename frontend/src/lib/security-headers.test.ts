@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCsp, buildPageHeaders, createNonce, isSensitivePath } from '@/lib/security-headers';
+import { buildCsp, buildPageHeaders, createNonce, isHomePath, isSensitivePath } from '@/lib/security-headers';
 
 const directive = (csp: string, name: string) =>
   csp
@@ -17,6 +17,9 @@ describe('buildCsp', () => {
     expect(directive(publicCsp, 'object-src')).toBe("'none'");
     expect(directive(publicCsp, 'base-uri')).toBe("'none'");
     expect(publicCsp).not.toMatch(/googleapis|unsafe-eval/);
+    // No frames by default (default-src 'self' applies); only the home page frames Airbnb.
+    expect(directive(publicCsp, 'frame-src')).toBeUndefined();
+    expect(publicCsp).not.toMatch(/airbnb/);
   });
 
   it("adds 'unsafe-eval' only in development", () => {
@@ -39,6 +42,38 @@ describe('buildCsp', () => {
         'connect-src'
       )
     ).toBe("'self'");
+  });
+});
+
+describe('Airbnb listing embed (frame-src on the home page only)', () => {
+  it('matches the home page of each locale and nothing else', () => {
+    for (const p of ['/ja', '/en', '/zh-CN', '/ko', '/ja/']) expect(isHomePath(p), p).toBe(true);
+    for (const p of [
+      '/',
+      '/fr',
+      '/ja/facilities',
+      '/ja/stays/saku-no-ie/registration',
+      '/en/registration/manage',
+      '/ja/survey',
+      '/admin',
+      '/admin/login',
+      '/jaa'
+    ]) {
+      expect(isHomePath(p), p).toBe(false);
+    }
+  });
+
+  it('adds frame-src for airbnb.com and airbnb.jp and leaves script-src and connect-src unchanged', () => {
+    const csp = buildCsp({ nonce: 'abc123==', isDev: false, isAdmin: false, allowAirbnbFrame: true });
+    expect(directive(csp, 'frame-src')).toBe('https://www.airbnb.com https://www.airbnb.jp');
+    expect(directive(csp, 'script-src')).toBe("'self' 'nonce-abc123==' 'strict-dynamic'");
+    expect(directive(csp, 'connect-src')).toBe("'self'");
+    expect(directive(csp, 'frame-ancestors')).toBe("'none'");
+  });
+
+  it('never frames Airbnb on admin pages, even if asked', () => {
+    const csp = buildCsp({ nonce: 'n', isDev: false, isAdmin: true, allowAirbnbFrame: true });
+    expect(directive(csp, 'frame-src')).toBeUndefined();
   });
 });
 

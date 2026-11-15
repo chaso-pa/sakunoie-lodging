@@ -68,6 +68,50 @@
   }
 }
 
+.times {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: mantine.rem(20px);
+  row-gap: mantine.rem(4px);
+  margin: 0;
+  border-top: 1px solid var(--sakunoie-border);
+  border-bottom: 1px solid var(--sakunoie-border);
+  padding-block: mantine.rem(12px);
+}
+
+.timesLabel {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: mantine.rem(8px);
+  font-size: mantine.rem(14px);
+  color: var(--mantine-color-dimmed);
+
+  svg {
+    flex-shrink: 0;
+    color: var(--sakunoie-forest);
+  }
+}
+
+.time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: mantine.rem(8px);
+  margin: 0;
+  font-size: mantine.rem(20px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.timeTag {
+  font-size: mantine.rem(12px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--sakunoie-forest);
+}
+
 .reminderTitle {
   margin: 0;
   font-size: mantine.rem(20px);

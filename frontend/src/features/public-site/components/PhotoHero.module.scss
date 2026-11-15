@@ -14,6 +14,14 @@
   }
 }
 
+// Break only between phrases (after commas / at spaces), balanced; a phrase too long for a very narrow
+// screen still wraps instead of overflowing.
+.title {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
 .scrim {
   position: absolute;
   inset: 0;

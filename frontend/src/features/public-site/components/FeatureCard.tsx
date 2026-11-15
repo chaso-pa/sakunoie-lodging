@@ -1,27 +1,34 @@
-import { Card, Text, ThemeIcon, Title } from '@mantine/core';
 import {
   IconAirConditioning,
   IconBath,
   IconBed,
   IconBottle,
+  IconBread,
+  IconCar,
   IconClockHour3,
   IconCoffee,
   IconDental,
   IconDeviceProjector,
   IconDoor,
   IconHome,
+  IconKey,
   IconMapPin,
   IconMoodKid,
   IconMoon,
+  IconMountain,
   IconMusicOff,
   IconParking,
   IconRulerMeasure,
+  IconShoppingCart,
   IconSmokingNo,
   IconSofa,
   IconStack2,
   IconToiletPaper,
+  IconToolsKitchen2,
+  IconTrain,
   IconUserCheck,
   IconUsers,
+  IconWalk,
   IconWashMachine,
   IconWifi
 } from '@tabler/icons-react';
@@ -51,24 +58,20 @@ const icons: Record<FeatureIconName, typeof IconHome> = {
   moon: IconMoon,
   musicOff: IconMusicOff,
   userCheck: IconUserCheck,
-  child: IconMoodKid
+  child: IconMoodKid,
+  car: IconCar,
+  key: IconKey,
+  home: IconHome,
+  walk: IconWalk,
+  train: IconTrain,
+  mountain: IconMountain,
+  restaurant: IconToolsKitchen2,
+  bread: IconBread,
+  cart: IconShoppingCart
 };
 
+/** Line icon for a content icon name (`types/icons.ts`); unknown names fall back to a house. */
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {
   const Icon = icons[name as FeatureIconName] ?? IconHome;
   return <Icon size={size} aria-hidden stroke={1.6} />;
-}
-
-export function FeatureCard({ icon, title, body }: { icon: string; title: string; body: string }) {
-  return (
-    <Card padding='lg' h='100%'>
-      <ThemeIcon variant='light' color='forest' size={44} radius='md' mb='sm'>
-        <FeatureIcon name={icon} />
-      </ThemeIcon>
-      <Title order={3} fz='lg' mb={6}>
-        {title}
-      </Title>
-      <Text c='dimmed'>{body}</Text>
-    </Card>
-  );
 }

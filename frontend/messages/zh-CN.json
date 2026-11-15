@@ -31,9 +31,15 @@
     "backHome": "返回首页"
   },
   "home": {
-    "registerTitle": "已预订的客人",
-    "registerBody": "请在入住前登记全部住客的信息。",
-    "registerCta": "开始住客登记"
+    "guestsTitle": "已预订的客人",
+    "guestsBody": "请在入住前登记住客信息，并在住宿后填写问卷。",
+    "registerCta": "住客登记",
+    "surveyCta": "住宿后问卷",
+    "airbnbFrameTitle": "佐久之家的 Airbnb 房源页面（照片与评价）",
+    "airbnbOpen": "在 Airbnb 查看",
+    "spacesLink": "查看客房与设施详情",
+    "routeLabel": "从东京出发的路线",
+    "placeholderBody": "房东的名字、自我介绍、会说的语言和照片正在准备中，上线前将替换。"
   },
   "guest": {
     "fullName": "姓名",
@@ -252,17 +258,12 @@
     "ratesLink": "查看价格详情",
     "termsLink": "查看住宿条款",
     "placeholderMark": "占位内容",
-    "featuresTitle": "佐久之家的特色",
-    "photosTitle": "客房与共用空间",
     "bookingTitle": "请通过 Airbnb 预订",
     "bookingBody": "价格与空房情况请在 Airbnb 房源页面确认。",
     "ratesItem": "项目",
     "ratesPrice": "参考价格",
     "ratesNote": "备注",
-    "ratesCaption": "参考价格（实际价格以 Airbnb 为准）",
-    "surveyTitle": "邀请您填写住宿后问卷",
-    "surveyBody": "匿名简短问卷，帮助我们改进服务。",
-    "surveyCta": "填写问卷"
+    "ratesCaption": "参考价格（实际价格以 Airbnb 为准）"
   },
   "survey": {
     "metaTitle": "住宿后问卷",

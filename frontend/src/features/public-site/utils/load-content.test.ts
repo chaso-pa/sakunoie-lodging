@@ -49,6 +49,30 @@ describe('public page content', () => {
     }
   });
 
+  it('home: photo ids exist and are not hero slides; the facts match the confirmed sources', () => {
+    const photoIds = new Set(defaultFacility.photos.map((p) => p.id));
+    const heroSlides = ['room', 'shared', 'dining'];
+    for (const locale of routing.locales) {
+      const { meta } = parsePage('home', readFileSync(path.join(root, 'content', locale, 'home.md'), 'utf8'));
+      const ids = [
+        ...meta.highlights.items.flatMap((h) => (h.photo ? [h.photo] : [])),
+        meta.spaces.private.photo,
+        ...meta.spaces.shared.map((s) => s.photo)
+      ];
+      for (const id of ids) {
+        expect(photoIds.has(id), `${locale} photo ${id}`).toBe(true);
+        expect(heroSlides, `${locale}: ${id} repeats a hero slide`).not.toContain(id);
+      }
+      // Karuizawa (about 20 min by car) leads both the highlights and the nearby list.
+      expect(meta.highlights.items[0].icon, locale).toBe('car');
+      expect(meta.highlights.items[0].title, locale).toMatch(/20/);
+      expect(meta.around.items[0].travel, locale).toMatchObject({ mode: 'car' });
+      expect(meta.around.items[0].travel.text, locale).toMatch(/20/);
+      // Every fact on the home page is owner-confirmed.
+      expect(meta.placeholder, locale).toBe(false);
+    }
+  });
+
   it('facility amenities use known icons', () => {
     for (const a of defaultFacility.amenities) expect(featureIconNames, a.code).toContain(a.icon);
   });

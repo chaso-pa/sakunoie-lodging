@@ -26,7 +26,16 @@ export const featureIconNames = [
   'moon',
   'musicOff',
   'userCheck',
-  'child'
+  'child',
+  'car',
+  'key',
+  'home',
+  'walk',
+  'train',
+  'mountain',
+  'restaurant',
+  'bread',
+  'cart'
 ] as const;
 
 export type FeatureIconName = (typeof featureIconNames)[number];

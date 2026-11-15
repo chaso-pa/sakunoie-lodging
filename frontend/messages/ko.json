@@ -31,9 +31,15 @@
     "backHome": "홈으로 돌아가기"
   },
   "home": {
-    "registerTitle": "예약하신 분께",
-    "registerBody": "체크인 전에 숙박자 전원의 정보를 등록해 주세요.",
-    "registerCta": "숙박자 등록하기"
+    "guestsTitle": "예약하신 분께",
+    "guestsBody": "체크인 전 숙박자 등록과 숙박 후 설문은 여기에서 하실 수 있습니다.",
+    "registerCta": "숙박자 등록",
+    "surveyCta": "숙박 후 설문",
+    "airbnbFrameTitle": "사쿠노이에 Airbnb 숙소 페이지(사진·후기)",
+    "airbnbOpen": "Airbnb에서 보기",
+    "spacesLink": "객실과 설비 자세히 보기",
+    "routeLabel": "도쿄에서 오는 경로",
+    "placeholderBody": "호스트의 이름, 소개, 구사 언어와 사진은 준비 중이며 공개 전에 교체합니다."
   },
   "guest": {
     "fullName": "성명",
@@ -252,17 +258,12 @@
     "ratesLink": "요금 자세히 보기",
     "termsLink": "숙박 약관 보기",
     "placeholderMark": "임시 내용",
-    "featuresTitle": "사쿠노이에의 특징",
-    "photosTitle": "객실과 공용 공간",
     "bookingTitle": "예약은 Airbnb에서",
     "bookingBody": "요금과 예약 가능 여부는 Airbnb 숙소 페이지에서 확인해 주세요.",
     "ratesItem": "항목",
     "ratesPrice": "참고 요금",
     "ratesNote": "비고",
-    "ratesCaption": "참고 요금(실제 요금은 Airbnb에서 정해집니다)",
-    "surveyTitle": "숙박 후 설문에 참여해 주세요",
-    "surveyBody": "익명으로 진행되는 짧은 설문으로, 서비스 개선에 활용합니다.",
-    "surveyCta": "설문 응답하기"
+    "ratesCaption": "참고 요금(실제 요금은 Airbnb에서 정해집니다)"
   },
   "survey": {
     "metaTitle": "숙박 후 설문",

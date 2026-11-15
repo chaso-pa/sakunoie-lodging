@@ -216,6 +216,10 @@ git-ignored, because they may contain synthetic tokens. CI runs the same steps (
 - [x] **Photos**: `public/images/saku-no-ie/*.jpg` are the owner's Airbnb listing photos (≤ 1600 px,
       metadata stripped). When replacing one, keep `alt` (4 locales), `aspectRatio` (the file's pixel
       ratio; a Vitest test checks it) and `focalPoint`.
+- [x] **Karuizawa photo** (home, Around Saku featured card): `public/images/karuizawa/shiraito-falls.jpg`,
+      白糸の滝 by yuttsu, **public domain**, from Wikimedia Commons
+      (https://commons.wikimedia.org/wiki/File:Shiraito_Falls,_Karuizawa_2243.jpg); resized to 1400 px, metadata stripped.
+      No credit line is required; keep this source note if the file is replaced.
 - [ ] **Survey questions**: `q01..q10` are placeholders for the existing Google Forms questions.
       Update both `content/surveys/v1.json` and `../backend/internal/services/surveydef/v1.json`.
 - [x] **Terms**: `content/*/terms.md` is the owner's 宿泊約款 (version `2026-10-01`; `ja` verbatim from

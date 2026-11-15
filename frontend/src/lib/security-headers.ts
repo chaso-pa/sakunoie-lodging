@@ -3,6 +3,9 @@
  * Pure functions so the policy can be unit-tested without a Next runtime.
  */
 
+import { AIRBNB_EMBED_ORIGINS } from '@/config/airbnb';
+import { routing } from '@/i18n/routing';
+
 const FIREBASE_AUTH_ORIGINS = ['https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com'];
 
 type CspOptions = {
@@ -13,7 +16,14 @@ type CspOptions = {
   apiOrigin?: string;
   /** `host:port` of the Firebase Auth Emulator, when used (dev/E2E). */
   firebaseAuthEmulatorHost?: string;
+  /** Adds `frame-src` for the Airbnb listing embed (airbnb.com and airbnb.jp); only for `isHomePath` pages. */
+  allowAirbnbFrame?: boolean;
 };
+
+const HOME_PATH = new RegExp(`^/(${routing.locales.join('|')})/?$`);
+
+/** The home page of a locale (`/ja`, `/en`, …): the only page that frames the Airbnb listing embed. */
+export const isHomePath = (pathname: string) => HOME_PATH.test(pathname);
 
 export const isAdminPath = (pathname: string) => pathname === '/admin' || pathname.startsWith('/admin/');
 
@@ -24,7 +34,14 @@ export const isAdminPath = (pathname: string) => pathname === '/admin' || pathna
 export const isSensitivePath = (pathname: string) =>
   isAdminPath(pathname) || /^\/[^/]+\/(registration|stays)(\/|$)/.test(pathname);
 
-export const buildCsp = ({ nonce, isDev, isAdmin, apiOrigin, firebaseAuthEmulatorHost }: CspOptions) => {
+export const buildCsp = ({
+  nonce,
+  isDev,
+  isAdmin,
+  apiOrigin,
+  firebaseAuthEmulatorHost,
+  allowAirbnbFrame = false
+}: CspOptions) => {
   const connectSrc = ["'self'"];
   if (apiOrigin) connectSrc.push(apiOrigin);
   if (isAdmin) {
@@ -42,6 +59,8 @@ export const buildCsp = ({ nonce, isDev, isAdmin, apiOrigin, firebaseAuthEmulato
     "img-src 'self' data: blob:",
     "font-src 'self'",
     `connect-src ${connectSrc.join(' ')}`,
+    // The Airbnb listing iframe (no SDK script). Never on registration, manage or admin pages.
+    ...(allowAirbnbFrame && !isAdmin ? [`frame-src ${AIRBNB_EMBED_ORIGINS.join(' ')}`] : []),
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'none'",

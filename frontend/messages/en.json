@@ -31,9 +31,15 @@
     "backHome": "Back to home"
   },
   "home": {
-    "registerTitle": "Already booked?",
-    "registerBody": "Please register every guest before check-in.",
-    "registerCta": "Start guest registration"
+    "guestsTitle": "Already booked?",
+    "guestsBody": "Register your guests before check-in, and share your feedback after your stay.",
+    "registerCta": "Guest registration",
+    "surveyCta": "Post-stay survey",
+    "airbnbFrameTitle": "Saku no Ie on Airbnb (photos and reviews)",
+    "airbnbOpen": "View on Airbnb",
+    "spacesLink": "See the room and amenities",
+    "routeLabel": "Route from Tokyo",
+    "placeholderBody": "The host's name, introduction, languages and photo are still to come and will be added before launch."
   },
   "guest": {
     "fullName": "Full name",
@@ -252,17 +258,12 @@
     "ratesLink": "See rate details",
     "termsLink": "Read the terms of accommodation",
     "placeholderMark": "Placeholder",
-    "featuresTitle": "What to expect",
-    "photosTitle": "Room and shared spaces",
     "bookingTitle": "Book on Airbnb",
     "bookingBody": "Check prices and availability on the Airbnb listing.",
     "ratesItem": "Item",
     "ratesPrice": "Indicative price",
     "ratesNote": "Note",
-    "ratesCaption": "Indicative rates (Airbnb sets the actual price)",
-    "surveyTitle": "Tell us about your stay",
-    "surveyBody": "A short anonymous survey that helps us improve.",
-    "surveyCta": "Answer the survey"
+    "ratesCaption": "Indicative rates (Airbnb sets the actual price)"
   },
   "survey": {
     "metaTitle": "Post-stay survey",

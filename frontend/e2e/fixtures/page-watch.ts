@@ -3,6 +3,12 @@ import type { BrowserContext, Page } from '@playwright/test';
 const CSP_RE = /Content Security Policy|Refused to (execute|load|apply|connect|frame)|CSP violation/;
 
 /**
+ * The home page frames the Airbnb listing (its own origin, its own CSP). Console output from inside
+ * that frame is Airbnb's, not ours; our page's own violations still count.
+ */
+const isThirdPartyFrame = (url: string) => /^https:\/\/([\w-]+\.)*(airbnb\.com|muscache\.com)\//.test(url);
+
+/**
  * Collects console errors, page errors, CSP violations (console text plus `securitypolicyviolation`
  * events reported from an init script) and every request URL of a page.
  */
@@ -16,6 +22,7 @@ export const watchPage = async (context: BrowserContext, page: Page) => {
     });
   });
   page.on('console', (m) => {
+    if (isThirdPartyFrame(m.location().url)) return;
     const text = m.text();
     if (CSP_RE.test(text)) cspViolations.push(text);
     else if (m.type() === 'error') consoleErrors.push(text);

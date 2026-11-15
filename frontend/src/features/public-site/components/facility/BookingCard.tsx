@@ -1,5 +1,5 @@
 import { Text } from '@mantine/core';
-import { IconUsers } from '@tabler/icons-react';
+import { IconClockHour3, IconUsers } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
 import { AirbnbCta } from '@/components/AirbnbCta';
 import { paths } from '@/config/paths';
@@ -7,10 +7,14 @@ import { ArrowLink } from '@/features/public-site/components/facility/ArrowLink'
 import classes from '@/features/public-site/components/facility/BookingCard.module.scss';
 import type { PageFrontMatter } from '@/features/public-site/utils/load-content';
 
-type Props = { booking: PageFrontMatter<'facilities'>['booking'] };
+type Props = {
+  booking: PageFrontMatter<'facilities'>['booking'];
+  /** Optional check-in/out row (the home page shows it; the facilities page has it in the key facts). */
+  checkInOut?: { label: string; lines: { tag: string; value: string }[] };
+};
 
 /** Price summary and the Airbnb CTA (`#booking`). Airbnb decides the actual price. */
-export function BookingCard({ booking }: Props) {
+export function BookingCard({ booking, checkInOut }: Props) {
   const t = useTranslations('publicSite');
   return (
     <section id='booking' aria-labelledby='booking-title' className={classes.card}>
@@ -25,6 +29,20 @@ export function BookingCard({ booking }: Props) {
         <IconUsers size={18} aria-hidden stroke={1.6} />
         {booking.priceDetail}
       </p>
+      {checkInOut ? (
+        <dl className={classes.times}>
+          <dt className={classes.timesLabel}>
+            <IconClockHour3 size={18} aria-hidden stroke={1.6} />
+            {checkInOut.label}
+          </dt>
+          {checkInOut.lines.map((line) => (
+            <dd key={line.tag} className={classes.time}>
+              <span className={classes.timeTag}>{line.tag}</span>
+              {line.value}
+            </dd>
+          ))}
+        </dl>
+      ) : null}
       <AirbnbCta size='lg' fullWidth />
       <Text size='sm' c='dimmed' lh={1.6}>
         {booking.note}

@@ -56,6 +56,9 @@ test.describe('public site', () => {
     expect(csp).toContain(`connect-src 'self' ${API_URL};`);
     expect(csp).toMatch(/script-src 'self' 'nonce-[^']+' 'strict-dynamic'(;|$)/);
     expect(csp).not.toMatch(/googleapis|127\.0\.0\.1:9099|unsafe-eval/);
+    // The Airbnb listing iframe (no SDK script): frame-src only, script-src untouched.
+    expect(csp).toContain('frame-src https://www.airbnb.com https://www.airbnb.jp;');
+    expect(csp).not.toMatch(/script-src[^;]*airbnb/);
     expect(response?.headers()['x-content-type-options']).toBe('nosniff');
 
     // Hydration under the nonce CSP: React attaches to the server HTML and a client-side control works.
@@ -67,6 +70,50 @@ test.describe('public site', () => {
     await waitForHydratedSwitcher(page);
     await expect.poll(() => watch.cspViolations).toEqual([]);
     expect(unexpectedErrors(watch.consoleErrors)).toEqual([]);
+  });
+
+  test('frame-src for Airbnb only on the home pages, never on registration, other pages or admin', async ({ page }) => {
+    for (const locale of LOCALES) {
+      const csp = (await page.goto(`/${locale}`))?.headers()['content-security-policy'] ?? '';
+      expect(csp, `/${locale}`).toContain('frame-src https://www.airbnb.com https://www.airbnb.jp');
+    }
+    for (const p of [
+      '/ja/stays/saku-no-ie/registration',
+      '/en/registration/manage',
+      '/ja/facilities',
+      '/admin/login'
+    ]) {
+      const csp = (await page.goto(p))?.headers()['content-security-policy'] ?? '';
+      expect(csp, p).toContain("default-src 'self'");
+      expect(csp, p).not.toContain('frame-src');
+      expect(csp, p).not.toContain('airbnb');
+    }
+  });
+
+  test('home: Airbnb listing iframe without the SDK, with a fallback link', async ({ page }) => {
+    await page.goto('/ja');
+    const section = page.locator('section[aria-labelledby="airbnb-title"]');
+    await section.scrollIntoViewIfNeeded();
+    const frame = section.locator('iframe');
+    await expect(frame).toHaveAttribute('title', '佐久の家の Airbnb 掲載ページ（写真・レビュー）');
+    await expect(frame).toHaveAttribute('loading', 'lazy');
+    await expect(frame).toHaveAttribute(
+      'src',
+      /^https:\/\/www\.airbnb\.jp\/embeddable\/home\?externalPageUrl=[^&]+&hide-price=true&id=1668838036170160414#/
+    );
+    // No Airbnb script on our page.
+    await expect(page.locator('script[src*="airbnb"]')).toHaveCount(0);
+    const fallback = section.getByRole('link', { name: /Airbnbで見る/ });
+    await expect(fallback).toHaveAttribute('href', facility.airbnbUrl);
+    await expect(fallback).toHaveAttribute('target', '_blank');
+    // The single primary booking CTA of the page body is in the booking card; guest links stay text links.
+    await expect(page.locator('#booking').getByRole('link', { name: /宿泊を予約/ })).toBeVisible();
+    const guests = page.locator('aside[aria-labelledby="guests-title"]');
+    await expect(guests.getByRole('link', { name: '宿泊者登録' })).toHaveAttribute(
+      'href',
+      '/ja/stays/saku-no-ie/registration'
+    );
+    await expect(guests.getByRole('link', { name: '滞在後アンケート' })).toHaveAttribute('href', '/ja/survey');
   });
 
   test('locale switcher keeps the path', async ({ page }) => {

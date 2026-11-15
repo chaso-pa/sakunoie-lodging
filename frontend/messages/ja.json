@@ -31,9 +31,15 @@
     "backHome": "ホームに戻る"
   },
   "home": {
-    "registerTitle": "ご予約済みの方へ",
-    "registerBody": "チェックイン前に、宿泊者全員の情報をご登録ください。",
-    "registerCta": "宿泊者登録へ進む"
+    "guestsTitle": "ご予約済みの方へ",
+    "guestsBody": "チェックイン前の宿泊者登録と、ご滞在後のアンケートはこちらから。",
+    "registerCta": "宿泊者登録",
+    "surveyCta": "滞在後アンケート",
+    "airbnbFrameTitle": "佐久の家の Airbnb 掲載ページ（写真・レビュー）",
+    "airbnbOpen": "Airbnbで見る",
+    "spacesLink": "お部屋と設備を詳しく見る",
+    "routeLabel": "東京からのルート",
+    "placeholderBody": "ホストのお名前・ひとこと紹介・話せる言語と写真は準備中です。公開前に差し替えます。"
   },
   "guest": {
     "fullName": "氏名",
@@ -252,17 +258,12 @@
     "ratesLink": "料金の詳細を見る",
     "termsLink": "宿泊約款を見る",
     "placeholderMark": "仮の内容",
-    "featuresTitle": "佐久の家の特徴",
-    "photosTitle": "お部屋と共用スペース",
     "bookingTitle": "ご予約は Airbnb で",
     "bookingBody": "料金と空室状況は Airbnb の掲載ページでご確認ください。",
     "ratesItem": "項目",
     "ratesPrice": "目安",
     "ratesNote": "備考",
-    "ratesCaption": "料金の目安（実際の料金は Airbnb で決まります）",
-    "surveyTitle": "滞在後アンケートのお願い",
-    "surveyBody": "匿名の簡単なアンケートです。今後の改善に役立てます。",
-    "surveyCta": "アンケートに回答する"
+    "ratesCaption": "料金の目安（実際の料金は Airbnb で決まります）"
   },
   "survey": {
     "metaTitle": "滞在後アンケート",
