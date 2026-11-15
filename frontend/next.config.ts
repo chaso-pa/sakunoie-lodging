@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
   // All images are local files in public/; disabling the optimizer removes /_next/image (GHSA-2464-fhr4-w9xw surface).
   images: { unoptimized: true },
   // Next 16 blocks dev resources (HMR) for other origins; E2E uses http://127.0.0.1:3100.
-  allowedDevOrigins: ['127.0.0.1', 'dover.chaso-pa.com', '192.168.3.101:3000'],
+  allowedDevOrigins: ['127.0.0.1', 'dover.chaso-pa.com', '192.168.3.101'],
   experimental: {
     // Root 404 for paths outside `[locale]` (the app has more than one root layout).
     globalNotFound: true
