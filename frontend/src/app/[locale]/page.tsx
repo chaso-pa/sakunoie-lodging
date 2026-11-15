@@ -42,6 +42,8 @@ export default async function HomePage({ params }: PageProps) {
           roleDescription: t('publicSite.galleryRoleDescription'),
           pause: t('publicSite.heroPause'),
           play: t('publicSite.heroPlay'),
+          prev: t('publicSite.galleryPrev'),
+          next: t('publicSite.galleryNext'),
           goTo: heroSlides.map((_, i) => t('publicSite.heroGoTo', { n: i + 1 })),
           badge: t('publicSite.placeholderPhoto')
         }}
