@@ -31,10 +31,6 @@
     "backHome": "返回首页"
   },
   "home": {
-    "guestsTitle": "已预订的客人",
-    "guestsBody": "请在入住前登记住客信息，并在住宿后填写问卷。",
-    "registerCta": "住客登记",
-    "surveyCta": "住宿后问卷",
     "airbnbFrameTitle": "佐久之家的 Airbnb 房源页面（照片与评价）",
     "airbnbOpen": "在 Airbnb 查看",
     "spacesLink": "查看客房与设施详情",
@@ -79,6 +75,11 @@
     "token_expired": "编辑链接已过期。请联系房东。",
     "field_not_editable": "此项无法通过编辑链接修改。请联系房东。",
     "precondition_failed": "内容已在其他页面更新，已为您加载最新内容。请重新操作。",
+    "invitation_required": "请通过房东发送给您的邀请链接打开此页面。",
+    "invitation_invalid": "邀请链接无效。请联系房东。",
+    "invitation_expired": "邀请链接已过期。请联系房东。",
+    "invitation_used": "此邀请链接已被使用。请使用编辑链接。",
+    "invitation_dates_mismatch": "入住日期与房东设定的不一致。请重新打开邀请链接。",
     "not_found": "未找到对象。",
     "network_error": "网络连接失败。请检查网络后重试。",
     "internal_error": "服务器发生错误，请稍后再试。",
@@ -151,7 +152,18 @@
     "alreadySubmittedTitle": "此登记已经提交",
     "alreadySubmittedBody": "我们已收到相同的登记。如需编辑链接，请联系房东。",
     "startNew": "开始另一项新的登记",
-    "networkError": "网络连接失败。已保留您填写的内容，请再次点击“提交登记”。"
+    "networkError": "网络连接失败。已保留您填写的内容，请再次点击“提交登记”。",
+    "invitation": {
+      "datesFixed": "入住日期由房东设定。如需更改，请联系房东。",
+      "missingTitle": "请通过邀请链接打开",
+      "missingBody": "请通过房东发送给您的邀请链接打开此页面。预订后，房东会通过 Airbnb 消息发送该链接。",
+      "invalidTitle": "邀请链接无效",
+      "invalidBody": "链接不正确或已被取消。请联系房东。",
+      "expiredTitle": "邀请链接已过期",
+      "expiredBody": "已过退房日，此链接无法再使用。请联系房东。",
+      "usedTitle": "此邀请链接已被使用",
+      "usedBody": "此预订的登记已完成。如需添加同行人或更正信息，请使用登记完成时显示的编辑链接。如果找不到编辑链接，请联系房东重新发放。"
+    }
   },
   "complete": {
     "metaTitle": "登记完成",
@@ -223,10 +235,7 @@
     "rates": "参考价格",
     "terms": "住宿条款与入住规则",
     "privacy": "隐私政策",
-    "survey": "住宿后问卷",
-    "registration": "住客登记",
     "groupStay": "住宿",
-    "groupGuests": "致住客",
     "groupPolicies": "条款"
   },
   "cta": {

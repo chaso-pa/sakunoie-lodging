@@ -206,7 +206,9 @@ func TestClassifyRoute(t *testing.T) {
 		"POST /api/v1/guest-registrations":                                 LimitCreate,
 		"GET /api/v1/guest-registrations/manage":                           LimitManage,
 		"PATCH /api/v1/guest-registrations/manage/guests/:guest_public_id": LimitManage,
+		"GET /api/v1/invitations/current":                                  LimitManage,
 		"POST /api/v1/surveys":                                             LimitSurvey,
+		"GET /api/v1/admin/invitations":                                    "",
 		"GET /api/v1/facilities/:code/public":                              "",
 	}
 	for in, want := range cases {

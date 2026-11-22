@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { type APIRequestContext, expect } from '@playwright/test';
-import { FACILITY_CODE, PRIVACY_VERSION, SYNTHETIC_PASSPORT, TERMS_VERSION, uniqueStay } from './synthetic';
+import { issueInvitation } from './invitations';
+import { FACILITY_CODE, PRIVACY_VERSION, SYNTHETIC_PASSPORT, TERMS_VERSION } from './synthetic';
 
 type Guest = {
   is_representative: boolean;
@@ -49,17 +50,17 @@ export const defaultGuests = (): Guest[] => [
   }
 ];
 
-/** Creates a registration through the public API (on the API origin) and returns its one-time edit token. */
+/**
+ * Creates a registration through the public API (on the API origin) with a fresh invitation from the
+ * admin API, and returns its one-time edit token.
+ */
 export const seedRegistration = async (
   request: APIRequestContext,
   overrides: SeedOverrides
 ): Promise<SeededRegistration> => {
-  const stay =
-    overrides.checkIn && overrides.checkOut
-      ? { checkIn: overrides.checkIn, checkOut: overrides.checkOut }
-      : uniqueStay();
+  const stay = await issueInvitation(request, { checkIn: overrides.checkIn, checkOut: overrides.checkOut });
   const response = await request.post('/api/v1/guest-registrations', {
-    headers: { 'Idempotency-Key': `e2e-${randomUUID()}` },
+    headers: { 'Idempotency-Key': `e2e-${randomUUID()}`, Authorization: `Bearer ${stay.token}` },
     data: {
       facility_code: FACILITY_CODE,
       check_in_date: stay.checkIn,

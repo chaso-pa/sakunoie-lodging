@@ -2,7 +2,7 @@ import { Container, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { useLocale, useTranslations } from 'next-intl';
 import classes from '@/components/SiteFooter.module.scss';
 import { paths } from '@/config/paths';
-import { defaultFacility, defaultFacilityCode } from '@/config/site';
+import { defaultFacility } from '@/config/site';
 import { Link } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
@@ -20,13 +20,6 @@ export function SiteFooter() {
       ]
     },
     {
-      title: t('nav.groupGuests'),
-      links: [
-        { href: paths.registration.wizard.getHref(defaultFacilityCode), label: t('nav.registration') },
-        { href: paths.public.survey.getHref(), label: t('nav.survey') }
-      ]
-    },
-    {
       title: t('nav.groupPolicies'),
       links: [
         { href: paths.public.terms.getHref(), label: t('nav.terms') },
@@ -37,7 +30,7 @@ export function SiteFooter() {
   return (
     <footer className={classes.footer}>
       <Container size={1200} py='xl'>
-        <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing='xl'>
+        <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }} spacing='xl'>
           <Stack gap={6}>
             <Text fw={700} c='forest.6'>
               {defaultFacility.name[locale]}

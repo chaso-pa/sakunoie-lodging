@@ -16,7 +16,8 @@ import (
 func (h *harness) create(t *testing.T, facility string, planned int) map[string]any {
 	t.Helper()
 	body := testutil.CreateBody(facility, "2026-12-01", "2026-12-03", planned)
-	w := h.do(http.MethodPost, "/api/v1/guest-registrations", body, map[string]string{"Idempotency-Key": "test-" + uuid.NewString()})
+	w := h.do(http.MethodPost, "/api/v1/guest-registrations", body,
+		createHeaders("test-"+uuid.NewString(), h.invite(t, facility, "2026-12-01", "2026-12-03")))
 	if w.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", w.Code, w.Body.String())
 	}

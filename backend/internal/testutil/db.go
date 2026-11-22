@@ -104,7 +104,7 @@ func RequireDB(t testing.TB) *gorm.DB {
 func ResetData(t testing.TB, db *gorm.DB) {
 	t.Helper()
 	for _, table := range []string{
-		"audit_logs", "registration_access_tokens", "guests", "import_rows",
+		"audit_logs", "registration_invitations", "registration_access_tokens", "guests", "import_rows",
 		"guest_registrations", "admin_facility_access", "admin_users",
 		"survey_responses", "api_idempotency_keys", "import_batches", "facilities",
 	} {

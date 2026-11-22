@@ -151,4 +151,77 @@ test.describe('admin console', () => {
     expect(watch.cspViolations).toEqual([]);
     expect(unexpectedErrors(watch.consoleErrors)).toEqual([]);
   });
+
+  test('invitations: create shows the URL once, the list shows the status, revoke with confirmation', async ({
+    page,
+    context
+  }) => {
+    const watch = await watchPage(context, page);
+    await adminLogin(page);
+    await page.getByRole('navigation', { name: '管理メニュー' }).getByRole('link', { name: '招待リンク' }).click();
+    await page.waitForURL('**/admin/invitations', { waitUntil: 'commit' });
+    await expect(page.getByRole('heading', { name: '招待リンク', level: 1 })).toBeVisible();
+
+    const stay = uniqueStay();
+    const note = `E2E guest ${uniqueRef('inv')}`;
+    const form = page.locator('form').filter({ has: page.getByRole('button', { name: '招待リンクを作成' }) });
+    await form.getByLabel('チェックイン日').fill(stay.checkIn);
+    await form.getByLabel('チェックアウト日').fill(stay.checkOut);
+    await form.getByLabel('予約コード（任意）').fill(uniqueRef('inv-code'));
+    await form.getByLabel('メモ（任意）').fill(note);
+    const [created] = await Promise.all([
+      page.waitForResponse((r) => r.url().endsWith('/api/v1/admin/invitations') && r.request().method() === 'POST'),
+      form.getByRole('button', { name: '招待リンクを作成' }).click()
+    ]);
+    expect(created.status()).toBe(201);
+    expect(created.headers()['cache-control']).toContain('no-store');
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('このリンクは今だけ表示されます')).toBeVisible();
+    await expect(dialog.getByText(/Airbnb のメッセージ/)).toBeVisible();
+    const url = await dialog.getByLabel('招待リンク').inputValue();
+    expect(url).toMatch(/\/ja\/stays\/saku-no-ie\/registration#invite=[A-Za-z0-9_-]{40,}$/);
+    await dialog.getByLabel('リンクの表示言語').selectOption('en');
+    const enUrl = await dialog.getByLabel('招待リンク').inputValue();
+    expect(enUrl).toMatch(/\/en\/stays\/saku-no-ie\/registration#invite=/);
+    await expect(dialog.getByRole('button', { name: 'リンクをコピー' })).toBeVisible();
+    const token = decodeURIComponent(url.split('#invite=')[1]);
+    await dialog.getByRole('button', { name: '閉じる' }).click();
+    await expect(dialog).toBeHidden();
+    // Shown once: the page no longer has the token anywhere.
+    expect(await page.content()).not.toContain(token);
+
+    // The list shows it as active; the guest-facing check sees only the dates.
+    const row = page.getByRole('row').filter({ hasText: note });
+    await expect(row.getByText('有効')).toBeVisible();
+    const check = await page.request.get(`${API_URL}/api/v1/invitations/current`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    expect(check.status()).toBe(200);
+    const current = await check.json();
+    expect(current).toMatchObject({
+      facility_code: 'saku-no-ie',
+      check_in_date: stay.checkIn,
+      check_out_date: stay.checkOut
+    });
+    expect(JSON.stringify(current)).not.toContain(note);
+
+    // Revoke: confirmation first, then the guest gets 401 invitation_invalid.
+    await row.getByRole('button', { name: /取り消す/ }).click();
+    const confirm = page.getByRole('dialog');
+    await expect(confirm.getByText('招待リンクを取り消しますか')).toBeVisible();
+    await confirm.getByRole('button', { name: '取り消す', exact: true }).click();
+    await expect(page.getByText('招待リンクを取り消しました。')).toBeVisible();
+    await expect(row.getByText('取り消し済み')).toBeVisible();
+    await expect(row.getByRole('button', { name: /取り消す/ })).toHaveCount(0);
+    const revoked = await page.request.get(`${API_URL}/api/v1/invitations/current`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    expect(revoked.status()).toBe(401);
+    expect((await revoked.json()).code).toBe('invitation_invalid');
+
+    for (const u of watch.requestUrls) expect(u).not.toContain(token);
+    expect(watch.cspViolations).toEqual([]);
+    expect(unexpectedErrors(watch.consoleErrors)).toEqual([]);
+  });
 });

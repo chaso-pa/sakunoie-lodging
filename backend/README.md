@@ -218,8 +218,9 @@ bash -c '(sleep 8; printf "y\n"; sleep 15) | script -qec "npx prisma migrate dev
 npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
 ```
 
-CHECK constraints live in the hand-written `*_add_check_constraints` migration, because Prisma cannot
-express them. That migration is the only sanctioned hand edit. The facility seed is `prisma/seed.sql`
+CHECK constraints live in hand-written migrations created with `migrate dev --create-only`
+(`*_add_check_constraints`, `*_add_invitation_check_constraints`), because Prisma cannot express
+them. They are the only sanctioned hand edits. The facility seed is `prisma/seed.sql`
 (`npm run db:seed`). It is insert-only and idempotent.
 
 ## Admin access (Firebase + `cmd/admin-grant`)
@@ -260,6 +261,31 @@ GORM_DATABASE_URL='root:test@tcp(127.0.0.1:33306)/lodging_e2e?parseTime=True' \
 Emulator accounts disappear when the emulator stops unless you run it with
 `--import <dir> --export-on-exit`. A new account has a new uid, so you must grant it again. With a
 real Firebase project, the uid is shown in the Firebase console under Authentication → Users.
+
+## Registration invitations (host)
+
+Guests can register only with a per-booking invitation (root `CLAUDE.md` §13, "Invitation-gated
+registration", 2026-11-15). The host issues one per booking and sends the URL in the Airbnb message:
+
+1. In the admin console, open **招待リンク** (`/admin/invitations`), enter the booking's check-in and
+   check-out dates (optionally the booking code and a note such as the guest's name; the guest never
+   sees either), and press **招待リンクを作成**. This calls `POST /api/v1/admin/invitations`.
+2. The dialog shows the URL `<web origin>/<locale>/stays/<facility>/registration#invite=<token>` once,
+   with a language selector and a copy button. Paste it into the Airbnb message. The server stores
+   only the token's SHA-256, so the URL cannot be shown again; if it is lost, revoke the invitation and
+   create a new one.
+3. The guest opens it, sees the dates read-only, and registers once. The invitation is then **used**;
+   the guest corrects details with the edit link from the completion page. It expires at the end of the
+   check-out day in the facility's time zone.
+4. The list (`GET /api/v1/admin/invitations?facility_id=&status=`) shows each invitation as active, used,
+   expired or revoked. **取り消す** (`POST /api/v1/admin/invitations/{public_id}/revoke`) stops an unused
+   invitation; a used one cannot be revoked. Issue and revoke write audit rows without the token.
+
+API side: `GET /api/v1/invitations/current` (Bearer = invitation) returns the facility code, dates and
+expiry for the wizard; `POST /api/v1/guest-registrations` requires the invitation as
+`Authorization: Bearer` and rejects other dates with 422 `invitation_dates_mismatch`. Error codes:
+`invitation_required` 401, `invitation_invalid` 401 (also revoked), `invitation_expired` 410,
+`invitation_used` 409.
 
 ## Testing
 

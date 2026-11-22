@@ -14,7 +14,6 @@ export { SectionNav } from '@/features/public-site/components/facility/SectionNa
 export { SpaceCards } from '@/features/public-site/components/facility/SpaceCards';
 export { AccessRoute } from '@/features/public-site/components/home/AccessRoute';
 export { BookingBand } from '@/features/public-site/components/home/BookingBand';
-export { GuestStrip } from '@/features/public-site/components/home/GuestStrip';
 export { Highlights } from '@/features/public-site/components/home/Highlights';
 export { HomeSection } from '@/features/public-site/components/home/HomeSection';
 export { NearbyCards } from '@/features/public-site/components/home/NearbyCards';

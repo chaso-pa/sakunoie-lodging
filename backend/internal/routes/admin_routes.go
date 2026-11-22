@@ -13,7 +13,7 @@ var adminSecurity = []map[string][]string{{"adminBearer": {}}}
 // SetupAdminRoutes registers /admin operations. Each one runs the AdminAuth
 // middleware (401/403 before input parsing) and is scoped server-side.
 // The export route is registered before /{id}, and {id} is format uuid.
-func SetupAdminRoutes(api huma.API, h *handlers.AdminHandlers, auth middlewares.AdminAuthenticator) {
+func SetupAdminRoutes(api huma.API, h *handlers.AdminHandlers, inv *handlers.InvitationHandlers, auth middlewares.AdminAuthenticator) {
 	authMW := middlewares.AdminAuth(api, auth)
 	adminOp := func(op huma.Operation) huma.Operation {
 		op.Tags = []string{"Admin"}
@@ -91,6 +91,34 @@ func SetupAdminRoutes(api huma.API, h *handlers.AdminHandlers, auth middlewares.
 		Description: "Revokes every earlier edit link and returns a new token once, valid until the end of the current checkout day in the facility time zone. Writes an audit row.",
 		Errors:      []int{http.StatusNotFound, http.StatusUnprocessableEntity},
 	}), h.ReissueEditLink)
+
+	huma.Register(api, adminOp(huma.Operation{
+		OperationID:   "create-admin-invitation",
+		Method:        http.MethodPost,
+		Path:          "/admin/invitations",
+		Summary:       "Issue a registration invitation",
+		Description:   "Creates a single-use invitation for one booking of an authorized facility and returns its token once (send the URL in the Airbnb message). check_out_date must be after check_in_date and not in the past in facility time; the invitation expires at the end of the check-out day there. The guest's registration must use exactly these dates. Writes an audit row without the token.",
+		DefaultStatus: http.StatusCreated,
+		Errors:        []int{http.StatusUnprocessableEntity},
+	}), inv.CreateAdminInvitation)
+
+	huma.Register(api, adminOp(huma.Operation{
+		OperationID: "list-admin-invitations",
+		Method:      http.MethodGet,
+		Path:        "/admin/invitations",
+		Summary:     "List registration invitations",
+		Description: "Scoped, paginated (50 per page, newest first), with the derived status active, used, expired or revoked. Tokens and hashes are never returned. facility_id outside the admin's facilities → 403.",
+		Errors:      []int{http.StatusUnprocessableEntity},
+	}), inv.ListAdminInvitations)
+
+	huma.Register(api, adminOp(huma.Operation{
+		OperationID: "revoke-admin-invitation",
+		Method:      http.MethodPost,
+		Path:        "/admin/invitations/{public_id}/revoke",
+		Summary:     "Revoke a registration invitation",
+		Description: "The invitation can no longer be used (401 invitation_invalid for the guest). A used invitation is already consumed: 409 invitation_used. An already revoked one is returned unchanged. Another facility's invitation is 404. Writes an audit row.",
+		Errors:      []int{http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity},
+	}), inv.RevokeAdminInvitation)
 
 	huma.Register(api, adminOp(huma.Operation{
 		OperationID: "get-admin-survey-summary",

@@ -2,12 +2,14 @@
 
 import { Button, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { InfoBanner } from '@/components/InfoBanner';
 import { ValidationSummary, type ValidationSummaryItem } from '@/components/ValidationSummary';
 import { paths } from '@/config/paths';
 import { useCreateRegistration } from '@/features/registration/api/create-registration';
+import { currentInvitationQueryKey, useCurrentInvitation } from '@/features/registration/api/get-current-invitation';
 import { useFacilityPublic } from '@/features/registration/api/get-facility-public';
 import { ApiErrorBanner } from '@/features/registration/components/ApiErrorBanner';
 import { CompanionsStep } from '@/features/registration/components/CompanionsStep';
@@ -15,8 +17,9 @@ import { FormStepper } from '@/features/registration/components/FormStepper';
 import { RepresentativeStep } from '@/features/registration/components/RepresentativeStep';
 import { PartialWarning, ReviewConsentStep } from '@/features/registration/components/ReviewConsentStep';
 import { StayStep } from '@/features/registration/components/StayStep';
+import { consumeInviteFragment, invitationTokenStore } from '@/features/registration/stores/invitation-token-store';
 import { useWizardStore } from '@/features/registration/stores/wizard-store';
-import type { FacilityPublic } from '@/features/registration/types/api';
+import type { CurrentInvitation, FacilityPublic } from '@/features/registration/types/api';
 import {
   emptyGuest,
   emptyWizardValues,
@@ -28,7 +31,12 @@ import {
   WIZARD_STEPS,
   type WizardFormValues
 } from '@/features/registration/types/schemas';
-import { errorMessageKey, wizardPathFromLocation } from '@/features/registration/utils/api-errors';
+import {
+  errorMessageKey,
+  type InvitationFailure,
+  invitationFailureOf,
+  wizardPathFromLocation
+} from '@/features/registration/utils/api-errors';
 import { buildCreatePayload } from '@/features/registration/utils/build-payload';
 import { fieldId } from '@/features/registration/utils/form-paths';
 import { useRouter } from '@/i18n/navigation';
@@ -38,19 +46,60 @@ type RegistrationWizardProps = { facilityCode: string };
 
 export function RegistrationWizard({ facilityCode }: RegistrationWizardProps) {
   const t = useTranslations('registration');
+  const queryClient = useQueryClient();
   const facility = useFacilityPublic(facilityCode);
   const open = useWizardStore((s) => s.open);
   const alreadySubmitted = useWizardStore((s) => s.alreadySubmitted);
   const [ready, setReady] = useState(false);
+  const [hasInvite, setHasInvite] = useState(false);
+  const [inviteFailure, setInviteFailure] = useState<InvitationFailure | null>(null);
+  const invitation = useCurrentInvitation(ready && hasInvite && inviteFailure === null);
 
   useEffect(() => {
     open(facilityCode);
+    // Fragment → sessionStorage, then strip it from the address bar (like the edit token, Decision C).
+    consumeInviteFragment();
+    setHasInvite(invitationTokenStore.get() !== null);
     setReady(true);
   }, [open, facilityCode]);
 
+  /** The invitation can no longer be used in this tab: drop it and show the guidance. */
+  const failInvitation = (failure: InvitationFailure) => {
+    invitationTokenStore.clear();
+    queryClient.removeQueries({ queryKey: currentInvitationQueryKey });
+    setInviteFailure(failure);
+  };
+
+  const checkFailure = invitation.isError ? invitationFailureOf(invitation.error) : null;
+  useEffect(() => {
+    if (checkFailure) {
+      invitationTokenStore.clear();
+      setInviteFailure(checkFailure);
+    }
+  }, [checkFailure]);
+
+  const wrongFacility = invitation.data !== undefined && invitation.data.facility_code !== facilityCode;
+  const failure: InvitationFailure | null =
+    inviteFailure ?? checkFailure ?? (ready && !hasInvite ? 'missing' : wrongFacility ? 'invalid' : null);
+
   let body: React.ReactNode;
-  if (!ready || facility.isPending) {
+  if (!ready) {
     body = <Loader aria-label={t('title')} />;
+  } else if (failure) {
+    body = <InvitationNotice failure={failure} />;
+  } else if (facility.isPending || invitation.isPending) {
+    body = <Loader aria-label={t('title')} />;
+  } else if (invitation.isError) {
+    body = (
+      <Stack gap='sm'>
+        <ApiErrorBanner error={invitation.error} />
+        <div>
+          <Button variant='outline' onClick={() => invitation.refetch()}>
+            <RetryLabel />
+          </Button>
+        </div>
+      </Stack>
+    );
   } else if (facility.isError) {
     const unavailable = facility.error instanceof ApiError && facility.error.status === 404;
     body = unavailable ? (
@@ -70,7 +119,7 @@ export function RegistrationWizard({ facilityCode }: RegistrationWizardProps) {
   } else if (alreadySubmitted) {
     body = <AlreadySubmitted />;
   } else {
-    body = <WizardForm facility={facility.data} />;
+    body = <WizardForm facility={facility.data} invitation={invitation.data} onInvitationFailure={failInvitation} />;
   }
 
   return (
@@ -98,6 +147,16 @@ function RetryLabel() {
   return <>{t('retry')}</>;
 }
 
+/** No usable invitation in this tab: what the guest should do, per state. */
+function InvitationNotice({ failure }: { failure: InvitationFailure }) {
+  const t = useTranslations('registration.invitation');
+  return (
+    <InfoBanner tone={failure === 'used' ? 'info' : 'warning'} title={t(`${failure}Title`)} announce='assertive'>
+      <Text size='sm'>{t(`${failure}Body`)}</Text>
+    </InfoBanner>
+  );
+}
+
 function AlreadySubmitted() {
   const t = useTranslations('registration');
   const startNew = useWizardStore((s) => s.startNew);
@@ -115,7 +174,15 @@ function AlreadySubmitted() {
   );
 }
 
-function WizardForm({ facility }: { facility: FacilityPublic }) {
+function WizardForm({
+  facility,
+  invitation,
+  onInvitationFailure
+}: {
+  facility: FacilityPublic;
+  invitation: CurrentInvitation;
+  onInvitationFailure: (failure: InvitationFailure) => void;
+}) {
   const t = useTranslations();
   const router = useRouter();
   const store = useWizardStore();
@@ -123,9 +190,17 @@ function WizardForm({ facility }: { facility: FacilityPublic }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [summary, setSummary] = useState<{ items: ValidationSummaryItem[]; focusKey: number } | null>(null);
 
+  // The host sets the stay dates in the invitation; the guest cannot change them.
+  const [initialValues] = useState<WizardFormValues>(() => {
+    const base = store.draft ?? emptyWizardValues();
+    return {
+      ...base,
+      stay: { ...base.stay, checkInDate: invitation.check_in_date, checkOutDate: invitation.check_out_date }
+    };
+  });
   const form = useForm<WizardFormValues>({
     mode: 'controlled',
-    initialValues: store.draft ?? emptyWizardValues(),
+    initialValues,
     onValuesChange: (values) => store.saveDraft(values)
   });
   const values = form.getValues();
@@ -207,6 +282,8 @@ function WizardForm({ facility }: { facility: FacilityPublic }) {
       { payload: buildCreatePayload(current, facility), idempotencyKey },
       {
         onSuccess: (result) => {
+          // The invitation is consumed: it never needs to be sent again from this tab.
+          invitationTokenStore.clear();
           if (!result.edit_token) {
             // Replay that cannot mint another link: same key kept, guest contacts the host.
             store.markAlreadySubmitted();
@@ -216,6 +293,11 @@ function WizardForm({ facility }: { facility: FacilityPublic }) {
           router.push(paths.registration.complete.getHref());
         },
         onError: (error) => {
+          const failure = invitationFailureOf(error);
+          if (failure) {
+            onInvitationFailure(failure);
+            return;
+          }
           if (error instanceof ApiError && error.code === 'idempotency_conflict') {
             store.markAlreadySubmitted();
             return;

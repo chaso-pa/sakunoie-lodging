@@ -18,13 +18,24 @@ func TestIntegrationCreateIsAtomic(t *testing.T) {
 	e := setup(t)
 	e.reg.BeforeCommit = func(*gorm.DB) error { return errors.New("injected failure after guest inserts") }
 	body := sakuBody(3, testutil.Representative(), testutil.ForeignGuest("Test Guest B", "TESTPP0001"))
-	if _, err := e.reg.Create(context.Background(), newKey(), body); err == nil {
+	if _, err := e.create(t, context.Background(), newKey(), body); err == nil {
 		t.Fatal("expected injected failure")
 	}
-	for _, table := range []string{"guest_registrations", "guests", "registration_access_tokens", "api_idempotency_keys", "audit_logs"} {
+	for _, table := range []string{"guest_registrations", "guests", "registration_access_tokens", "api_idempotency_keys"} {
 		if n := testutil.CountRows(t, e.db, table); n != 0 {
 			t.Errorf("%s has %d rows after rollback", table, n)
 		}
+	}
+	// Only the fixture's invitation.created row; the invitation stays unused.
+	var audits int64
+	e.db.Model(&entities.AuditLog{}).Where("action <> ?", services.AuditInvitationCreated).Count(&audits)
+	if audits != 0 {
+		t.Errorf("audit_logs has %d rows after rollback", audits)
+	}
+	var used int64
+	e.db.Model(&entities.RegistrationInvitation{}).Where("used_at IS NOT NULL OR registration_id IS NOT NULL").Count(&used)
+	if used != 0 {
+		t.Error("the invitation was consumed by a rolled-back create")
 	}
 }
 
@@ -33,7 +44,7 @@ func TestIntegrationCreateRejectsBadContact(t *testing.T) {
 	e := setup(t)
 	badEmail := testutil.Representative()
 	badEmail.Email = strp("no-at-sign.example.test")
-	_, err := e.reg.Create(context.Background(), newKey(), sakuBody(1, badEmail))
+	_, err := e.create(t, context.Background(), newKey(), sakuBody(1, badEmail))
 	expectErr(t, err, services.ErrValidation)
 	if got := services.FieldsOf(err); len(got) != 1 || got[0].Location != "body.guests[0].email" {
 		t.Fatalf("fields %+v", got)
@@ -41,7 +52,7 @@ func TestIntegrationCreateRejectsBadContact(t *testing.T) {
 
 	badPhone := testutil.Representative()
 	badPhone.Phone = strp("phone: 090")
-	_, err = e.reg.Create(context.Background(), newKey(), sakuBody(1, badPhone))
+	_, err = e.create(t, context.Background(), newKey(), sakuBody(1, badPhone))
 	expectErr(t, err, services.ErrValidation)
 
 	ok := testutil.Representative()
@@ -56,11 +67,11 @@ func TestIntegrationExactlyOneRepresentative(t *testing.T) {
 	comp := testutil.Representative()
 	comp.IsRepresentative = false
 
-	_, err := e.reg.Create(context.Background(), newKey(), sakuBody(2, comp))
+	_, err := e.create(t, context.Background(), newKey(), sakuBody(2, comp))
 	expectErr(t, err, services.ErrValidation)
 
 	rep2 := testutil.Representative()
-	_, err = e.reg.Create(context.Background(), newKey(), sakuBody(2, testutil.Representative(), rep2))
+	_, err = e.create(t, context.Background(), newKey(), sakuBody(2, testutil.Representative(), rep2))
 	expectErr(t, err, services.ErrValidation)
 
 	res := e.mustCreate(t, newKey(), sakuBody(3, testutil.Representative()))
@@ -83,40 +94,40 @@ func TestIntegrationCountsAndCapacity(t *testing.T) {
 
 	empty := sakuBody(2)
 	empty.Guests = nil
-	_, err := e.reg.Create(ctx, newKey(), empty)
+	_, err := e.create(t, ctx, newKey(), empty)
 	expectErr(t, err, services.ErrValidation)
 
 	comp := testutil.Representative()
 	comp.IsRepresentative = false
-	_, err = e.reg.Create(ctx, newKey(), sakuBody(1, testutil.Representative(), comp))
+	_, err = e.create(t, ctx, newKey(), sakuBody(1, testutil.Representative(), comp))
 	expectErr(t, err, services.ErrValidation)
 
-	_, err = e.reg.Create(ctx, newKey(), sakuBody(5))
+	_, err = e.create(t, ctx, newKey(), sakuBody(5))
 	expectErr(t, err, services.ErrCapacityExceeded)
 
 	same := sakuBody(1)
 	same.CheckOutDate = same.CheckInDate
-	_, err = e.reg.Create(ctx, newKey(), same)
+	_, err = e.create(t, ctx, newKey(), same)
 	expectErr(t, err, services.ErrValidation)
 
 	past := testutil.CreateBody(testutil.FacilitySaku, "2026-11-01", "2026-11-03", 1)
-	_, err = e.reg.Create(ctx, newKey(), past)
+	_, err = e.create(t, ctx, newKey(), past)
 	expectErr(t, err, services.ErrValidation)
 
 	noConsent := sakuBody(1)
 	noConsent.TermsAccepted = false
-	_, err = e.reg.Create(ctx, newKey(), noConsent)
+	_, err = e.create(t, ctx, newKey(), noConsent)
 	expectErr(t, err, services.ErrValidation)
 
 	oldTerms := sakuBody(1)
 	oldTerms.TermsVersion = "2020-01-01"
-	_, err = e.reg.Create(ctx, newKey(), oldTerms)
+	_, err = e.create(t, ctx, newKey(), oldTerms)
 	expectErr(t, err, services.ErrValidation)
 
 	noPassport := testutil.ForeignGuest("Test Guest B", "TESTPP0001")
 	noPassport.IsRepresentative = true
 	noPassport.PassportNumber = nil
-	_, err = e.reg.Create(ctx, newKey(), sakuBody(1, noPassport))
+	_, err = e.create(t, ctx, newKey(), sakuBody(1, noPassport))
 	expectErr(t, err, services.ErrValidation)
 	if f := services.FieldsOf(err); len(f) != 1 || f[0].Location != "body.guests[0].passport_number" {
 		t.Fatalf("fields = %+v", f)
@@ -124,7 +135,7 @@ func TestIntegrationCountsAndCapacity(t *testing.T) {
 
 	inactive := sakuBody(1)
 	inactive.FacilityCode = "no-such-facility"
-	_, err = e.reg.Create(ctx, newKey(), inactive)
+	_, err = e.create(t, ctx, newKey(), inactive)
 	expectErr(t, err, services.ErrFacilityUnavailable)
 
 	// Partial registration: planned 3, one guest.

@@ -28,6 +28,11 @@ var domainErrors = []struct {
 	{services.ErrPreconditionFailed, http.StatusPreconditionFailed, "resource changed; reload and retry"},
 	{services.ErrUnauthenticated, http.StatusUnauthorized, "sign-in required"},
 	{services.ErrNotAuthorized, http.StatusForbidden, "not authorized for the admin console"},
+	{services.ErrInvitationRequired, http.StatusUnauthorized, "an invitation link from the host is required"},
+	{services.ErrInvitationInvalid, http.StatusUnauthorized, "invitation link is invalid"},
+	{services.ErrInvitationExpired, http.StatusGone, "invitation link has expired"},
+	{services.ErrInvitationUsed, http.StatusConflict, "invitation link was already used"},
+	{services.ErrInvitationDatesMismatch, http.StatusUnprocessableEntity, "stay dates must match the invitation"},
 }
 
 // toHTTPError maps a service error to the envelope with a stable code.

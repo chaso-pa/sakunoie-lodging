@@ -19,6 +19,14 @@ var (
 	ErrPreconditionFailed  = errors.New("precondition_failed")
 	ErrUnauthenticated     = errors.New("unauthenticated")
 	ErrNotAuthorized       = errors.New("not_authorized")
+
+	// Invitations (CLAUDE.md §13, 2026-11-15). A revoked invitation is
+	// reported as invalid, like a revoked edit token.
+	ErrInvitationRequired      = errors.New("invitation_required")
+	ErrInvitationInvalid       = errors.New("invitation_invalid")
+	ErrInvitationExpired       = errors.New("invitation_expired")
+	ErrInvitationUsed          = errors.New("invitation_used")
+	ErrInvitationDatesMismatch = errors.New("invitation_dates_mismatch")
 )
 
 // FieldError locates a problem without echoing the submitted value.

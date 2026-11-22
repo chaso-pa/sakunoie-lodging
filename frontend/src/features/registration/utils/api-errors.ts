@@ -12,6 +12,11 @@ const KNOWN_CODES = [
   'field_not_editable',
   'precondition_failed',
   'not_found',
+  'invitation_required',
+  'invitation_invalid',
+  'invitation_expired',
+  'invitation_used',
+  'invitation_dates_mismatch',
   'network_error',
   'internal_error'
 ] as const;
@@ -25,6 +30,27 @@ export const errorMessageKey = (error: unknown): ErrorMessageKey => {
   if (error.isNetworkError) return 'network_error';
   if (error.status >= 500) return 'internal_error';
   return 'unknown';
+};
+
+export type InvitationFailure = 'missing' | 'invalid' | 'expired' | 'used';
+
+/**
+ * The invitation state an API failure means for the wizard, or null when it is not about the
+ * invitation. A revoked invitation is reported as `invitation_invalid` (401).
+ */
+export const invitationFailureOf = (error: unknown): InvitationFailure | null => {
+  if (!(error instanceof ApiError)) return null;
+  switch (error.code) {
+    case 'invitation_required':
+      return 'missing';
+    case 'invitation_invalid':
+      return 'invalid';
+    case 'invitation_expired':
+      return 'expired';
+    case 'invitation_used':
+      return 'used';
+  }
+  return null;
 };
 
 const snakeToCamel = (s: string) => s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());

@@ -27,7 +27,21 @@ type TokenService struct {
 
 func NewTokenService(clock Clock) *TokenService { return &TokenService{clock: clock} }
 
-// hashToken decodes a raw base64url token and returns its SHA-256.
+// newToken returns a fresh 32-byte CSPRNG secret as base64url (the raw
+// token, handed out once) and its SHA-256 (the only value stored). Edit
+// tokens and invitations share it.
+func newToken() (raw string, hash []byte, err error) {
+	b := make([]byte, tokenBytes)
+	if _, err := rand.Read(b); err != nil {
+		return "", nil, err
+	}
+	h := sha256.Sum256(b)
+	return base64.RawURLEncoding.EncodeToString(b), h[:], nil
+}
+
+// hashToken decodes a raw base64url token and returns its SHA-256. Edit
+// tokens and invitations share it; the lookup is by the hash on a unique
+// index, so no secret is ever compared byte by byte in Go.
 func hashToken(raw string) ([]byte, bool) {
 	b, err := base64.RawURLEncoding.DecodeString(raw)
 	if err != nil || len(b) != tokenBytes {
@@ -44,21 +58,20 @@ func tokenExpiry(f *entities.Facility, reg *entities.GuestRegistration) (time.Ti
 
 // issue inserts a new token row and returns the raw token.
 func (s *TokenService) issue(tx *gorm.DB, regID uint64, expiresAt time.Time) (string, error) {
-	b := make([]byte, tokenBytes)
-	if _, err := rand.Read(b); err != nil {
+	raw, hash, err := newToken()
+	if err != nil {
 		return "", err
 	}
-	h := sha256.Sum256(b)
 	row := entities.RegistrationAccessToken{
 		RegistrationID: regID,
-		TokenHash:      h[:],
+		TokenHash:      hash,
 		ExpiresAt:      expiresAt,
 		CreatedAt:      s.clock.Now(),
 	}
 	if err := tx.Create(&row).Error; err != nil {
 		return "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
+	return raw, nil
 }
 
 // IssueAdditional mints another token for an idempotent replay. It returns

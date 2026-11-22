@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Burger, Button, Drawer, Group, Stack, Text, UnstyledButton } from '@mantine/core';
-import { IconChartBar, IconLogout, IconNotebook } from '@tabler/icons-react';
+import { IconChartBar, IconLogout, IconMailForward, IconNotebook } from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useState } from 'react';
@@ -9,6 +9,7 @@ import { paths } from '@/config/paths';
 
 const nav = [
   { href: paths.admin.registrations.getHref(), label: '宿泊者名簿', Icon: IconNotebook },
+  { href: paths.admin.invitations.getHref(), label: '招待リンク', Icon: IconMailForward },
   { href: paths.admin.surveys.getHref(), label: 'アンケート集計', Icon: IconChartBar }
 ];
 

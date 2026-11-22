@@ -72,6 +72,7 @@ func run(logger *slog.Logger) error {
 		AdminAuth:     services.NewAdminAuthService(db, verifier),
 		Admin:         services.NewAdminRegistrationService(db, clock, tokens, cipher),
 		Surveys:       services.NewSurveyService(db, clock, cfg.SurveyMinResponses),
+		Invitations:   services.NewInvitationService(db, clock),
 	}
 
 	models.InstallErrorConstructors()

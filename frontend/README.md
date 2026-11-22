@@ -4,6 +4,26 @@ Next.js app for the Saku no Ie website: the public site in four languages, guest
 (wizard, completion page and edit link), the anonymous post-stay survey, and the Japanese-only admin
 console. All data goes through the Go API in `../backend` and never directly to a database.
 
+## Registration invitations
+
+The wizard (`/{locale}/stays/{facilityCode}/registration`) works only with the host's per-booking
+invitation (root `CLAUDE.md` §13, 2026-11-15). The site has no public registration or survey link: the
+host sends the invitation URL in the Airbnb message, and the survey URL after checkout.
+
+- **Host:** admin console → **招待リンク** (`/admin/invitations`). Enter the stay dates (and optionally a
+  booking code and a host-only note), press **招待リンクを作成**, pick the guest's language, copy the URL
+  and paste it into the Airbnb message. The URL is shown only once. The list shows active / used /
+  expired / revoked with an icon and text; **取り消す** asks for confirmation and disables an unused link.
+- **Guest:** the URL is `/{locale}/stays/{code}/registration#invite=<token>`. The page moves the token
+  from the fragment to `sessionStorage` (this tab only) and strips the fragment, calls
+  `GET /invitations/current`, and shows the host-set dates read-only. The create sends the token as
+  `Authorization: Bearer` and the token is cleared after success. Without an invitation, or when it is
+  invalid/revoked, expired or already used, the page explains what to do (the last case points to the
+  edit link) in all four languages.
+- `@/lib/api-client` attaches the invitation only to the exact paths `/invitations/current` and
+  `/guest-registrations` (`registerAuthTokenProvider(path, provider, { exact: true })`), never together
+  with the edit token.
+
 The implementation contract is the repository-root `CLAUDE.md`. Its §13 decisions log explains the
 choices summarized here.
 
@@ -158,7 +178,7 @@ does, run the build again. Upgrading Next is a separate decision (see the open i
 
 ## E2E tests (Playwright)
 
-The specs are in `e2e/`: `public`, `registration`, `manage`, `admin` and `survey`. Each spec seeds its
+The specs are in `e2e/`: `public`, `registration`, `manage`, `admin`, `survey` and `cross-origin`. Each spec seeds its
 own synthetic data through the public API in `beforeAll`, using unique booking references, so any
 spec passes when run alone. The config uses `workers: 1` and `fullyParallel: false`, because all
 specs share one DB and one emulator. The `desktop-chromium` project (1280 px) runs every spec, and the
@@ -193,8 +213,10 @@ bash scripts/e2e-stack.sh stop            # stops only its own PIDs, then compos
 
 `e2e/global-setup.ts` checks that the stack is reachable. It then clears the emulator accounts,
 signs up `e2e-admin@example.test` and `e2e-nobody@example.test` with a random per-run password,
-and grants the admin user the owner role through `go run ./cmd/admin-grant` against compose
-`lodging_e2e`.
+grants the admin user the owner role through `go run ./cmd/admin-grant` against compose
+`lodging_e2e`, and checks the grant with `GET /admin/facilities`. Registrations need invitations:
+`e2e/fixtures/invitations.ts` signs in as that owner on the emulator and issues them through
+`POST /admin/invitations` (`seedRegistration` uses it).
 
 | Variable | Default | Purpose |
 |---|---|---|

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/chaso-pa/sakunoie-lodging/backend/internal/middlewares"
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/models"
 	"github.com/chaso-pa/sakunoie-lodging/backend/internal/services"
 )
@@ -13,7 +14,7 @@ type GuestRegistrationHandlers struct {
 }
 
 func (h *GuestRegistrationHandlers) CreateGuestRegistration(ctx context.Context, in *models.CreateGuestRegistrationInput) (*models.CreateGuestRegistrationOutput, error) {
-	res, err := h.Registrations.Create(ctx, in.IdempotencyKey, &in.Body)
+	res, err := h.Registrations.Create(ctx, in.IdempotencyKey, middlewares.InvitationTokenFrom(ctx), &in.Body)
 	if err != nil {
 		return nil, toHTTPError(ctx, err)
 	}

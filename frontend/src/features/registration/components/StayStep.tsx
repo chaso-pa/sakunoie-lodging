@@ -9,6 +9,7 @@ import { fieldId, type PathForm } from '@/features/registration/utils/form-paths
 
 export function StayStep({ form, facility }: { form: PathForm; facility: FacilityPublic }) {
   const t = useTranslations('registration.stay');
+  const tInvitation = useTranslations('registration.invitation');
   const input = (path: string) => ({ id: fieldId(path), ...form.getInputProps(path) });
 
   return (
@@ -24,10 +25,28 @@ export function StayStep({ form, facility }: { form: PathForm; facility: Facilit
           {t('maxGuests', { count: facility.max_guests })}
         </Text>
       </div>
-      <SimpleGrid cols={{ base: 1, xs: 2 }} spacing='md'>
-        <TextInput type='date' label={t('checkIn')} withAsterisk {...input('stay.checkInDate')} />
-        <TextInput type='date' label={t('checkOut')} withAsterisk {...input('stay.checkOutDate')} />
-      </SimpleGrid>
+      {/* Set by the host in the invitation: shown, never editable (the server rejects other dates). */}
+      <Stack gap={6}>
+        <SimpleGrid cols={{ base: 1, xs: 2 }} spacing='md'>
+          <TextInput
+            type='date'
+            label={t('checkIn')}
+            readOnly
+            aria-describedby='stay-dates-fixed'
+            {...input('stay.checkInDate')}
+          />
+          <TextInput
+            type='date'
+            label={t('checkOut')}
+            readOnly
+            aria-describedby='stay-dates-fixed'
+            {...input('stay.checkOutDate')}
+          />
+        </SimpleGrid>
+        <Text id='stay-dates-fixed' size='sm' c='dimmed'>
+          {tInvitation('datesFixed')}
+        </Text>
+      </Stack>
       <TextInput type='time' label={<OptionalLabel label={t('arrival')} />} {...input('stay.estimatedArrivalTime')} />
       <NumberInput
         label={t('plannedCount')}

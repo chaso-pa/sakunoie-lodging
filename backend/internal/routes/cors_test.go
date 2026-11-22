@@ -250,7 +250,9 @@ func TestIntegrationHTTPCORS(t *testing.T) {
 	assertAllowedOrigin(t, w)
 
 	body := testutil.CreateBody(testutil.FacilitySaku, "2026-12-01", "2026-12-03", 2)
-	w = h.do(http.MethodPost, createPath, body, map[string]string{"Origin": testWebOrigin, "Idempotency-Key": "test-" + uuid.NewString()})
+	createHdr := createHeaders("test-"+uuid.NewString(), h.invite(t, testutil.FacilitySaku, "2026-12-01", "2026-12-03"))
+	createHdr["Origin"] = testWebOrigin
+	w = h.do(http.MethodPost, createPath, body, createHdr)
 	if w.Code != http.StatusCreated || w.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("create: %d %s", w.Code, w.Body.String())
 	}

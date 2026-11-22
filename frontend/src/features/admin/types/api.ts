@@ -125,3 +125,40 @@ export type SurveySummary = {
 };
 
 export type SurveySummaryFilter = { facilityId?: number; from?: string; to?: string };
+
+/** Derived invitation status (backend `models.Invitation*`). */
+export type InvitationStatus = 'active' | 'used' | 'expired' | 'revoked';
+
+export type AdminInvitation = {
+  public_id: string;
+  facility: { id: number; code: string; name: string };
+  check_in_date: string;
+  check_out_date: string;
+  booking_reference: string | null;
+  note: string | null;
+  status: InvitationStatus;
+  expires_at: string;
+  used_at: string | null;
+  revoked_at: string | null;
+  registration_public_id: string | null;
+  created_at: string;
+};
+
+export type AdminInvitationList = { items: AdminInvitation[]; page: number; page_size: number; total: number };
+
+export type InvitationFilter = { facilityId?: number; status?: InvitationStatus; page?: number };
+
+export type CreateInvitationInput = {
+  facility_id: number;
+  check_in_date: string;
+  check_out_date: string;
+  booking_reference?: string;
+  note?: string;
+};
+
+/** The token is returned once; it is never stored by the server and cannot be fetched again. */
+export type CreateInvitationResult = {
+  invitation: AdminInvitation;
+  invitation_token: string;
+  invitation_url_path: string;
+};

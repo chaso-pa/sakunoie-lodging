@@ -10,7 +10,9 @@ const messages: Record<string, string> = {
   precondition_failed: 'ほかの操作で内容が更新されました。最新の内容を読み込み直してから、もう一度お試しください。',
   capacity_exceeded: '施設の定員を超えています。超える場合は「定員超過を許可」を選んでください。',
   validation_error: '入力内容を確認してください。',
-  rate_limited: '操作が多すぎます。しばらく待ってからお試しください。'
+  rate_limited: '操作が多すぎます。しばらく待ってからお試しください。',
+  invitation_used: 'この招待リンクはすでに宿泊者登録に使われたため、取り消せません。',
+  facility_unavailable: 'この施設は現在、登録を受け付けていません。'
 };
 
 export const adminErrorMessage = (error: unknown) => {

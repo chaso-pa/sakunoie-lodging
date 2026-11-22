@@ -43,6 +43,7 @@ type harness struct {
 	db     *gorm.DB
 	engine *gin.Engine
 	logs   *syncBuffer
+	issuer bool
 }
 
 func newHarness(t *testing.T) *harness {
@@ -72,9 +73,12 @@ func newHarness(t *testing.T) *harness {
 		Facilities:    services.NewFacilityService(db),
 		Registrations: services.NewRegistrationService(db, clock, tokens, idem, cipher),
 		Manage:        services.NewGuestManageService(db, clock, tokens, cipher),
-		AdminAuth:     services.NewAdminAuthService(db, testutil.FakeVerifier{"tok-a": "uid-a", "tok-none": "uid-none"}),
-		Admin:         services.NewAdminRegistrationService(db, clock, tokens, cipher),
-		Surveys:       services.NewSurveyService(db, clock, 2),
+		AdminAuth: services.NewAdminAuthService(db, testutil.FakeVerifier{
+			"tok-a": "uid-a", "tok-none": "uid-none", "tok-issuer": "uid-issuer",
+		}),
+		Admin:       services.NewAdminRegistrationService(db, clock, tokens, cipher),
+		Surveys:     services.NewSurveyService(db, clock, 2),
+		Invitations: services.NewInvitationService(db, clock),
 	}, logger)
 	if err != nil {
 		t.Fatal(err)
@@ -101,6 +105,30 @@ func (h *harness) do(method, path string, body any, headers map[string]string) *
 	w := httptest.NewRecorder()
 	h.engine.ServeHTTP(w, req)
 	return w
+}
+
+// invite issues an invitation through the admin API as uid-issuer, an
+// owner of both test facilities that is not the admin under test.
+func (h *harness) invite(t *testing.T, facility, checkIn, checkOut string) string {
+	t.Helper()
+	if !h.issuer {
+		testutil.GrantAdmin(t, h.db, "uid-issuer", services.RoleOwner, testutil.FacilitySaku, testutil.FacilityHonolulu)
+		h.issuer = true
+	}
+	w := h.do(http.MethodPost, "/api/v1/admin/invitations", map[string]any{
+		"facility_id": testutil.FacilityID(t, h.db, facility), "check_in_date": checkIn, "check_out_date": checkOut,
+	}, map[string]string{"Authorization": "Bearer tok-issuer"})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("issue invitation: %d %s", w.Code, w.Body.String())
+	}
+	var res models.CreateAdminInvitationResult
+	_ = json.Unmarshal(w.Body.Bytes(), &res)
+	return res.InvitationToken
+}
+
+// createHeaders are the create request headers: a key and the invitation.
+func createHeaders(key, invitation string) map[string]string {
+	return map[string]string{"Idempotency-Key": key, "Authorization": "Bearer " + invitation}
 }
 
 func envelope(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
@@ -133,7 +161,12 @@ func foreignRep(passport string) models.GuestInput {
 // idempotency table.
 func TestNoPIIInLogsOrErrors(t *testing.T) {
 	h := newHarness(t)
-	key := func() map[string]string { return map[string]string{"Idempotency-Key": "test-" + uuid.NewString()} }
+	var invitations []string
+	key := func() map[string]string {
+		inv := h.invite(t, testutil.FacilitySaku, "2026-12-01", "2026-12-03")
+		invitations = append(invitations, inv)
+		return createHeaders("test-"+uuid.NewString(), inv)
+	}
 
 	// 1. Huma schema validation failure (pattern) on the passport.
 	bad := testutil.CreateBody(testutil.FacilitySaku, "2026-12-01", "2026-12-03", 1, foreignRep(secretPassport+"!"))
@@ -180,7 +213,7 @@ func TestNoPIIInLogsOrErrors(t *testing.T) {
 		}
 	}
 	logs := h.logs.String()
-	for _, secret := range []string{secretPassport, secretName, token, "Testland"} {
+	for _, secret := range append([]string{secretPassport, secretName, token, "Testland"}, invitations...) {
 		if strings.Contains(logs, secret) {
 			t.Errorf("logs contain %q", secret)
 		}
@@ -208,14 +241,20 @@ func TestNoPIIInLogsOrErrors(t *testing.T) {
 func TestIntegrationHTTPManageFlow(t *testing.T) {
 	h := newHarness(t)
 	body := testutil.CreateBody(testutil.FacilitySaku, "2026-12-01", "2026-12-03", 3)
-	keyHdr := map[string]string{"Idempotency-Key": "test-" + uuid.NewString()}
+	invitation := h.invite(t, testutil.FacilitySaku, "2026-12-01", "2026-12-03")
+	keyHdr := createHeaders("test-"+uuid.NewString(), invitation)
 
 	// Missing Idempotency-Key → 422 envelope.
-	w := h.do(http.MethodPost, "/api/v1/guest-registrations", body, nil)
+	w := h.do(http.MethodPost, "/api/v1/guest-registrations", body, map[string]string{"Authorization": keyHdr["Authorization"]})
 	if w.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("no key: %d", w.Code)
 	}
 	envelope(t, w)
+	// No invitation → 401 invitation_required, no-store.
+	w = h.do(http.MethodPost, "/api/v1/guest-registrations", body, map[string]string{"Idempotency-Key": keyHdr["Idempotency-Key"]})
+	if w.Code != http.StatusUnauthorized || envelope(t, w)["code"] != "invitation_required" || w.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("no invitation: %d %s", w.Code, w.Body.String())
+	}
 
 	w = h.do(http.MethodPost, "/api/v1/guest-registrations", body, keyHdr)
 	if w.Code != http.StatusCreated {
@@ -236,7 +275,8 @@ func TestIntegrationHTTPManageFlow(t *testing.T) {
 	}
 	// Capacity → 409 capacity_exceeded.
 	over := testutil.CreateBody(testutil.FacilitySaku, "2026-12-01", "2026-12-03", 5)
-	w = h.do(http.MethodPost, "/api/v1/guest-registrations", over, map[string]string{"Idempotency-Key": "test-" + uuid.NewString()})
+	w = h.do(http.MethodPost, "/api/v1/guest-registrations", over,
+		createHeaders("test-"+uuid.NewString(), h.invite(t, testutil.FacilitySaku, "2026-12-01", "2026-12-03")))
 	if w.Code != http.StatusConflict || envelope(t, w)["code"] != "capacity_exceeded" {
 		t.Fatalf("capacity: %d %s", w.Code, w.Body.String())
 	}

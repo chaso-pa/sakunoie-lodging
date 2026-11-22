@@ -49,6 +49,21 @@ describe('registerAuthTokenProvider', () => {
     expect(findTokenProvider('/guest-registrations')).toBeUndefined();
     expect(findTokenProvider('/facilities/saku-no-ie/public')).toBeUndefined();
   });
+
+  it('matches exact paths only, and an exact path wins over a prefix', async () => {
+    registerAuthTokenProvider('/guest-registrations/manage', () => 'guest-token');
+    registerAuthTokenProvider('/guest-registrations', () => 'invite-token', { exact: true });
+    registerAuthTokenProvider('/invitations/current', () => 'invite-token', { exact: true });
+    expect(await findTokenProvider('/guest-registrations')?.()).toBe('invite-token');
+    expect(await findTokenProvider('/guest-registrations?x=1')?.()).toBe('invite-token');
+    expect(await findTokenProvider('/invitations/current')?.()).toBe('invite-token');
+    // The invitation never rides on manage calls, and the edit token never on create.
+    expect(await findTokenProvider('/guest-registrations/manage')?.()).toBe('guest-token');
+    expect(await findTokenProvider('/guest-registrations/manage/guests')?.()).toBe('guest-token');
+    expect(findTokenProvider('/guest-registrations/other')).toBeUndefined();
+    expect(findTokenProvider('/invitations/current/x')).toBeUndefined();
+    expect(findTokenProvider('/invitations')).toBeUndefined();
+  });
 });
 
 describe('cross-origin API base URL', () => {

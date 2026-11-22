@@ -15,7 +15,12 @@ export const paths = {
     survey: { getHref: () => '/survey' }
   },
   registration: {
-    wizard: { getHref: (facilityCode: string) => `/stays/${encodeURIComponent(facilityCode)}/registration` },
+    wizard: {
+      getHref: (facilityCode: string) => `/stays/${encodeURIComponent(facilityCode)}/registration`,
+      /** Absolute invitation URL. The token travels only in the fragment, which browsers never send to servers. */
+      getAbsoluteInviteHref: (origin: string, locale: string, facilityCode: string, token: string) =>
+        `${origin}/${locale}/stays/${encodeURIComponent(facilityCode)}/registration#invite=${encodeURIComponent(token)}`
+    },
     complete: { getHref: () => '/registration/complete' },
     manage: {
       getHref: () => '/registration/manage',
@@ -29,6 +34,7 @@ export const paths = {
     login: { getHref: () => '/admin/login' },
     registrations: { getHref: () => '/admin/guest-registrations' },
     registration: { getHref: (publicId: string) => `/admin/guest-registrations/${encodeURIComponent(publicId)}` },
-    surveys: { getHref: () => '/admin/surveys' }
+    surveys: { getHref: () => '/admin/surveys' },
+    invitations: { getHref: () => '/admin/invitations' }
   }
 } as const;

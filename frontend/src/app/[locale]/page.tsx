@@ -5,14 +5,13 @@ import { AirbnbCta } from '@/components/AirbnbCta';
 import { ButtonLink } from '@/components/ButtonLink';
 import { airbnbListingId } from '@/config/airbnb';
 import { paths } from '@/config/paths';
-import { defaultFacility, defaultFacilityCode } from '@/config/site';
+import { defaultFacility } from '@/config/site';
 import {
   AccessRoute,
   AirbnbEmbed,
   ArrowLink,
   BookingBand,
   BookingCard,
-  GuestStrip,
   Highlights,
   HomeSection,
   loadPage,
@@ -159,15 +158,6 @@ export default async function HomePage({ params }: PageProps) {
           </Box>
         ) : null}
       </HomeSection>
-
-      <GuestStrip
-        title={t('home.guestsTitle')}
-        body={t('home.guestsBody')}
-        links={[
-          { href: paths.registration.wizard.getHref(defaultFacilityCode), label: t('home.registerCta') },
-          { href: paths.public.survey.getHref(), label: t('home.surveyCta') }
-        ]}
-      />
     </>
   );
 }

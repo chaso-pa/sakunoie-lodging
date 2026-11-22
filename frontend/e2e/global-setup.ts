@@ -63,6 +63,23 @@ export default async function globalSetup(config: FullConfig) {
     stdio: ['ignore', 'ignore', 'inherit']
   });
 
+  // Registration needs a per-booking invitation (root CLAUDE.md §13, 2026-11-15). Specs issue them through
+  // the admin API as this owner (`fixtures/invitations.ts`); check that the grant took effect now.
+  const signIn = await fetch(
+    `${EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo-api-key`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: adminEmail, password, returnSecureToken: true })
+    }
+  );
+  if (!signIn.ok) throw new Error(`emulator sign-in failed: ${signIn.status}`);
+  const { idToken } = (await signIn.json()) as { idToken: string };
+  const facilities = await fetch(`${API_URL}/api/v1/admin/facilities`, {
+    headers: { Authorization: `Bearer ${idToken}` }
+  });
+  if (!facilities.ok) throw new Error(`admin grant not effective (GET /admin/facilities: ${facilities.status})`);
+
   process.env.E2E_ADMIN_EMAIL = adminEmail;
   process.env.E2E_NOBODY_EMAIL = nobodyEmail;
   process.env.E2E_ADMIN_PASSWORD = password;

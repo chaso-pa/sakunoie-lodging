@@ -40,6 +40,20 @@ describe('message catalogs', () => {
     });
   }
 
+  it('no longer has the public registration and survey links (owner decision 2026-11-15)', () => {
+    for (const key of [
+      'home.guestsTitle',
+      'home.guestsBody',
+      'home.registerCta',
+      'home.surveyCta',
+      'nav.registration',
+      'nav.survey',
+      'nav.groupGuests'
+    ]) {
+      expect(base[key], key).toBeUndefined();
+    }
+  });
+
   it('has a message for every API error code the UI localizes', () => {
     for (const code of [
       'validation_error',
@@ -52,6 +66,11 @@ describe('message catalogs', () => {
       'field_not_editable',
       'precondition_failed',
       'not_found',
+      'invitation_required',
+      'invitation_invalid',
+      'invitation_expired',
+      'invitation_used',
+      'invitation_dates_mismatch',
       'network_error',
       'internal_error',
       'unknown'

@@ -46,24 +46,50 @@ type CreateResult struct {
 	Replayed bool
 }
 
-// Create runs Decision D:
-//   - Tx1: facility read, validation, INSERT key row, registration, guests,
-//     token, audit; commit.
-//   - On 1062 for key_hash: roll back and replay in a NEW transaction (the
-//     REPEATABLE READ snapshot of Tx1 predates the other commit).
-func (s *RegistrationService) Create(ctx context.Context, idempotencyKey string, in *models.CreateGuestRegistrationBody) (*CreateResult, error) {
+// errInvitationConsumed: the invitation is already used. createNew cannot
+// tell a different submission from a retry of the one that used it, so
+// Create hands it to replay, which decides by the Idempotency-Key.
+var errInvitationConsumed = errors.New("invitation consumed")
+
+// Create runs Decision D with the invitation gate (CLAUDE.md §13,
+// 2026-11-15):
+//   - Tx1: lock the invitation FOR UPDATE, facility read, validation, the
+//     invitation's facility and dates, INSERT key row, registration, guests,
+//     token, audit, mark the invitation used; commit.
+//   - On 1062 for key_hash, or when the invitation is already used: roll
+//     back and replay in a NEW transaction (the REPEATABLE READ snapshot of
+//     Tx1 predates the other commit). A replay of the same key and body by
+//     the invitation that created the registration succeeds; an used
+//     invitation without that key row is 409 invitation_used.
+//
+// The invitation token comes from `Authorization: Bearer`, never from the
+// body, so it is not part of the request hash. A replay instead checks that
+// the invitation is the one linked to the registration of the key row.
+//
+// Lock order: invitation, then idempotency key, then registration, then
+// tokens. Admin revoke locks only the invitation; manage and reissue start
+// at the registration and never touch invitations.
+func (s *RegistrationService) Create(ctx context.Context, idempotencyKey, invitationToken string, in *models.CreateGuestRegistrationBody) (*CreateResult, error) {
+	if strings.TrimSpace(invitationToken) == "" {
+		return nil, ErrInvitationRequired
+	}
 	keyHash := s.idem.KeyHash(idempotencyKey)
 	reqHash, err := s.idem.RequestHash(in)
 	if err != nil {
 		return nil, err
 	}
 	for attempt := 0; attempt < maxCreateAttempts; attempt++ {
-		res, err := s.createNew(ctx, keyHash, reqHash, in)
-		if err == nil || !isDuplicateIdempotencyKey(err) {
+		res, err := s.createNew(ctx, keyHash, reqHash, invitationToken, in)
+		consumed := errors.Is(err, errInvitationConsumed)
+		if err == nil || !(consumed || isDuplicateIdempotencyKey(err)) {
 			return res, err
 		}
-		res, err = s.replay(ctx, keyHash, reqHash, in)
+		res, err = s.replay(ctx, keyHash, reqHash, invitationToken, in)
 		if errors.Is(err, errReplayRetry) {
+			if consumed {
+				// No key row: another submission used the invitation.
+				return nil, ErrInvitationUsed
+			}
 			continue
 		}
 		return res, err
@@ -71,23 +97,22 @@ func (s *RegistrationService) Create(ctx context.Context, idempotencyKey string,
 	return nil, errors.New("idempotency: too many retries")
 }
 
-func (s *RegistrationService) createNew(ctx context.Context, keyHash, reqHash []byte, in *models.CreateGuestRegistrationBody) (*CreateResult, error) {
+func (s *RegistrationService) createNew(ctx context.Context, keyHash, reqHash []byte, invitationToken string, in *models.CreateGuestRegistrationBody) (*CreateResult, error) {
 	var res *CreateResult
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		f, err := loadActiveFacility(tx, in.FacilityCode)
+		inv, err := findInvitation(tx, invitationToken, true)
 		if err != nil {
 			return err
 		}
-		v, err := s.validate(f, in)
-		if err != nil {
+		if err := checkInvitationUsable(inv, s.clock.Now()); err != nil {
+			if errors.Is(err, ErrInvitationUsed) {
+				return errInvitationConsumed
+			}
 			return err
 		}
-		publicID := uuid.NewString()
-		if err := s.idem.insertKey(tx, keyHash, reqHash, publicID); err != nil {
-			return err
-		}
-		res, err = s.insert(tx, f, v, publicID)
-		return err
+		return s.createWithInvitation(tx, inv, in, func(publicID string) error {
+			return s.idem.insertKey(tx, keyHash, reqHash, publicID)
+		}, &res)
 	})
 	if err != nil {
 		return nil, err
@@ -95,36 +120,74 @@ func (s *RegistrationService) createNew(ctx context.Context, keyHash, reqHash []
 	return res, nil
 }
 
-// replay is Tx3: lock the key row, then overwrite (expired), conflict
-// (different body) or rebuild the response from DB rows with an additional
-// token (same body).
-func (s *RegistrationService) replay(ctx context.Context, keyHash, reqHash []byte, in *models.CreateGuestRegistrationBody) (*CreateResult, error) {
+// createWithInvitation validates the request against the locked, usable
+// invitation, writes the key row (writeKey), inserts the registration and
+// marks the invitation used by it.
+func (s *RegistrationService) createWithInvitation(tx *gorm.DB, inv *entities.RegistrationInvitation, in *models.CreateGuestRegistrationBody, writeKey func(publicID string) error, res **CreateResult) error {
+	f, err := loadActiveFacility(tx, in.FacilityCode)
+	if err != nil {
+		return err
+	}
+	if f.ID != inv.FacilityID {
+		return ErrInvitationInvalid
+	}
+	v, err := s.validate(f, in)
+	if err != nil {
+		return err
+	}
+	// The host sets the dates; the guest cannot change them.
+	var mismatch []FieldError
+	if v.checkIn != utils.CivilDateFromDB(inv.CheckInDate) {
+		mismatch = append(mismatch, FieldError{"body.check_in_date", "must equal the invitation's check-in date"})
+	}
+	if v.checkOut != utils.CivilDateFromDB(inv.CheckOutDate) {
+		mismatch = append(mismatch, FieldError{"body.check_out_date", "must equal the invitation's check-out date"})
+	}
+	if len(mismatch) > 0 {
+		return newDomainError(ErrInvitationDatesMismatch, mismatch...)
+	}
+	publicID := uuid.NewString()
+	if err := writeKey(publicID); err != nil {
+		return err
+	}
+	r, err := s.insert(tx, f, v, publicID, inv)
+	if err != nil {
+		return err
+	}
+	*res = r
+	return nil
+}
+
+// replay is Tx3: lock the invitation, then the key row, then overwrite
+// (expired key), conflict (different body or another invitation) or
+// rebuild the response from DB rows with an additional token (same body,
+// same invitation).
+func (s *RegistrationService) replay(ctx context.Context, keyHash, reqHash []byte, invitationToken string, in *models.CreateGuestRegistrationBody) (*CreateResult, error) {
 	var res *CreateResult
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		inv, err := findInvitation(tx, invitationToken, true)
+		if err != nil {
+			return err
+		}
+		now := s.clock.Now()
+		if now.After(inv.ExpiresAt) {
+			return ErrInvitationExpired
+		}
 		var row entities.APIIdempotencyKey
-		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("key_hash = ?", keyHash).Take(&row).Error
+		err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("key_hash = ?", keyHash).Take(&row).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errReplayRetry
 		}
 		if err != nil {
 			return err
 		}
-		now := s.clock.Now()
 		if row.ExpiresAt.Before(now) {
-			f, err := loadActiveFacility(tx, in.FacilityCode)
-			if err != nil {
-				return err
+			if inv.UsedAt != nil {
+				return ErrInvitationUsed
 			}
-			v, err := s.validate(f, in)
-			if err != nil {
-				return err
-			}
-			publicID := uuid.NewString()
-			if err := s.idem.overwriteKey(tx, &row, reqHash, publicID); err != nil {
-				return err
-			}
-			res, err = s.insert(tx, f, v, publicID)
-			return err
+			return s.createWithInvitation(tx, inv, in, func(publicID string) error {
+				return s.idem.overwriteKey(tx, &row, reqHash, publicID)
+			}, &res)
 		}
 		if !hmac.Equal(row.RequestHash, reqHash) {
 			return ErrIdempotencyConflict
@@ -141,6 +204,10 @@ func (s *RegistrationService) replay(ctx context.Context, keyHash, reqHash []byt
 		}
 		if err != nil {
 			return err
+		}
+		// Same key and body, but not the invitation that created it.
+		if inv.RegistrationID == nil || *inv.RegistrationID != reg.ID {
+			return ErrIdempotencyConflict
 		}
 		var f entities.Facility
 		if err := tx.Where("id = ?", reg.FacilityID).Take(&f).Error; err != nil {
@@ -260,8 +327,9 @@ func (s *RegistrationService) validate(f *entities.Facility, in *models.CreateGu
 
 func guestLoc(i int) string { return "body.guests[" + strconv.Itoa(i) + "]" }
 
-// insert writes the registration, guests, first token and audit row.
-func (s *RegistrationService) insert(tx *gorm.DB, f *entities.Facility, v *validatedCreate, publicID string) (*CreateResult, error) {
+// insert writes the registration, guests, first token and audit row, and
+// marks the (locked) invitation used by the new registration.
+func (s *RegistrationService) insert(tx *gorm.DB, f *entities.Facility, v *validatedCreate, publicID string, inv *entities.RegistrationInvitation) (*CreateResult, error) {
 	now := s.clock.Now()
 	in := v.in
 	reg := entities.GuestRegistration{
@@ -304,6 +372,16 @@ func (s *RegistrationService) insert(tx *gorm.DB, f *entities.Facility, v *valid
 	}
 	if err := writeAudit(tx, s.clock, f.ID, &reg.ID, entities.ActorGuestToken, nil, "registration.created", nil); err != nil {
 		return nil, err
+	}
+	// The invitation row is locked FOR UPDATE above; RowsAffected still guards against a silent double use
+	// if that lock ever changes (the transaction then rolls back the registration).
+	consumed := tx.Model(&entities.RegistrationInvitation{}).Where("id = ? AND used_at IS NULL", inv.ID).
+		Updates(map[string]any{"used_at": now, "registration_id": reg.ID, "updated_at": now})
+	if consumed.Error != nil {
+		return nil, consumed.Error
+	}
+	if consumed.RowsAffected != 1 {
+		return nil, ErrInvitationUsed
 	}
 	if s.BeforeCommit != nil {
 		if err := s.BeforeCommit(tx); err != nil {

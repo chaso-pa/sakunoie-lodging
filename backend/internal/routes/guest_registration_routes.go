@@ -8,7 +8,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-var editTokenSecurity = []map[string][]string{{"editToken": {}}}
+var (
+	editTokenSecurity  = []map[string][]string{{"editToken": {}}}
+	invitationSecurity = []map[string][]string{{"invitationToken": {}}}
+)
 
 func SetupGuestRegistrationRoutes(api huma.API, reg *handlers.GuestRegistrationHandlers, manage *handlers.GuestManageHandlers) {
 	huma.Register(api, huma.Operation{
@@ -16,10 +19,10 @@ func SetupGuestRegistrationRoutes(api huma.API, reg *handlers.GuestRegistrationH
 		Method:        http.MethodPost,
 		Path:          "/guest-registrations",
 		Summary:       "Submit a guest registration",
-		Description:   "Creates one registration with 1..N guests in one transaction. Requires Idempotency-Key. 201 on create; 200 on an idempotent replay of the same body, which returns a new additional edit token, or edit_token=null with code=edit_link_unavailable when 3 links are active or the host reissued the link. Same key with a different body → 409 idempotency_conflict.",
+		Description:   "Creates one registration with 1..N guests in one transaction. Requires the host's invitation token as `Authorization: Bearer` (never in the body or a query string) and Idempotency-Key. The facility and both stay dates must equal the invitation's (422 invitation_dates_mismatch); no token → 401 invitation_required; unknown, malformed or revoked → 401 invitation_invalid; expired (after the end of the check-out day in facility time) → 410 invitation_expired; already used by another submission → 409 invitation_used. The invitation is single-use and is consumed in the same transaction. 201 on create; 200 on an idempotent replay of the same key and body with the same invitation, which returns a new additional edit token, or edit_token=null with code=edit_link_unavailable when 3 links are active or the host reissued the link. Same key with a different body or another invitation → 409 idempotency_conflict.",
 		Tags:          []string{"Guest registrations"},
 		DefaultStatus: http.StatusCreated,
-		Security:      publicSecurity,
+		Security:      invitationSecurity,
 		Responses: map[string]*huma.Response{
 			"200": {
 				Description: "Idempotent replay (same Idempotency-Key and body)",
@@ -28,8 +31,9 @@ func SetupGuestRegistrationRoutes(api huma.API, reg *handlers.GuestRegistrationH
 				}},
 			},
 		},
-		Middlewares: huma.Middlewares{middlewares.NoStore},
-		Errors:      []int{http.StatusBadRequest, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests},
+		Middlewares: huma.Middlewares{middlewares.InvitationToken},
+		Errors: []int{http.StatusBadRequest, http.StatusUnauthorized, http.StatusConflict, http.StatusGone,
+			http.StatusUnprocessableEntity, http.StatusTooManyRequests},
 	}, reg.CreateGuestRegistration)
 
 	manageOp := func(op huma.Operation) huma.Operation {

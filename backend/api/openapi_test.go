@@ -70,6 +70,10 @@ func TestOpenAPIContract(t *testing.T) {
 		"post /api/v1/admin/guest-registrations/{id}/reissue-edit-link",
 		"get /api/v1/admin/guest-registrations/export",
 		"get /api/v1/admin/surveys/summary",
+		"post /api/v1/admin/invitations",
+		"get /api/v1/admin/invitations",
+		"post /api/v1/admin/invitations/{public_id}/revoke",
+		"get /api/v1/invitations/current",
 	} {
 		method, path, _ := strings.Cut(want, " ")
 		ops, ok := paths[path].(map[string]any)
@@ -102,6 +106,19 @@ func TestOpenAPIContract(t *testing.T) {
 			if string(js) != `[{"adminBearer":[]}]` {
 				t.Errorf("%s %s security = %s", method, path, js)
 			}
+		}
+	}
+	// The invitation token is a bearer credential on create and on the
+	// invitation check, never a body field or query parameter.
+	for _, want := range []string{"post /api/v1/guest-registrations", "get /api/v1/invitations/current"} {
+		method, path, _ := strings.Cut(want, " ")
+		op := paths[path].(map[string]any)[method].(map[string]any)
+		js, _ := json.Marshal(op["security"])
+		if string(js) != `[{"invitationToken":[]}]` {
+			t.Errorf("%s security = %s", want, js)
+		}
+		if params, _ := json.Marshal(op["parameters"]); strings.Contains(string(params), "invit") {
+			t.Errorf("%s must not take the invitation as a parameter: %s", want, params)
 		}
 	}
 	if strings.Contains(string(b), "$schema") {

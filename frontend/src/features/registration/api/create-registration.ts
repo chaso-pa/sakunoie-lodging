@@ -1,3 +1,4 @@
+import '@/features/registration/api/invitation-auth';
 import { useMutation } from '@tanstack/react-query';
 import type { CreateRegistrationResult } from '@/features/registration/types/api';
 import { type CreateRegistrationPayload, createRegistrationPayloadSchema } from '@/features/registration/types/schemas';
@@ -9,7 +10,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * Creates a registration. Network failures and timeouts are retried with the **same**
  * Idempotency-Key, so a response lost after the server committed is recovered as a replay.
- * The caller owns the key (wizard store) and never mints a new one on failure.
+ * The caller owns the key (wizard store) and never mints a new one on failure. The host's invitation
+ * goes as `Authorization: Bearer` through the `invitation-auth` provider, never in the body.
  */
 export const createRegistration = async ({
   payload,

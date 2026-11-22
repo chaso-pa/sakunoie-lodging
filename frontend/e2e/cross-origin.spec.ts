@@ -19,7 +19,8 @@ test.beforeAll(async ({ playwright }) => {
 test.describe('cross-origin API', () => {
   test('preflights from the web origin succeed; another origin gets no CORS headers', async ({ request }) => {
     for (const [path, method, headers] of [
-      ['/api/v1/guest-registrations', 'POST', 'content-type,idempotency-key'],
+      ['/api/v1/guest-registrations', 'POST', 'authorization,content-type,idempotency-key'],
+      ['/api/v1/invitations/current', 'GET', 'authorization'],
       ['/api/v1/guest-registrations/manage', 'PATCH', 'authorization,content-type,if-match'],
       ['/api/v1/admin/facilities', 'GET', 'authorization']
     ]) {

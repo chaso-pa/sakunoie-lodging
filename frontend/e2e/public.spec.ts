@@ -106,14 +106,27 @@ test.describe('public site', () => {
     const fallback = section.getByRole('link', { name: /Airbnbで見る/ });
     await expect(fallback).toHaveAttribute('href', facility.airbnbUrl);
     await expect(fallback).toHaveAttribute('target', '_blank');
-    // The single primary booking CTA of the page body is in the booking card; guest links stay text links.
+    // The single primary booking CTA of the page body is in the booking card.
     await expect(page.locator('#booking').getByRole('link', { name: /宿泊を予約/ })).toBeVisible();
-    const guests = page.locator('aside[aria-labelledby="guests-title"]');
-    await expect(guests.getByRole('link', { name: '宿泊者登録' })).toHaveAttribute(
-      'href',
-      '/ja/stays/saku-no-ie/registration'
-    );
-    await expect(guests.getByRole('link', { name: '滞在後アンケート' })).toHaveAttribute('href', '/ja/survey');
+  });
+
+  test('no public registration or survey links on the home page or in the footer (owner decision 2026-11-15)', async ({
+    page
+  }) => {
+    for (const p of ['/ja', '/en', '/ja/faq']) {
+      await page.goto(p);
+      // Registration needs the host's per-booking invitation; the survey URL is sent after checkout.
+      await expect(page.locator('a[href*="/registration"]'), p).toHaveCount(0);
+      await expect(page.locator('a[href*="/survey"]'), p).toHaveCount(0);
+      await expect(page.locator('aside[aria-labelledby="guests-title"]'), p).toHaveCount(0);
+      await expect(page.getByText(/ご予約済みの方へ|Already booked/), p).toHaveCount(0);
+      const footer = page.locator('footer');
+      await expect(footer.getByRole('link', { name: /宿泊者登録|Guest registration/ }), p).toHaveCount(0);
+      await expect(footer.getByRole('link', { name: /アンケート|survey/i }), p).toHaveCount(0);
+      await expect(footer.getByRole('link', { name: /プライバシーポリシー|Privacy/ }), p).toHaveCount(1);
+    }
+    // The survey page itself stays reachable by URL.
+    expect((await page.goto('/ja/survey'))?.status()).toBe(200);
   });
 
   test('locale switcher keeps the path', async ({ page }) => {

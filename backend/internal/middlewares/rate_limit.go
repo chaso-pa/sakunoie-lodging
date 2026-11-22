@@ -26,7 +26,8 @@ func ClassifyRoute(method, route string) string {
 	switch {
 	case method == http.MethodPost && route == "/api/v1/guest-registrations":
 		return LimitCreate
-	case strings.HasPrefix(route, "/api/v1/guest-registrations/manage"):
+	case strings.HasPrefix(route, "/api/v1/guest-registrations/manage"),
+		method == http.MethodGet && route == "/api/v1/invitations/current":
 		return LimitManage
 	case method == http.MethodPost && route == "/api/v1/surveys":
 		return LimitSurvey

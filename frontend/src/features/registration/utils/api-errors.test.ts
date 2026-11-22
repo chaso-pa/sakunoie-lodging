@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { errorMessageKey, parseGuestLocation, wizardPathFromLocation } from '@/features/registration/utils/api-errors';
+import {
+  errorMessageKey,
+  invitationFailureOf,
+  parseGuestLocation,
+  wizardPathFromLocation
+} from '@/features/registration/utils/api-errors';
 import { ApiError } from '@/lib/api-client';
 
 describe('wizardPathFromLocation', () => {
@@ -31,6 +36,8 @@ describe('errorMessageKey', () => {
   it('localizes known codes by code', () => {
     expect(errorMessageKey(apiError(409, 'idempotency_conflict'))).toBe('idempotency_conflict');
     expect(errorMessageKey(apiError(410, 'token_expired'))).toBe('token_expired');
+    expect(errorMessageKey(apiError(409, 'invitation_used'))).toBe('invitation_used');
+    expect(errorMessageKey(apiError(422, 'invitation_dates_mismatch'))).toBe('invitation_dates_mismatch');
   });
 
   it('falls back by status for unknown codes', () => {
@@ -38,5 +45,23 @@ describe('errorMessageKey', () => {
     expect(errorMessageKey(apiError(503, 'bad_gateway'))).toBe('internal_error');
     expect(errorMessageKey(apiError(400, 'bad_request'))).toBe('unknown');
     expect(errorMessageKey(new Error('x'))).toBe('unknown');
+  });
+});
+
+describe('invitationFailureOf', () => {
+  const apiError = (status: number, code: string) => new ApiError(status, code, 'msg', [], null);
+
+  it('maps the invitation codes to wizard states', () => {
+    expect(invitationFailureOf(apiError(401, 'invitation_required'))).toBe('missing');
+    expect(invitationFailureOf(apiError(401, 'invitation_invalid'))).toBe('invalid');
+    expect(invitationFailureOf(apiError(410, 'invitation_expired'))).toBe('expired');
+    expect(invitationFailureOf(apiError(409, 'invitation_used'))).toBe('used');
+  });
+
+  it('ignores everything else', () => {
+    expect(invitationFailureOf(apiError(409, 'idempotency_conflict'))).toBeNull();
+    expect(invitationFailureOf(apiError(401, 'token_invalid'))).toBeNull();
+    expect(invitationFailureOf(apiError(422, 'invitation_dates_mismatch'))).toBeNull();
+    expect(invitationFailureOf(new Error('x'))).toBeNull();
   });
 });

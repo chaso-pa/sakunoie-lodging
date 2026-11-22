@@ -9,7 +9,7 @@ todo: "要差し替え: times, Wi-Fi, shared spaces, quiet hours and no-smoking 
 
 ## Before you arrive
 
-Please register every guest online before check-in. Use "Guest registration" at the bottom of the page.
+Please register every guest online before check-in. After you book, the host sends you an invitation link for the registration in an Airbnb message; please register from that link.
 
 ## Arrival and check-in
 

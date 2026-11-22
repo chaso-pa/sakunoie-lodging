@@ -9,6 +9,14 @@ export type FacilityPublic = {
   privacy_version: string;
 };
 
+/** `GET /invitations/current`: what the host's invitation fixes for this registration. */
+export type CurrentInvitation = {
+  facility_code: string;
+  check_in_date: string;
+  check_out_date: string;
+  expires_at: string;
+};
+
 export type CreateRegistrationResult = {
   public_id: string;
   facility_code: string;

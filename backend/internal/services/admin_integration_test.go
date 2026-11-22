@@ -135,7 +135,9 @@ func TestIntegrationAdminFacilityIsolation(t *testing.T) {
 	if r.IdentityVerifiedAt != nil || r.BookingReference == nil || *r.BookingReference != "TEST-REF-0001" {
 		t.Fatalf("other facility changed: %+v", r)
 	}
-	if n := testutil.CountRows(t, e.db, "audit_logs"); n != 2 { // the two registration.created rows
+	var n int64 // the two registration.created rows (the fixtures' invitation rows aside)
+	e.db.Model(&entities.AuditLog{}).Where("action <> ?", services.AuditInvitationCreated).Count(&n)
+	if n != 2 {
 		t.Fatalf("audit rows = %d; refused operations must not write audit rows", n)
 	}
 

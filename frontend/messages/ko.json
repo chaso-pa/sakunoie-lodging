@@ -31,10 +31,6 @@
     "backHome": "홈으로 돌아가기"
   },
   "home": {
-    "guestsTitle": "예약하신 분께",
-    "guestsBody": "체크인 전 숙박자 등록과 숙박 후 설문은 여기에서 하실 수 있습니다.",
-    "registerCta": "숙박자 등록",
-    "surveyCta": "숙박 후 설문",
     "airbnbFrameTitle": "사쿠노이에 Airbnb 숙소 페이지(사진·후기)",
     "airbnbOpen": "Airbnb에서 보기",
     "spacesLink": "객실과 설비 자세히 보기",
@@ -79,6 +75,11 @@
     "token_expired": "편집 링크의 유효기간이 지났습니다. 호스트에게 연락해 주세요.",
     "field_not_editable": "이 항목은 편집 링크로 변경할 수 없습니다. 호스트에게 연락해 주세요.",
     "precondition_failed": "다른 화면에서 내용이 변경되어 최신 내용을 불러왔습니다. 다시 시도해 주세요.",
+    "invitation_required": "이 페이지는 호스트가 보내 드린 초대 링크로 열어 주세요.",
+    "invitation_invalid": "초대 링크가 유효하지 않습니다. 호스트에게 연락해 주세요.",
+    "invitation_expired": "초대 링크의 유효 기간이 지났습니다. 호스트에게 연락해 주세요.",
+    "invitation_used": "이 초대 링크는 이미 사용되었습니다. 편집 링크를 이용해 주세요.",
+    "invitation_dates_mismatch": "숙박일이 호스트가 설정한 일정과 일치하지 않습니다. 초대 링크를 다시 열어 주세요.",
     "not_found": "대상을 찾을 수 없습니다.",
     "network_error": "통신에 실패했습니다. 연결을 확인한 후 다시 시도해 주세요.",
     "internal_error": "서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
@@ -151,7 +152,18 @@
     "alreadySubmittedTitle": "이미 제출된 등록입니다",
     "alreadySubmittedBody": "같은 등록이 이미 접수되었습니다. 편집 링크가 필요하면 호스트에게 연락해 주세요.",
     "startNew": "다른 등록을 새로 시작하기",
-    "networkError": "통신에 실패했습니다. 입력 내용은 유지됩니다. 다시 \"등록하기\"를 눌러 주세요."
+    "networkError": "통신에 실패했습니다. 입력 내용은 유지됩니다. 다시 \"등록하기\"를 눌러 주세요.",
+    "invitation": {
+      "datesFixed": "숙박 일정은 호스트가 설정했습니다. 변경이 필요하면 호스트에게 연락해 주세요.",
+      "missingTitle": "초대 링크로 열어 주세요",
+      "missingBody": "이 페이지는 호스트가 보내 드린 초대 링크로 열어 주세요. 링크는 예약 후 Airbnb 메시지로 보내 드립니다.",
+      "invalidTitle": "초대 링크가 유효하지 않습니다",
+      "invalidBody": "링크가 올바르지 않거나 취소되었습니다. 호스트에게 연락해 주세요.",
+      "expiredTitle": "초대 링크의 유효 기간이 지났습니다",
+      "expiredBody": "체크아웃일이 지나 이 링크는 더 이상 사용할 수 없습니다. 호스트에게 연락해 주세요.",
+      "usedTitle": "이 초대 링크는 이미 사용되었습니다",
+      "usedBody": "이 예약의 등록은 완료되었습니다. 동행자 추가나 내용 수정은 등록 완료 시 표시된 편집 링크에서 해 주세요. 편집 링크를 모르는 경우 호스트에게 재발급을 요청해 주세요."
+    }
   },
   "complete": {
     "metaTitle": "등록 완료",
@@ -223,10 +235,7 @@
     "rates": "요금",
     "terms": "숙박 약관·하우스 룰",
     "privacy": "개인정보 처리방침",
-    "survey": "숙박 후 설문",
-    "registration": "숙박자 등록",
     "groupStay": "숙박",
-    "groupGuests": "숙박객 안내",
     "groupPolicies": "약관"
   },
   "cta": {

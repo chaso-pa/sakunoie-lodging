@@ -56,14 +56,18 @@ export const toApiError = (error: unknown): ApiError => {
 
 type TokenProvider = () => Promise<string | null> | string | null;
 const tokenProviders = new Map<string, TokenProvider>();
+const exactTokenProviders = new Map<string, TokenProvider>();
 
 /**
  * Registers a bearer-token source for requests whose API path (relative to `/api/v1`) starts with
- * `prefix` (e.g. `/guest-registrations/manage` or `/admin/`). Features register their own provider so
- * this shared module never imports a feature. Re-registering replaces.
+ * `prefix` (e.g. `/guest-registrations/manage` or `/admin/`), or, with `{ exact: true }`, is exactly
+ * that path (e.g. `/guest-registrations`, which must not also cover `/guest-registrations/manage`).
+ * An exact match wins over any prefix. Features register their own provider so this shared module
+ * never imports a feature. Re-registering replaces. At most one provider applies to a request, so one
+ * request never carries two secrets.
  */
-export const registerAuthTokenProvider = (prefix: string, provider: TokenProvider) => {
-  tokenProviders.set(prefix, provider);
+export const registerAuthTokenProvider = (path: string, provider: TokenProvider, options: { exact?: boolean } = {}) => {
+  (options.exact ? exactTokenProviders : tokenProviders).set(path, provider);
 };
 
 /**
@@ -82,6 +86,8 @@ const apiRequestPath = (url: string): string | undefined => {
 export const findTokenProvider = (url: string | undefined): TokenProvider | undefined => {
   const path = url ? apiRequestPath(url) : undefined;
   if (!path) return undefined;
+  const exact = exactTokenProviders.get(path);
+  if (exact) return exact;
   let match: { prefix: string; provider: TokenProvider } | undefined;
   for (const [prefix, provider] of tokenProviders) {
     if (path.startsWith(prefix) && (!match || prefix.length > match.prefix.length)) match = { prefix, provider };

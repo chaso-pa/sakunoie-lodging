@@ -42,7 +42,7 @@ func TestIntegrationIdempotentReplayIssuesAdditionalToken(t *testing.T) {
 	}
 
 	changed := sakuBody(3)
-	_, err := e.reg.Create(ctx, key, changed)
+	_, err := e.create(t, ctx, key, changed)
 	expectErr(t, err, services.ErrIdempotencyConflict)
 }
 
@@ -54,6 +54,7 @@ func TestIntegrationIdempotencyDoubleSubmitRace(t *testing.T) {
 	e.reg.BeforeCommit = func(*gorm.DB) error { time.Sleep(300 * time.Millisecond); return nil }
 
 	key := newKey()
+	e.inviteFor(t, key, sakuBody(2)) // issued up front: goroutines only read the map
 	var wg sync.WaitGroup
 	start := make(chan struct{})
 	results := make([]*services.CreateResult, 2)
@@ -63,7 +64,7 @@ func TestIntegrationIdempotencyDoubleSubmitRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			results[i], errs[i] = e.reg.Create(ctx, key, sakuBody(2))
+			results[i], errs[i] = e.create(t, ctx, key, sakuBody(2))
 		}()
 	}
 	close(start)
@@ -144,6 +145,11 @@ func TestIntegrationIdempotencyExpiredKeyReuse(t *testing.T) {
 	first := e.mustCreate(t, key, sakuBody(2))
 	e.clock.Advance(services.IdempotencyTTL + time.Second)
 
+	// The expired key no longer replays, and its invitation is consumed.
+	_, err := e.create(t, context.Background(), key, sakuBody(2))
+	expectErr(t, err, services.ErrInvitationUsed)
+	// With a new invitation, the expired key row is reused for a new registration.
+	e.invites[key] = e.issueInvitation(t, testutil.FacilitySaku, "2026-12-01", "2026-12-03")
 	second := e.mustCreate(t, key, sakuBody(2))
 	if second.Replayed || second.Body.PublicID == first.Body.PublicID {
 		t.Fatal("expired key must create a new registration")
@@ -161,6 +167,7 @@ func TestIntegrationIdempotencyExpiredKeyReuse(t *testing.T) {
 	}
 	// A different body is accepted on an expired key too (it is a new key).
 	e.clock.Advance(services.IdempotencyTTL + time.Second)
+	e.invites[key] = e.issueInvitation(t, testutil.FacilitySaku, "2026-12-01", "2026-12-03")
 	if res := e.mustCreate(t, key, sakuBody(3)); res.Replayed {
 		t.Fatal("expected a new registration")
 	}

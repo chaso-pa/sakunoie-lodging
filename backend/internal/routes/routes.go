@@ -29,6 +29,7 @@ type Deps struct {
 	AdminAuth     *services.AdminAuthService
 	Admin         *services.AdminRegistrationService
 	Surveys       *services.SurveyService
+	Invitations   *services.InvitationService
 }
 
 // publicSecurity marks an operation as intentionally unauthenticated
@@ -48,8 +49,9 @@ func HumaConfig(docsEnabled bool) huma.Config {
 	// cross-origin under the CORS allowlist (CORS_ALLOWED_ORIGINS).
 	cfg.Servers = []*huma.Server{{URL: "/", Description: "The API origin"}}
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-		"adminBearer": {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "Firebase ID token (admin endpoints)"},
-		"editToken":   {Type: "http", Scheme: "bearer", Description: "Guest edit token from the manage URL fragment"},
+		"adminBearer":     {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "Firebase ID token (admin endpoints)"},
+		"editToken":       {Type: "http", Scheme: "bearer", Description: "Guest edit token from the manage URL fragment"},
+		"invitationToken": {Type: "http", Scheme: "bearer", Description: "Registration invitation token from the registration URL fragment (#invite=...), issued by the host"},
 	}
 	if !docsEnabled {
 		cfg.DocsPath = ""
@@ -75,8 +77,10 @@ func Register(api huma.API, deps Deps) {
 	SetupGuestRegistrationRoutes(v1,
 		&handlers.GuestRegistrationHandlers{Registrations: deps.Registrations},
 		&handlers.GuestManageHandlers{Manage: deps.Manage})
+	invitations := &handlers.InvitationHandlers{Invitations: deps.Invitations}
+	SetupInvitationRoutes(v1, invitations)
 	SetupSurveyRoutes(v1, &handlers.SurveyHandlers{Surveys: deps.Surveys})
-	SetupAdminRoutes(v1, &handlers.AdminHandlers{Registrations: deps.Admin, Surveys: deps.Surveys}, deps.AdminAuth)
+	SetupAdminRoutes(v1, &handlers.AdminHandlers{Registrations: deps.Admin, Surveys: deps.Surveys}, invitations, deps.AdminAuth)
 }
 
 // NewEngine builds the Gin engine with the middleware chain used in

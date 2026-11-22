@@ -106,6 +106,94 @@ components:
         - nationality
         - passport_last4
       type: object
+    AdminInvitation:
+      additionalProperties: false
+      properties:
+        booking_reference:
+          type:
+            - string
+            - "null"
+        check_in_date:
+          format: date
+          type: string
+        check_out_date:
+          format: date
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        expires_at:
+          description: UTC instant; end of the check-out day in the facility time zone
+          format: date-time
+          type: string
+        facility:
+          $ref: "#/components/schemas/AdminFacilityRef"
+        note:
+          type:
+            - string
+            - "null"
+        public_id:
+          format: uuid
+          type: string
+        registration_public_id:
+          description: The registration created with this invitation, once used
+          type:
+            - string
+            - "null"
+        revoked_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        status:
+          description: "Derived: used (a registration was created), revoked, expired (end of the check-out day passed) or active"
+          enum:
+            - active
+            - used
+            - expired
+            - revoked
+          type: string
+        used_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+      required:
+        - public_id
+        - facility
+        - check_in_date
+        - check_out_date
+        - booking_reference
+        - note
+        - status
+        - expires_at
+        - used_at
+        - revoked_at
+        - registration_public_id
+        - created_at
+      type: object
+    AdminInvitationList:
+      additionalProperties: false
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/AdminInvitation"
+          type: array
+        page:
+          format: int64
+          type: integer
+        page_size:
+          format: int64
+          type: integer
+        total:
+          format: int64
+          type: integer
+      required:
+        - items
+        - page
+        - page_size
+        - total
+      type: object
     AdminLedgerMetrics:
       additionalProperties: false
       properties:
@@ -432,6 +520,51 @@ components:
         - address
         - has_japan_address
       type: object
+    CreateAdminInvitationBody:
+      additionalProperties: false
+      properties:
+        booking_reference:
+          description: Booking code for the host (optional)
+          maxLength: 255
+          type: string
+        check_in_date:
+          description: Facility-local check-in date of the booking (YYYY-MM-DD)
+          format: date
+          type: string
+        check_out_date:
+          description: Facility-local check-out date (YYYY-MM-DD); after check_in_date and not in the past. The invitation expires at the end of this day in the facility time zone
+          format: date
+          type: string
+        facility_id:
+          description: Authorized facility (403 otherwise), from GET /admin/facilities
+          format: int64
+          minimum: 1
+          type: integer
+        note:
+          description: Host-only note, e.g. the guest's name (optional). Never shown to the guest
+          maxLength: 255
+          type: string
+      required:
+        - facility_id
+        - check_in_date
+        - check_out_date
+      type: object
+    CreateAdminInvitationResult:
+      additionalProperties: false
+      properties:
+        invitation:
+          $ref: "#/components/schemas/AdminInvitation"
+        invitation_token:
+          description: One-time secret for the registration URL fragment (#invite=...). Shown once; never stored by the server and cannot be retrieved later
+          type: string
+        invitation_url_path:
+          description: Locale-less registration path of the facility. The frontend builds <web origin>/<locale><path>#invite=<invitation_token>; the token never goes into a query string
+          type: string
+      required:
+        - invitation
+        - invitation_token
+        - invitation_url_path
+      type: object
     CreateGuestRegistrationBody:
       additionalProperties: false
       properties:
@@ -554,6 +687,29 @@ components:
         - is_complete
         - edit_token
         - edit_token_expires_at
+      type: object
+    CurrentInvitation:
+      additionalProperties: false
+      properties:
+        check_in_date:
+          description: Set by the host; the registration must use it
+          format: date
+          type: string
+        check_out_date:
+          description: Set by the host; the registration must use it
+          format: date
+          type: string
+        expires_at:
+          description: UTC instant; end of the check-out day in the facility time zone
+          format: date-time
+          type: string
+        facility_code:
+          type: string
+      required:
+        - facility_code
+        - check_in_date
+        - check_out_date
+        - expires_at
       type: object
     ErrorDetailOut:
       additionalProperties: false
@@ -1012,6 +1168,10 @@ components:
       type: http
     editToken:
       description: Guest edit token from the manage URL fragment
+      scheme: bearer
+      type: http
+    invitationToken:
+      description: Registration invitation token from the registration URL fragment (#invite=...), issued by the host
       scheme: bearer
       type: http
 info:
@@ -1476,6 +1636,185 @@ paths:
       summary: Record the in-person identity check
       tags:
         - Admin
+  /api/v1/admin/invitations:
+    get:
+      description: Scoped, paginated (50 per page, newest first), with the derived status active, used, expired or revoked. Tokens and hashes are never returned. facility_id outside the admin's facilities → 403.
+      operationId: list-admin-invitations
+      parameters:
+        - description: "Restrict to one authorized facility (403 if not authorized). Omitted: all authorized facilities"
+          explode: false
+          in: query
+          name: facility_id
+          schema:
+            description: "Restrict to one authorized facility (403 if not authorized). Omitted: all authorized facilities"
+            format: int64
+            minimum: 0
+            type: integer
+        - description: Filter by derived status (optional)
+          explode: false
+          in: query
+          name: status
+          schema:
+            description: Filter by derived status (optional)
+            enum:
+              - active
+              - used
+              - expired
+              - revoked
+            type: string
+        - description: 1-based page number
+          explode: false
+          in: query
+          name: page
+          schema:
+            default: 1
+            description: 1-based page number
+            format: int64
+            maximum: 100000
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminInvitationList"
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Internal Server Error
+      security:
+        - adminBearer: []
+      summary: List registration invitations
+      tags:
+        - Admin
+    post:
+      description: Creates a single-use invitation for one booking of an authorized facility and returns its token once (send the URL in the Airbnb message). check_out_date must be after check_in_date and not in the past in facility time; the invitation expires at the end of the check-out day there. The guest's registration must use exactly these dates. Writes an audit row without the token.
+      operationId: create-admin-invitation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminInvitationBody"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAdminInvitationResult"
+          description: Created
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Internal Server Error
+      security:
+        - adminBearer: []
+      summary: Issue a registration invitation
+      tags:
+        - Admin
+  /api/v1/admin/invitations/{public_id}/revoke:
+    post:
+      description: "The invitation can no longer be used (401 invitation_invalid for the guest). A used invitation is already consumed: 409 invitation_used. An already revoked one is returned unchanged. Another facility's invitation is 404. Writes an audit row."
+      operationId: revoke-admin-invitation
+      parameters:
+        - description: Invitation public ID
+          in: path
+          name: public_id
+          required: true
+          schema:
+            description: Invitation public ID
+            format: uuid
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminInvitation"
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Internal Server Error
+      security:
+        - adminBearer: []
+      summary: Revoke a registration invitation
+      tags:
+        - Admin
   /api/v1/admin/surveys/summary:
     get:
       description: "Aggregates only, for the current survey version: per-question answered counts, rating mean and 1-5 distribution, and option counts. Free-text answers are counted, never returned. A question answered by fewer than min_responses (SURVEY_MIN_RESPONSES) responses has mean and counts null. facility_id outside the admin's facilities → 403. from/to filter the submission day (UTC)."
@@ -1592,7 +1931,7 @@ paths:
         - Facilities
   /api/v1/guest-registrations:
     post:
-      description: Creates one registration with 1..N guests in one transaction. Requires Idempotency-Key. 201 on create; 200 on an idempotent replay of the same body, which returns a new additional edit token, or edit_token=null with code=edit_link_unavailable when 3 links are active or the host reissued the link. Same key with a different body → 409 idempotency_conflict.
+      description: "Creates one registration with 1..N guests in one transaction. Requires the host's invitation token as `Authorization: Bearer` (never in the body or a query string) and Idempotency-Key. The facility and both stay dates must equal the invitation's (422 invitation_dates_mismatch); no token → 401 invitation_required; unknown, malformed or revoked → 401 invitation_invalid; expired (after the end of the check-out day in facility time) → 410 invitation_expired; already used by another submission → 409 invitation_used. The invitation is single-use and is consumed in the same transaction. 201 on create; 200 on an idempotent replay of the same key and body with the same invitation, which returns a new additional edit token, or edit_token=null with code=edit_link_unavailable when 3 links are active or the host reissued the link. Same key with a different body or another invitation → 409 idempotency_conflict."
       operationId: create-guest-registration
       parameters:
         - description: Client-generated key (e.g. a UUID), reused on retries of the same submission
@@ -1634,12 +1973,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unauthorized
         "409":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Conflict
+        "410":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Gone
         "422":
           content:
             application/json:
@@ -1658,7 +2009,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Internal Server Error
-      security: []
+      security:
+        - invitationToken: []
       summary: Submit a guest registration
       tags:
         - Guest registrations
@@ -1951,6 +2303,56 @@ paths:
       summary: Correct a companion
       tags:
         - Guest manage
+  /api/v1/invitations/current:
+    get:
+      description: "Takes the invitation token as `Authorization: Bearer` and returns only what prefills the wizard: facility code, the host-set stay dates and the expiry. Never the host's note or booking code. No token → 401 invitation_required; unknown, malformed or revoked → 401 invitation_invalid; expired → 410 invitation_expired; already used → 409 invitation_used (the guest uses their edit link). Cache-Control: no-store."
+      operationId: get-current-invitation
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentInvitation"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Unauthorized
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Conflict
+        "410":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Gone
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Too Many Requests
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Internal Server Error
+      security:
+        - invitationToken: []
+      summary: Check the registration invitation
+      tags:
+        - Guest registrations
   /api/v1/surveys:
     post:
       description: Stores the answers with the facility and survey version only; no guest, registration or booking linkage. submitted_at and created_at are stored truncated to the UTC day. Answers are validated against the versioned definition (unknown question, out-of-range rating, invalid option or over-length text → 422). Unknown or inactive facility → 422 facility_unavailable. A filled honeypot field is accepted (202) and discarded.
