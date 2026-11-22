@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { adminLogin, fillLogin, unauthorizedCredentials } from './fixtures/admin-login';
 import { API_URL, newApiContext } from './fixtures/api-context';
+import { nearStay, pickStayRange } from './fixtures/date-range';
 import { copiedTexts, simulateInsecureClipboard } from './fixtures/insecure-clipboard';
 import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 import { defaultGuests, type SeededRegistration, seedRegistration } from './fixtures/seed';
@@ -171,11 +172,13 @@ test.describe('admin console', () => {
     await page.waitForURL('**/admin/invitations', { waitUntil: 'commit' });
     await expect(page.getByRole('heading', { name: '招待リンク', level: 1 })).toBeVisible();
 
-    const stay = uniqueStay();
+    const stay = nearStay();
     const note = `E2E guest ${uniqueRef('inv')}`;
     const form = page.locator('form').filter({ has: page.getByRole('button', { name: '招待リンクを作成' }) });
-    await form.getByLabel('チェックイン日').fill(stay.checkIn);
-    await form.getByLabel('チェックアウト日').fill(stay.checkOut);
+    // Airbnb-style range calendar: check-in, then check-out; the description shows the nights.
+    const range = form.getByRole('button', { name: 'チェックイン・チェックアウト' });
+    await pickStayRange(page, range, stay.checkIn, stay.checkOut);
+    await expect(form.getByText('2泊')).toBeVisible();
     await form.getByLabel('予約コード（任意）').fill(uniqueRef('inv-code'));
     await form.getByLabel('メモ（任意）').fill(note);
     const [created] = await Promise.all([

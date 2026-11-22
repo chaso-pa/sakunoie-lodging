@@ -12,9 +12,13 @@ import {
   Table,
   Text,
   TextInput,
-  Title
+  Title,
+  useMatches
 } from '@mantine/core';
-import { IconBan, IconLinkPlus } from '@tabler/icons-react';
+import { DatePickerInput, DatesProvider } from '@mantine/dates';
+import { IconBan, IconCalendar, IconLinkPlus } from '@tabler/icons-react';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ja';
 import { type FormEvent, useState } from 'react';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useAdminInvitations, useCreateInvitation, useRevokeInvitation } from '@/features/admin/api/invitations';
@@ -34,6 +38,10 @@ import { formatDate, formatInstant } from '@/features/admin/utils/format';
 type Draft = { facilityId: string; checkIn: string; checkOut: string; bookingReference: string; note: string };
 
 const STATUSES: InvitationStatus[] = ['active', 'used', 'expired', 'revoked'];
+
+/** Nights between two `YYYY-MM-DD` dates (UTC arithmetic, so no DST or time-zone drift). */
+const nightsBetween = (checkIn: string, checkOut: string) =>
+  Math.round((Date.parse(`${checkOut}T00:00:00Z`) - Date.parse(`${checkIn}T00:00:00Z`)) / 86_400_000);
 
 const stay = (i: AdminInvitation) => `${formatDate(i.check_in_date)} – ${formatDate(i.check_out_date)}`;
 
@@ -58,13 +66,16 @@ export function AdminInvitationsView() {
   const create = useCreateInvitation(uid);
   const revoke = useRevokeInvitation(uid);
   const list = useAdminInvitations(uid, filter);
+  // Two months side by side like Airbnb's date picker; one month in a full-screen modal on phones.
+  const wide = useMatches({ base: false, sm: true });
+  const nights = draft.checkIn && draft.checkOut ? nightsBetween(draft.checkIn, draft.checkOut) : 0;
   const timezoneOf = (facilityId: number) => facilities.find((f) => f.id === facilityId)?.timezone ?? 'Asia/Tokyo';
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setNotice(null);
     if (!draft.facilityId || !draft.checkIn || !draft.checkOut) {
-      setFormError('施設、チェックイン日、チェックアウト日を入力してください。');
+      setFormError('施設と、チェックイン・チェックアウトの日付を選んでください。');
       return;
     }
     if (draft.checkOut <= draft.checkIn) {
@@ -146,20 +157,42 @@ export function AdminInvitationsView() {
                     data={facilities.map((f) => ({ value: String(f.id), label: f.name }))}
                   />
                 ) : null}
-                <TextInput
-                  label='チェックイン日'
-                  type='date'
-                  withAsterisk
-                  value={draft.checkIn}
-                  onChange={(e) => setDraft({ ...draft, checkIn: e.currentTarget.value })}
-                />
-                <TextInput
-                  label='チェックアウト日'
-                  type='date'
-                  withAsterisk
-                  value={draft.checkOut}
-                  onChange={(e) => setDraft({ ...draft, checkOut: e.currentTarget.value })}
-                />
+                <DatesProvider settings={{ locale: 'ja', firstDayOfWeek: 0 }}>
+                  <DatePickerInput
+                    type='range'
+                    label='チェックイン・チェックアウト'
+                    description={
+                      nights > 0 ? `${nights}泊` : 'カレンダーでチェックイン日とチェックアウト日を選びます。'
+                    }
+                    placeholder='日付を選択'
+                    withAsterisk
+                    clearable
+                    leftSection={<IconCalendar size={18} aria-hidden />}
+                    valueFormat='YYYY年M月D日(dd)'
+                    labelSeparator='〜'
+                    numberOfColumns={wide ? 2 : 1}
+                    dropdownType={wide ? 'popover' : 'modal'}
+                    modalProps={{ centered: true }}
+                    monthLabelFormat='YYYY年M月'
+                    // Outside days would repeat the next column's dates in the two-month view.
+                    hideOutsideDates
+                    getDayAriaLabel={(date) => dayjs(date).format('YYYY年M月D日')}
+                    ariaLabels={{
+                      previousMonth: '前の月',
+                      nextMonth: '次の月',
+                      previousYear: '前の年',
+                      nextYear: '次の年',
+                      previousDecade: '前の10年',
+                      nextDecade: '次の10年',
+                      monthLevelControl: '月を選ぶ',
+                      yearLevelControl: '年を選ぶ'
+                    }}
+                    value={[draft.checkIn || null, draft.checkOut || null]}
+                    onChange={([checkIn, checkOut]) =>
+                      setDraft({ ...draft, checkIn: checkIn ?? '', checkOut: checkOut ?? '' })
+                    }
+                  />
+                </DatesProvider>
                 <TextInput
                   label='予約コード（任意）'
                   description='Airbnb の予約コードなど。ゲストには表示されません。'

@@ -1,4 +1,5 @@
 import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
 import '@/app/globals.scss';
 
 import { mantineHtmlProps } from '@mantine/core';
