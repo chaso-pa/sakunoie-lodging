@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { CreateRegistrationResult, FacilityPublic } from '@/features/registration/types/api';
 import type { WizardFormValues } from '@/features/registration/types/schemas';
+import { randomUUID } from '@/lib/uuid';
 
 /**
  * In-memory wizard session (no `persist` middleware: the draft holds passport numbers
@@ -53,7 +54,7 @@ export const useWizardStore = create<WizardState>()((set, get) => ({
   ensureIdempotencyKey: () => {
     const existing = get().idempotencyKey;
     if (existing) return existing;
-    const key = crypto.randomUUID();
+    const key = randomUUID();
     set({ idempotencyKey: key });
     return key;
   },
