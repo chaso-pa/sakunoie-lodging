@@ -1,6 +1,6 @@
 'use client';
 
-import { NativeSelect, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { InputWrapper, SegmentedControl, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { useTranslations } from 'next-intl';
 import { OptionalLabel } from '@/features/registration/components/OptionalLabel';
 import type { FacilityPublic } from '@/features/registration/types/api';
@@ -11,6 +11,10 @@ export function StayStep({ form, facility }: { form: PathForm; facility: Facilit
   const t = useTranslations('registration.stay');
   const tInvitation = useTranslations('registration.invitation');
   const input = (path: string) => ({ id: fieldId(path), ...form.getInputProps(path) });
+  const planned = form.getInputProps('stay.plannedGuestCount');
+  const countOptions = Array.from({ length: Math.min(facility.max_guests, MAX_GUESTS_PER_REQUEST) }, (_, i) =>
+    String(i + 1)
+  );
 
   return (
     <Stack gap='md'>
@@ -48,30 +52,26 @@ export function StayStep({ form, facility }: { form: PathForm; facility: Facilit
         </Text>
       </Stack>
       <TextInput type='time' label={<OptionalLabel label={t('arrival')} />} {...input('stay.estimatedArrivalTime')} />
-      <NumberInput
+      <InputWrapper
+        id={fieldId('stay.plannedGuestCount')}
+        labelElement='div'
         label={t('plannedCount')}
         description={t('plannedCountHelp')}
         withAsterisk
-        min={1}
-        max={Math.min(facility.max_guests, MAX_GUESTS_PER_REQUEST)}
-        allowDecimal={false}
-        allowNegative={false}
-        {...input('stay.plannedGuestCount')}
-      />
-      <NativeSelect
-        label={<OptionalLabel label={t('bookingSource')} />}
-        data={[
-          { value: '', label: t('bookingSourceNone') },
-          { value: 'airbnb', label: t('bookingSourceAirbnb') },
-          { value: 'other', label: t('bookingSourceOther') }
-        ]}
-        {...input('stay.bookingSource')}
-      />
-      <TextInput
-        label={<OptionalLabel label={t('bookingReference')} />}
-        autoComplete='off'
-        {...input('stay.bookingReference')}
-      />
+        error={planned.error}
+      >
+        {/* One button per allowed count (1..facility max), so an out-of-range value cannot be entered. */}
+        <SegmentedControl
+          mt={6}
+          size='md'
+          fullWidth
+          aria-labelledby={`${fieldId('stay.plannedGuestCount')}-label`}
+          aria-describedby={`${fieldId('stay.plannedGuestCount')}-description`}
+          data={countOptions}
+          value={String(planned.value)}
+          onChange={(value) => form.setFieldValue('stay.plannedGuestCount', Number(value))}
+        />
+      </InputWrapper>
     </Stack>
   );
 }

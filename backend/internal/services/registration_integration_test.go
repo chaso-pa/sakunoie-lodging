@@ -124,8 +124,7 @@ func TestIntegrationCountsAndCapacity(t *testing.T) {
 	_, err = e.create(t, ctx, newKey(), oldTerms)
 	expectErr(t, err, services.ErrValidation)
 
-	noPassport := testutil.ForeignGuest("Test Guest B", "TESTPP0001")
-	noPassport.IsRepresentative = true
+	noPassport := testutil.ForeignRepresentative("Test Guest B", "TESTPP0001")
 	noPassport.PassportNumber = nil
 	_, err = e.create(t, ctx, newKey(), sakuBody(1, noPassport))
 	expectErr(t, err, services.ErrValidation)
@@ -160,8 +159,7 @@ func TestIntegrationCountsAndCapacity(t *testing.T) {
 // §4.9 passport ciphertext at rest, last4 only.
 func TestIntegrationPassportEncryptedAtRest(t *testing.T) {
 	e := setup(t)
-	rep := testutil.ForeignGuest("Test Guest P", "testpp 9876")
-	rep.IsRepresentative = true
+	rep := testutil.ForeignRepresentative("Test Guest P", "testpp 9876")
 	res := e.mustCreate(t, newKey(), sakuBody(1, rep))
 
 	reg := e.registration(t, res.Body.PublicID)

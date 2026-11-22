@@ -239,6 +239,12 @@ func (s *GuestManageService) PatchRegistration(ctx context.Context, token, ifMat
 		if in.FacilityCode != nil {
 			forbidden = append(forbidden, "facility_code")
 		}
+		if in.BookingSource != nil {
+			forbidden = append(forbidden, "booking_source")
+		}
+		if in.BookingReference != nil {
+			forbidden = append(forbidden, "booking_reference")
+		}
 		if len(forbidden) > 0 {
 			return notEditable(forbidden...)
 		}
@@ -261,18 +267,6 @@ func (s *GuestManageService) PatchRegistration(ctx context.Context, token, ifMat
 				reg.EstimatedArrivalTime = &t
 			}
 			changed = append(changed, "estimated_arrival_time")
-		}
-		if in.BookingSource != nil {
-			v := trimmedOrNil(in.BookingSource)
-			updates["booking_source"] = v
-			reg.BookingSource = v
-			changed = append(changed, "booking_source")
-		}
-		if in.BookingReference != nil {
-			v := trimmedOrNil(in.BookingReference)
-			updates["booking_reference"] = v
-			reg.BookingReference = v
-			changed = append(changed, "booking_reference")
 		}
 		if in.PlannedGuestCount != nil {
 			n := *in.PlannedGuestCount

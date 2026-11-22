@@ -8,23 +8,23 @@ type GuestInput struct {
 	FullName         string  `json:"full_name" minLength:"1" maxLength:"255" doc:"Full name"`
 	NameKana         *string `json:"name_kana,omitempty" maxLength:"255" doc:"Name in katakana (optional)"`
 	Address          string  `json:"address" minLength:"1" maxLength:"2000" doc:"Address"`
-	Phone            *string `json:"phone,omitempty" maxLength:"50" doc:"Phone (optional)"`
-	Email            *string `json:"email,omitempty" maxLength:"255" doc:"Email (optional)"`
+	Phone            *string `json:"phone,omitempty" maxLength:"50" doc:"Phone; required for the representative"`
+	Email            *string `json:"email,omitempty" maxLength:"255" doc:"Email; required for the representative"`
 	HasJapanAddress  bool    `json:"has_japan_address" doc:"Whether the guest has an address in Japan"`
 	Nationality      *string `json:"nationality,omitempty" maxLength:"100" doc:"Required when has_japan_address is false"`
 	PassportNumber   *string `json:"passport_number,omitempty" pattern:"^[A-Za-z0-9 ]{6,20}$" doc:"Required when has_japan_address is false. Write-only; stored encrypted, only the last 4 characters are ever returned"`
 }
 
 // CreateGuestRegistrationBody is the create DTO. The server decides
-// timestamps, capacity snapshot, facility ID and token expiry.
+// timestamps, capacity snapshot, facility ID and token expiry. Booking
+// source and reference are host data: the reference comes from the
+// invitation, and the host corrects both in the admin console.
 type CreateGuestRegistrationBody struct {
 	FacilityCode         string       `json:"facility_code" pattern:"^[a-z0-9-]{1,64}$" doc:"Facility code"`
 	CheckInDate          string       `json:"check_in_date" format:"date" doc:"Local check-in date (YYYY-MM-DD)"`
 	CheckOutDate         string       `json:"check_out_date" format:"date" doc:"Local check-out date (YYYY-MM-DD), after check-in"`
 	EstimatedArrivalTime *string      `json:"estimated_arrival_time,omitempty" pattern:"^([01][0-9]|2[0-3]):[0-5][0-9]$" doc:"Local arrival time HH:MM (optional)"`
 	PlannedGuestCount    int          `json:"planned_guest_count" minimum:"1" maximum:"50" doc:"Planned number of guests; at most the facility max_guests"`
-	BookingSource        *string      `json:"booking_source,omitempty" maxLength:"50" doc:"e.g. airbnb (optional)"`
-	BookingReference     *string      `json:"booking_reference,omitempty" maxLength:"255" doc:"Booking reference (optional)"`
 	TermsVersion         string       `json:"terms_version" minLength:"1" maxLength:"64" doc:"Must equal the current terms_version"`
 	PrivacyVersion       string       `json:"privacy_version" minLength:"1" maxLength:"64" doc:"Must equal the current privacy_version"`
 	TermsAccepted        bool         `json:"terms_accepted" doc:"Must be true"`

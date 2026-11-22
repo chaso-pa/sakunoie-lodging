@@ -152,9 +152,7 @@ const (
 )
 
 func foreignRep(passport string) models.GuestInput {
-	g := testutil.ForeignGuest(secretName, passport)
-	g.IsRepresentative = true
-	return g
+	return testutil.ForeignRepresentative(secretName, passport)
 }
 
 // Pre-mortem P2: PII never reaches logs, error bodies, audit rows or the
@@ -297,15 +295,17 @@ func TestIntegrationHTTPManageFlow(t *testing.T) {
 	etag := w.Header().Get("ETag")
 
 	// PATCH without If-Match → 422 (required header).
-	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"booking_source": "direct"}, auth)
+	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"estimated_arrival_time": "18:00"}, auth)
 	if w.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("patch without If-Match: %d", w.Code)
 	}
-	// Forbidden field → 403 field_not_editable.
-	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"check_in_date": "2026-12-02"},
-		map[string]string{"Authorization": auth["Authorization"], "If-Match": etag})
-	if w.Code != http.StatusForbidden || envelope(t, w)["code"] != "field_not_editable" {
-		t.Fatalf("forbidden field: %d %s", w.Code, w.Body.String())
+	// Forbidden fields (dates, host-only booking data) → 403 field_not_editable.
+	for _, body := range []map[string]any{{"check_in_date": "2026-12-02"}, {"booking_source": "direct"}, {"booking_reference": "X"}} {
+		w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", body,
+			map[string]string{"Authorization": auth["Authorization"], "If-Match": etag})
+		if w.Code != http.StatusForbidden || envelope(t, w)["code"] != "field_not_editable" {
+			t.Fatalf("forbidden field %v: %d %s", body, w.Code, w.Body.String())
+		}
 	}
 
 	w = h.do(http.MethodPost, "/api/v1/guest-registrations/manage/guests",
@@ -325,7 +325,7 @@ func TestIntegrationHTTPManageFlow(t *testing.T) {
 	}
 
 	// Stale ETag → 412 precondition_failed.
-	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"booking_source": "direct"},
+	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"estimated_arrival_time": "18:00"},
 		map[string]string{"Authorization": auth["Authorization"], "If-Match": etag})
 	if w.Code != http.StatusPreconditionFailed || envelope(t, w)["code"] != "precondition_failed" {
 		t.Fatalf("stale etag: %d %s", w.Code, w.Body.String())
@@ -333,7 +333,7 @@ func TestIntegrationHTTPManageFlow(t *testing.T) {
 
 	// Wildcard and weak tags never match: a write must name its version.
 	for _, im := range []string{"*", "W/" + sum.Version, `W/"` + sum.Version + `"`} {
-		w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"booking_source": "direct"},
+		w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"estimated_arrival_time": "18:00"},
 			map[string]string{"Authorization": auth["Authorization"], "If-Match": im})
 		if w.Code != http.StatusPreconditionFailed || envelope(t, w)["code"] != "precondition_failed" {
 			t.Fatalf("If-Match %q: %d %s", im, w.Code, w.Body.String())

@@ -1,4 +1,5 @@
 import { type APIRequestContext, expect, type Page, type Request, test } from '@playwright/test';
+import { copiedTexts, simulateInsecureClipboard } from './fixtures/insecure-clipboard';
 import { type IssuedInvitation, invitationPath, issueInvitation, revokeInvitation } from './fixtures/invitations';
 import { unexpectedErrors, watchPage } from './fixtures/page-watch';
 import { SYNTHETIC_PASSPORT, uniqueRef } from './fixtures/synthetic';
@@ -26,17 +27,28 @@ const fillWizard = async (page: Page, request: APIRequestContext, bookingReferen
   // The fragment is gone from the address bar; the host's note is never shown to the guest.
   expect(await page.evaluate(() => location.href)).not.toContain('#');
   await expect(page.getByText('Test Host Note')).toHaveCount(0);
-  await page.locator('#field-stay-plannedGuestCount').fill('2');
-  await page.locator('#field-stay-bookingReference').fill(bookingReference);
+  // Planned count is one button per allowed count (1..max_guests = 2); no booking fields for the guest.
+  const plannedCount = page.getByRole('radiogroup', { name: 'Number of guests (planned)' });
+  await expect(plannedCount.getByRole('radio')).toHaveCount(2);
+  await plannedCount.getByText('2', { exact: true }).click();
+  await expect(plannedCount.getByRole('radio', { name: '2' })).toBeChecked();
+  await expect(page.locator('#field-stay-bookingReference')).toHaveCount(0);
   await page.getByRole('button', { name: 'Continue' }).click();
 
   // Representative without a Japanese address: client validation requires nationality + passport.
+  // Phone and email are required for the representative (name kana is optional).
   await page.locator('#field-representative-fullName').fill('Test Rep');
   await page.locator('#field-representative-address').fill('1 Test Street, Testland');
   await page.getByRole('radio', { name: 'No' }).check();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Please review your entries' })).toBeVisible();
+  const summary = page.getByRole('alert').filter({ hasText: 'Please review your entries' });
+  await expect(summary).toBeVisible();
+  for (const field of ['Phone', 'Email']) await expect(summary).toContainText(field);
+  await expect(summary).not.toContainText('Name in katakana');
   await expect(page.locator('#field-representative-passportNumber')).toBeVisible();
+  await page.locator('#field-representative-nameKana').fill('テスト レップ');
+  await page.locator('#field-representative-phone').fill('000-0000-1234');
+  await page.locator('#field-representative-email').fill('test-rep@example.test');
   await page.locator('#field-representative-nationality').fill('Testland');
   await page.locator('#field-representative-passportNumber').fill(SYNTHETIC_PASSPORT);
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -44,6 +56,7 @@ const fillWizard = async (page: Page, request: APIRequestContext, bookingReferen
   // A companion fills the plan (no warning); removing it leaves 1 of 2: partial-registration warning.
   await page.getByRole('button', { name: 'Add a guest' }).click();
   await page.locator('#field-companions-0-fullName').fill('Test Companion');
+  await page.locator('#field-companions-0-nameKana').fill('テスト コンパニオン');
   await page.getByRole('button', { name: "Use the representative's address and phone" }).click();
   await expect(page.locator('#field-companions-0-address')).toHaveValue('1 Test Street, Testland');
   await page.locator('section').filter({ hasText: 'Guest 1' }).getByRole('radio', { name: 'Yes' }).check();
@@ -105,6 +118,10 @@ test.describe('registration wizard', () => {
     const editUrl = await page.getByLabel('Edit link (URL)').inputValue();
     expect(editUrl).toMatch(/\/en\/registration\/manage#token=[A-Za-z0-9_-]{20,}$/);
     const token = decodeURIComponent(editUrl.split('#token=')[1]);
+    await simulateInsecureClipboard(page);
+    await page.getByRole('button', { name: 'Copy link' }).click();
+    await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
+    expect(await copiedTexts(page)).toEqual([editUrl]);
 
     // The replayed link works: manage loads with it and strips the fragment.
     const manage = await context.newPage();
@@ -171,7 +188,7 @@ test.describe('registration wizard', () => {
 
     // The guest changes something and submits again: same key, different body.
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Back' }).click();
-    await page.locator('#field-stay-bookingReference').fill(uniqueRef('reg-edited'));
+    await page.locator('#field-stay-estimatedArrivalTime').fill('18:30');
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Continue' }).click();
     const [response] = await Promise.all([
       page.waitForResponse((r) => r.url().endsWith('/api/v1/guest-registrations') && r.request().method() === 'POST'),

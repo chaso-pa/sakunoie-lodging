@@ -111,12 +111,7 @@
       "checkOut": "チェックアウト日",
       "arrival": "到着予定時刻",
       "plannedCount": "宿泊人数（予定）",
-      "plannedCountHelp": "代表者を含む人数です。",
-      "bookingSource": "予約経路",
-      "bookingSourceNone": "選択してください",
-      "bookingSourceAirbnb": "Airbnb",
-      "bookingSourceOther": "その他",
-      "bookingReference": "予約番号"
+      "plannedCountHelp": "代表者を含む人数です。"
     },
     "representative": {
       "description": "宿泊者を代表する方の情報を入力してください。"
@@ -140,8 +135,8 @@
       "passportEntered": "旅券番号: 入力済み",
       "edit": "修正する",
       "consentTitle": "同意事項",
-      "termsLabel": "利用規約（版: {version}）に同意します",
-      "privacyLabel": "プライバシーポリシー（版: {version}）に同意します",
+      "termsLabel": "利用規約に同意します",
+      "privacyLabel": "プライバシーポリシーに同意します",
       "termsLink": "利用規約を読む",
       "privacyLink": "プライバシーポリシーを読む"
     },
@@ -188,8 +183,6 @@
     "facility": "施設",
     "dates": "宿泊日",
     "arrival": "到着予定時刻",
-    "bookingSource": "予約経路",
-    "bookingReference": "予約番号",
     "plannedCount": "宿泊人数（予定）",
     "expiresAt": "編集期限: {date}",
     "guestsTitle": "宿泊者",

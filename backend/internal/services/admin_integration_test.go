@@ -132,7 +132,7 @@ func TestIntegrationAdminFacilityIsolation(t *testing.T) {
 
 	// The other facility's registration is untouched.
 	r := e.registration(t, other.Body.PublicID)
-	if r.IdentityVerifiedAt != nil || r.BookingReference == nil || *r.BookingReference != "TEST-REF-0001" {
+	if r.IdentityVerifiedAt != nil || r.BookingReference != nil {
 		t.Fatalf("other facility changed: %+v", r)
 	}
 	var n int64 // the two registration.created rows (the fixtures' invitation rows aside)
@@ -174,14 +174,11 @@ func TestIntegrationAdminListFiltersAndMetrics(t *testing.T) {
 	ctx := context.Background()
 	scope := e.adminScope(t, testutil.FacilitySaku, testutil.FacilityHonolulu)
 
-	incomplete := sakuBody(2)
-	incomplete.BookingReference = strp("REF-100%_SALE")
-	a := e.mustCreate(t, newKey(), incomplete)
+	a := e.mustCreateWithRef(t, sakuBody(2), "REF-100%_SALE")
 
 	complete := testutil.CreateBody(testutil.FacilitySaku, "2026-12-10", "2026-12-12", 2,
 		testutil.Representative(), testutil.ForeignGuest("Test Searchable Companion", "TESTPP2222"))
-	complete.BookingReference = strp("REF-200")
-	b := e.mustCreate(t, newKey(), complete)
+	b := e.mustCreateWithRef(t, complete, "REF-200")
 	c := e.mustCreate(t, newKey(), honoluluBody())
 	if _, err := e.admin.VerifyIdentity(ctx, scope, c.Body.PublicID); err != nil {
 		t.Fatal(err)
@@ -485,11 +482,9 @@ func TestIntegrationAdminExportCSV(t *testing.T) {
 	saku := testutil.FacilityID(t, e.db, testutil.FacilitySaku)
 
 	injected := sakuBody(2, testutil.Representative(), testutil.ForeignGuest("@Test Formula Guest", "TESTPP1234"))
-	injected.BookingReference = strp("=SUM(1)")
-	a := e.mustCreate(t, newKey(), injected)
+	a := e.mustCreateWithRef(t, injected, "=SUM(1)")
 	later := testutil.CreateBody(testutil.FacilitySaku, "2026-12-20", "2026-12-22", 1)
-	later.BookingReference = strp("+cmd|' /C calc'!A0")
-	b := e.mustCreate(t, newKey(), later)
+	b := e.mustCreateWithRef(t, later, "+cmd|' /C calc'!A0")
 	if _, err := e.admin.VerifyIdentity(ctx, scope, a.Body.PublicID); err != nil {
 		t.Fatal(err)
 	}

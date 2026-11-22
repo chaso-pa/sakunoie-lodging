@@ -12,9 +12,11 @@ type GuestFieldsProps = {
   /** Form path of the guest object, e.g. `representative` or `companions.1`. */
   path: string;
   guest: GuestFormValues;
+  /** The representative must give phone and email. */
+  isRepresentative?: boolean;
 };
 
-export function GuestFields({ form, path, guest }: GuestFieldsProps) {
+export function GuestFields({ form, path, guest, isRepresentative = false }: GuestFieldsProps) {
   const t = useTranslations();
   const p = (field: keyof GuestFormValues) => `${path}.${field}`;
   const input = (field: keyof GuestFormValues) => ({ id: fieldId(p(field)), ...form.getInputProps(p(field)) });
@@ -25,9 +27,16 @@ export function GuestFields({ form, path, guest }: GuestFieldsProps) {
       <TextInput label={t('guest.fullName')} withAsterisk autoComplete='off' {...input('fullName')} />
       <TextInput label={<OptionalLabel label={t('guest.nameKana')} />} autoComplete='off' {...input('nameKana')} />
       <Textarea label={t('guest.address')} withAsterisk autosize minRows={2} autoComplete='off' {...input('address')} />
-      <TextInput label={<OptionalLabel label={t('guest.phone')} />} type='tel' autoComplete='off' {...input('phone')} />
       <TextInput
-        label={<OptionalLabel label={t('guest.email')} />}
+        label={isRepresentative ? t('guest.phone') : <OptionalLabel label={t('guest.phone')} />}
+        withAsterisk={isRepresentative}
+        type='tel'
+        autoComplete='off'
+        {...input('phone')}
+      />
+      <TextInput
+        label={isRepresentative ? t('guest.email') : <OptionalLabel label={t('guest.email')} />}
+        withAsterisk={isRepresentative}
         type='email'
         autoComplete='off'
         {...input('email')}

@@ -86,8 +86,6 @@ export function ReviewConsentStep({ form, values, facility, onEditStep }: Review
           <Row label={t('registration.stay.checkOut')} value={formatCivilDate(values.stay.checkOutDate, locale)} />
           <Row label={t('registration.stay.arrival')} value={values.stay.estimatedArrivalTime || notSet} />
           <Row label={t('registration.stay.plannedCount')} value={String(planned)} />
-          <Row label={t('registration.stay.bookingSource')} value={values.stay.bookingSource || notSet} />
-          <Row label={t('registration.stay.bookingReference')} value={values.stay.bookingReference || notSet} />
         </Stack>
       </Card>
 
@@ -133,13 +131,13 @@ export function ReviewConsentStep({ form, values, facility, onEditStep }: Review
           <Checkbox
             id={fieldId('termsAccepted')}
             size='md'
-            label={t('registration.review.termsLabel', { version: facility.terms_version })}
+            label={t('registration.review.termsLabel')}
             {...form.getInputProps('termsAccepted', { type: 'checkbox' })}
           />
           <Checkbox
             id={fieldId('privacyAccepted')}
             size='md'
-            label={t('registration.review.privacyLabel', { version: facility.privacy_version })}
+            label={t('registration.review.privacyLabel')}
             {...form.getInputProps('privacyAccepted', { type: 'checkbox' })}
           />
         </Stack>

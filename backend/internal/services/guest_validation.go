@@ -90,7 +90,9 @@ func guestEdits(loc string, fullName, address, nameKana, phone, email *string, u
 	return changed, errs
 }
 
-// validateGuest checks the conditional legal fields. has_japan_address=false
+// validateGuest checks required fields and the conditional legal fields.
+// The representative must give phone and email (owner decision
+// 2026-11-22). has_japan_address=false
 // requires nationality and a passport number (contract §3.3, VERIFY with the
 // facility license). A passport number sent for a guest with a Japanese
 // address is not stored (data minimization).
@@ -108,6 +110,14 @@ func validateGuest(loc string, g *guestFields) []FieldError {
 	}
 	if g.Address == "" {
 		errs = append(errs, FieldError{loc + ".address", "is required"})
+	}
+	if g.IsRepresentative {
+		if g.Phone == nil {
+			errs = append(errs, FieldError{loc + ".phone", "is required for the representative"})
+		}
+		if g.Email == nil {
+			errs = append(errs, FieldError{loc + ".email", "is required for the representative"})
+		}
 	}
 	if g.HasJapanAddress {
 		g.PassportNumber = nil

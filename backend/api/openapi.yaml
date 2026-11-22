@@ -568,14 +568,6 @@ components:
     CreateGuestRegistrationBody:
       additionalProperties: false
       properties:
-        booking_reference:
-          description: Booking reference (optional)
-          maxLength: 255
-          type: string
-        booking_source:
-          description: e.g. airbnb (optional)
-          maxLength: 50
-          type: string
         check_in_date:
           description: Local check-in date (YYYY-MM-DD)
           format: date
@@ -788,7 +780,7 @@ components:
           minLength: 1
           type: string
         email:
-          description: Email (optional)
+          description: Email; required for the representative
           maxLength: 255
           type: string
         full_name:
@@ -815,7 +807,7 @@ components:
           pattern: ^[A-Za-z0-9 ]{6,20}$
           type: string
         phone:
-          description: Phone (optional)
+          description: Phone; required for the representative
           maxLength: 50
           type: string
       required:
@@ -1000,12 +992,10 @@ components:
       additionalProperties: false
       properties:
         booking_reference:
-          description: Empty string clears it
-          maxLength: 255
+          description: Host only (403 field_not_editable)
           type: string
         booking_source:
-          description: Empty string clears it
-          maxLength: 50
+          description: Host only (403 field_not_editable)
           type: string
         check_in_date:
           description: Not editable with an edit token (403 field_not_editable); ask the host

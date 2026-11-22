@@ -11,7 +11,7 @@ export function RepresentativeStep({ form, representative }: { form: PathForm; r
   return (
     <Stack gap='md'>
       <Text c='dimmed'>{t('description')}</Text>
-      <GuestFields form={form} path='representative' guest={representative} />
+      <GuestFields form={form} path='representative' guest={representative} isRepresentative />
     </Stack>
   );
 }

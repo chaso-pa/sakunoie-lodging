@@ -75,6 +75,16 @@ func ForeignGuest(name, passport string) models.GuestInput {
 	}
 }
 
+// ForeignRepresentative returns a synthetic non-Japan-address representative
+// with the contact details a representative must give.
+func ForeignRepresentative(name, passport string) models.GuestInput {
+	g := ForeignGuest(name, passport)
+	g.IsRepresentative = true
+	g.Phone = strp("000-0000-0002")
+	g.Email = strp("test-foreign-rep@example.test")
+	return g
+}
+
 // Companion returns a synthetic Japan-address companion.
 func Companion(name string) models.CompanionInput {
 	return models.CompanionInput{FullName: name, Address: "1-2-3 Test Town, Saku, Nagano", HasJapanAddress: true}
@@ -91,8 +101,6 @@ func CreateBody(facility string, checkIn, checkOut string, planned int, guests .
 		CheckInDate:       checkIn,
 		CheckOutDate:      checkOut,
 		PlannedGuestCount: planned,
-		BookingSource:     strp("airbnb"),
-		BookingReference:  strp("TEST-REF-0001"),
 		TermsVersion:      "2026-10-01",
 		PrivacyVersion:    "2026-11-12",
 		TermsAccepted:     true,

@@ -43,6 +43,7 @@ test.describe('manage (edit link)', () => {
 
     // Add the second guest: 2/2.
     await page.locator('#field-guests-0-fullName').fill('Test Companion Two');
+    await page.locator('#field-guests-0-nameKana').fill('テスト ツー');
     await page.locator('#field-guests-0-address').fill('2 Test Street, Testland');
     await page.locator('section').filter({ hasText: 'Add guests' }).getByRole('radio', { name: 'Yes' }).check();
     await page.getByRole('button', { name: 'Add', exact: true }).click();

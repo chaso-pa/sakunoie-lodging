@@ -6,6 +6,7 @@ import { FACILITY_CODE, PRIVACY_VERSION, SYNTHETIC_PASSPORT, TERMS_VERSION } fro
 type Guest = {
   is_representative: boolean;
   full_name: string;
+  name_kana?: string;
   address: string;
   has_japan_address: boolean;
   nationality?: string;
@@ -35,6 +36,7 @@ export const defaultGuests = (): Guest[] => [
   {
     is_representative: true,
     full_name: 'Test Rep',
+    name_kana: 'テスト レップ',
     address: '1 Test Street, Testland',
     has_japan_address: false,
     nationality: 'Testland',
@@ -45,6 +47,7 @@ export const defaultGuests = (): Guest[] => [
   {
     is_representative: false,
     full_name: 'Test Companion',
+    name_kana: 'テスト コンパニオン',
     address: '1 Test Street, Testland',
     has_japan_address: true
   }
@@ -58,7 +61,12 @@ export const seedRegistration = async (
   request: APIRequestContext,
   overrides: SeedOverrides
 ): Promise<SeededRegistration> => {
-  const stay = await issueInvitation(request, { checkIn: overrides.checkIn, checkOut: overrides.checkOut });
+  // The booking reference is host data: it rides on the invitation and the create copies it.
+  const stay = await issueInvitation(request, {
+    checkIn: overrides.checkIn,
+    checkOut: overrides.checkOut,
+    bookingReference: overrides.bookingReference
+  });
   const response = await request.post('/api/v1/guest-registrations', {
     headers: { 'Idempotency-Key': `e2e-${randomUUID()}`, Authorization: `Bearer ${stay.token}` },
     data: {
@@ -66,8 +74,6 @@ export const seedRegistration = async (
       check_in_date: stay.checkIn,
       check_out_date: stay.checkOut,
       planned_guest_count: overrides.plannedGuestCount ?? 2,
-      booking_source: 'airbnb',
-      booking_reference: overrides.bookingReference,
       terms_version: TERMS_VERSION,
       privacy_version: PRIVACY_VERSION,
       terms_accepted: true,

@@ -17,6 +17,7 @@ import {
 const japanGuest = (overrides: Partial<GuestFormValues> = {}): GuestFormValues => ({
   ...emptyGuest(),
   fullName: 'Test Rep',
+  nameKana: 'テスト',
   address: '1-1 Test-cho, Saku',
   hasJapanAddress: true,
   ...overrides
@@ -28,11 +29,9 @@ const validWizard = (overrides: Partial<WizardFormValues> = {}): WizardFormValue
     checkInDate: '2026-12-01',
     checkOutDate: '2026-12-03',
     estimatedArrivalTime: '16:00',
-    plannedGuestCount: 3,
-    bookingSource: 'airbnb',
-    bookingReference: ''
+    plannedGuestCount: 3
   },
-  representative: japanGuest(),
+  representative: japanGuest({ phone: '000-0000-0001', email: 'rep@example.test' }),
   companions: [japanGuest({ fullName: 'Test Companion' })],
   termsAccepted: true,
   privacyAccepted: true,
@@ -73,6 +72,20 @@ describe('guest schema: conditional passport rule', () => {
   it('reports required, length and email problems together', () => {
     const errors = guestErrors(japanGuest({ fullName: '  ', address: 'x'.repeat(2001), email: 'not-an-email' }));
     expect(errors).toEqual({ fullName: 'required', address: 'tooLong', email: 'email' });
+  });
+});
+
+describe('representative contact (2026-11-22)', () => {
+  it('keeps name kana optional', () => {
+    expect(guestErrors(japanGuest({ nameKana: '' }))).toEqual({});
+  });
+
+  it('requires phone and email for the representative only', () => {
+    const errors = validateWizard(
+      validWizard({ representative: japanGuest({ phone: '', email: ' ' }), companions: [japanGuest()] }),
+      4
+    );
+    expect(errors).toEqual({ 'representative.phone': 'required', 'representative.email': 'required' });
   });
 });
 
@@ -128,7 +141,7 @@ describe('wizard schema: counts and dates', () => {
     expect(stepOfPath('companions.0.fullName')).toBe(2);
     expect(stepOfPath('termsAccepted')).toBe(3);
     const errors = validateWizard(
-      validWizard({ representative: japanGuest({ fullName: '' }), termsAccepted: false }),
+      validWizard({ representative: { ...validWizard().representative, fullName: '' }, termsAccepted: false }),
       4
     );
     expect(errorsForStep(errors, 1)).toEqual({ 'representative.fullName': 'required' });
@@ -147,8 +160,14 @@ describe('create payload schema: representative exactly one', () => {
     terms_accepted: true as const,
     privacy_accepted: true as const,
     guests: [
-      { is_representative: true, full_name: 'Test Rep', address: 'Addr', has_japan_address: true },
-      { is_representative: false, full_name: 'Test Companion', address: 'Addr', has_japan_address: true }
+      { is_representative: true, full_name: 'Test Rep', name_kana: 'テスト', address: 'Addr', has_japan_address: true },
+      {
+        is_representative: false,
+        full_name: 'Test Companion',
+        name_kana: 'テスト',
+        address: 'Addr',
+        has_japan_address: true
+      }
     ]
   };
   const issues = (p: unknown) => {
@@ -183,7 +202,7 @@ describe('create payload schema: representative exactly one', () => {
 describe('manage stay schema', () => {
   it('keeps the planned count between the registered count and the facility max', () => {
     const schema = manageStaySchema(3, 4);
-    const base = { estimatedArrivalTime: '', bookingSource: '', bookingReference: '' };
+    const base = { estimatedArrivalTime: '' };
     expect(toFormErrors(schema.safeParse({ ...base, plannedGuestCount: 2 }))).toEqual({
       plannedGuestCount: 'guestCountRange'
     });

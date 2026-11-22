@@ -75,6 +75,14 @@ export const guestFormSchema = z
 
 export type GuestFormValues = z.input<typeof guestFormSchema>;
 
+/** The representative must also give a phone number and an email address (owner decision 2026-11-22). */
+export const representativeFormSchema = guestFormSchema.superRefine((guest, ctx) => {
+  if (guest.phone.trim() === '')
+    ctx.addIssue({ code: 'custom', path: ['phone'], message: 'required' satisfies ValidationKey });
+  if (guest.email.trim() === '')
+    ctx.addIssue({ code: 'custom', path: ['email'], message: 'required' satisfies ValidationKey });
+});
+
 export const emptyGuest = (): GuestFormValues => ({
   fullName: '',
   nameKana: '',
@@ -99,9 +107,7 @@ export const stayFormSchema = (maxGuests: number) =>
       checkInDate: z.string().refine(isValidDate, msg('invalidDate')),
       checkOutDate: z.string().refine(isValidDate, msg('invalidDate')),
       estimatedArrivalTime: z.string().refine((v) => v === '' || TIME_PATTERN.test(v), msg('invalidTime')),
-      plannedGuestCount: plannedCount(1, Math.min(maxGuests, MAX_GUESTS_PER_REQUEST)),
-      bookingSource: optionalText(50),
-      bookingReference: optionalText(255)
+      plannedGuestCount: plannedCount(1, Math.min(maxGuests, MAX_GUESTS_PER_REQUEST))
     })
     .superRefine((stay, ctx) => {
       // ISO dates compare lexicographically.
@@ -115,7 +121,6 @@ export const stayFormSchema = (maxGuests: number) =>
     });
 
 export type StayFormValues = Omit<z.input<ReturnType<typeof stayFormSchema>>, 'plannedGuestCount'> & {
-  /** Mantine NumberInput yields '' while empty. */
   plannedGuestCount: number | string;
 };
 
@@ -123,7 +128,7 @@ export const wizardFormSchema = (maxGuests: number) =>
   z
     .object({
       stay: stayFormSchema(maxGuests),
-      representative: guestFormSchema,
+      representative: representativeFormSchema,
       companions: z.array(guestFormSchema),
       termsAccepted: z.boolean(),
       privacyAccepted: z.boolean()
@@ -153,9 +158,7 @@ export const emptyWizardValues = (): WizardFormValues => ({
     checkInDate: '',
     checkOutDate: '',
     estimatedArrivalTime: '',
-    plannedGuestCount: 1,
-    bookingSource: '',
-    bookingReference: ''
+    plannedGuestCount: 1
   },
   representative: emptyGuest(),
   companions: [],
@@ -217,8 +220,6 @@ export const createRegistrationPayloadSchema = z
     check_out_date: z.string().regex(DATE_PATTERN),
     estimated_arrival_time: z.string().regex(TIME_PATTERN).optional(),
     planned_guest_count: z.number().int().min(1).max(50),
-    booking_source: z.string().max(50).optional(),
-    booking_reference: z.string().max(255).optional(),
     terms_version: z.string().min(1).max(64),
     privacy_version: z.string().min(1).max(64),
     terms_accepted: z.literal(true),
@@ -250,15 +251,11 @@ export type CreateRegistrationPayload = z.infer<typeof createRegistrationPayload
 export const manageStaySchema = (registeredCount: number, maxGuests: number) =>
   z.object({
     estimatedArrivalTime: z.string().refine((v) => v === '' || TIME_PATTERN.test(v), msg('invalidTime')),
-    bookingSource: optionalText(50),
-    bookingReference: optionalText(255),
     plannedGuestCount: plannedCount(Math.max(1, registeredCount), maxGuests)
   });
 
 export type ManageStayFormValues = {
   estimatedArrivalTime: string;
-  bookingSource: string;
-  bookingReference: string;
   plannedGuestCount: number | string;
 };
 

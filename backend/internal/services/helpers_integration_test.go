@@ -76,8 +76,16 @@ func (e *env) issuerScope(t *testing.T) services.AdminScope {
 // issueInvitation issues an invitation through the real service.
 func (e *env) issueInvitation(t *testing.T, facilityCode, checkIn, checkOut string) string {
 	t.Helper()
+	return e.issueInvitationRef(t, facilityCode, checkIn, checkOut, nil)
+}
+
+// issueInvitationRef issues an invitation carrying the host's booking
+// reference, which the create copies to the registration.
+func (e *env) issueInvitationRef(t *testing.T, facilityCode, checkIn, checkOut string, bookingRef *string) string {
+	t.Helper()
 	res, err := e.invite.Issue(context.Background(), e.issuerScope(t), services.AdminInvitationInput{
 		FacilityID: testutil.FacilityID(t, e.db, facilityCode), CheckInDate: checkIn, CheckOutDate: checkOut,
+		BookingReference: bookingRef,
 	})
 	if err != nil {
 		t.Fatalf("issue invitation: %v", err)
@@ -112,6 +120,14 @@ func (e *env) inviteFor(t *testing.T, key string, body *models.CreateGuestRegist
 func (e *env) create(t *testing.T, ctx context.Context, key string, body *models.CreateGuestRegistrationBody) (*services.CreateResult, error) {
 	t.Helper()
 	return e.reg.Create(ctx, key, e.inviteFor(t, key, body), body)
+}
+
+// mustCreateWithRef creates body with an invitation that carries bookingRef.
+func (e *env) mustCreateWithRef(t *testing.T, body *models.CreateGuestRegistrationBody, bookingRef string) *services.CreateResult {
+	t.Helper()
+	key := newKey()
+	e.invites[key] = e.issueInvitationRef(t, body.FacilityCode, body.CheckInDate, body.CheckOutDate, &bookingRef)
+	return e.mustCreate(t, key, body)
 }
 
 func newKey() string { return "test-key-" + uuid.NewString() }

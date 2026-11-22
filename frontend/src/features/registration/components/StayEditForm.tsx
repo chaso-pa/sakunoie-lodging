@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Group, NativeSelect, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -25,14 +25,6 @@ export function StayEditForm({ summary, onDone, onCancel, onError }: StayEditFor
   const mutation = usePatchRegistration();
   const [nothingChanged, setNothingChanged] = useState(false);
   const form = useForm<ManageStayFormValues>({ mode: 'controlled', initialValues: manageStayValuesFrom(summary) });
-  const sourceOptions = [
-    { value: '', label: t('registration.stay.bookingSourceNone') },
-    { value: 'airbnb', label: t('registration.stay.bookingSourceAirbnb') },
-    { value: 'other', label: t('registration.stay.bookingSourceOther') }
-  ];
-  const current = form.getValues().bookingSource;
-  if (current && !sourceOptions.some((o) => o.value === current))
-    sourceOptions.push({ value: current, label: current });
 
   const submit = form.onSubmit((values) => {
     const errors = toFormErrors(
@@ -76,16 +68,6 @@ export function StayEditForm({ summary, onDone, onCancel, onError }: StayEditFor
           allowDecimal={false}
           allowNegative={false}
           {...form.getInputProps('plannedGuestCount')}
-        />
-        <NativeSelect
-          label={<OptionalLabel label={t('registration.stay.bookingSource')} />}
-          data={sourceOptions}
-          {...form.getInputProps('bookingSource')}
-        />
-        <TextInput
-          label={<OptionalLabel label={t('registration.stay.bookingReference')} />}
-          autoComplete='off'
-          {...form.getInputProps('bookingReference')}
         />
         {nothingChanged ? <InfoBanner tone='info'>{t('manage.nothingToSave')}</InfoBanner> : null}
         {mutation.isError ? <ApiErrorBanner error={mutation.error} /> : null}

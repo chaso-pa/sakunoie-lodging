@@ -156,13 +156,6 @@ function ManageContent({ summary, notice, setNotice, onError, onFinish }: Manage
   const [editingGuest, setEditingGuest] = useState<string | null>(null);
   const notSet = t('common.notSet');
 
-  const sourceLabel = (source: string | null) => {
-    if (!source) return notSet;
-    if (source === 'airbnb') return t('registration.stay.bookingSourceAirbnb');
-    if (source === 'other') return t('registration.stay.bookingSourceOther');
-    return source;
-  };
-
   const noticeBanner =
     notice === 'precondition' ? (
       <InfoBanner tone='warning' announce='polite'>
@@ -190,8 +183,6 @@ function ManageContent({ summary, notice, setNotice, onError, onFinish }: Manage
           />
           <Field label={t('manage.arrival')} value={summary.estimated_arrival_time ?? notSet} />
           <Field label={t('manage.plannedCount')} value={String(summary.planned_guest_count)} />
-          <Field label={t('manage.bookingSource')} value={sourceLabel(summary.booking_source)} />
-          <Field label={t('manage.bookingReference')} value={summary.booking_reference ?? notSet} />
           <RegistrationStatus
             registered={summary.registered_count}
             planned={summary.planned_guest_count}

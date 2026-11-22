@@ -111,12 +111,7 @@
       "checkOut": "Check-out date",
       "arrival": "Estimated arrival time",
       "plannedCount": "Number of guests (planned)",
-      "plannedCountHelp": "Including the representative.",
-      "bookingSource": "Booked via",
-      "bookingSourceNone": "Select",
-      "bookingSourceAirbnb": "Airbnb",
-      "bookingSourceOther": "Other",
-      "bookingReference": "Booking reference"
+      "plannedCountHelp": "Including the representative."
     },
     "representative": {
       "description": "Enter the details of the guest who represents the group."
@@ -140,8 +135,8 @@
       "passportEntered": "Passport number: entered",
       "edit": "Edit",
       "consentTitle": "Consent",
-      "termsLabel": "I agree to the Terms (version {version})",
-      "privacyLabel": "I agree to the Privacy Policy (version {version})",
+      "termsLabel": "I agree to the Terms",
+      "privacyLabel": "I agree to the Privacy Policy",
       "termsLink": "Read the Terms",
       "privacyLink": "Read the Privacy Policy"
     },
@@ -188,8 +183,6 @@
     "facility": "Property",
     "dates": "Dates",
     "arrival": "Estimated arrival",
-    "bookingSource": "Booked via",
-    "bookingReference": "Booking reference",
     "plannedCount": "Number of guests (planned)",
     "expiresAt": "Editable until {date}",
     "guestsTitle": "Guests",

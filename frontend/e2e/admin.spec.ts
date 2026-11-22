@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { adminLogin, fillLogin, unauthorizedCredentials } from './fixtures/admin-login';
 import { API_URL, newApiContext } from './fixtures/api-context';
+import { copiedTexts, simulateInsecureClipboard } from './fixtures/insecure-clipboard';
 import { unexpectedErrors, waitForHydrated, watchPage } from './fixtures/page-watch';
 import { defaultGuests, type SeededRegistration, seedRegistration } from './fixtures/seed';
 import { SYNTHETIC_PASSPORT, uniqueRef, uniqueStay } from './fixtures/synthetic';
@@ -25,7 +26,15 @@ test.beforeAll(async ({ playwright }) => {
     ...stay,
     plannedGuestCount: 1,
     guests: [
-      { is_representative: true, full_name: 'Test Formula Rep', address: '3 Test Street', has_japan_address: true }
+      {
+        is_representative: true,
+        full_name: 'Test Formula Rep',
+        name_kana: 'テスト フォーミュラ',
+        address: '3 Test Street',
+        has_japan_address: true,
+        phone: '000-0000-5678',
+        email: 'test-formula-rep@example.test'
+      }
     ]
   });
   await api.dispose();
@@ -184,7 +193,11 @@ test.describe('admin console', () => {
     await dialog.getByLabel('リンクの表示言語').selectOption('en');
     const enUrl = await dialog.getByLabel('招待リンク').inputValue();
     expect(enUrl).toMatch(/\/en\/stays\/saku-no-ie\/registration#invite=/);
-    await expect(dialog.getByRole('button', { name: 'リンクをコピー' })).toBeVisible();
+    // Copy works without a secure context too (plain http on the LAN): the execCommand fallback.
+    await simulateInsecureClipboard(page);
+    await dialog.getByRole('button', { name: 'リンクをコピー' }).click();
+    await expect(dialog.getByRole('button', { name: 'コピーしました' })).toBeVisible();
+    expect(await copiedTexts(page)).toEqual([enUrl]);
     const token = decodeURIComponent(url.split('#invite=')[1]);
     await dialog.getByRole('button', { name: '閉じる' }).click();
     await expect(dialog).toBeHidden();

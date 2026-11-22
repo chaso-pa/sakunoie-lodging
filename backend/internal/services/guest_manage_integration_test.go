@@ -114,8 +114,7 @@ func TestIntegrationTokenExpiryAndRevocation(t *testing.T) {
 func TestIntegrationTokenFieldScope(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
-	rep := testutil.ForeignGuest("Test Guest R", "TESTPP4321")
-	rep.IsRepresentative = true
+	rep := testutil.ForeignRepresentative("Test Guest R", "TESTPP4321")
 	res := e.mustCreate(t, newKey(), sakuBody(3, rep))
 	token := *res.Body.EditToken
 
@@ -170,12 +169,12 @@ func TestIntegrationTokenFieldScope(t *testing.T) {
 	_, err = e.manage.PatchRegistration(ctx, token, after.Version, &models.PatchManageRegistrationBody{PlannedGuestCount: intp(5)})
 	expectErr(t, err, services.ErrCapacityExceeded)
 	upd, err := e.manage.PatchRegistration(ctx, token, after.Version, &models.PatchManageRegistrationBody{
-		PlannedGuestCount: intp(4), EstimatedArrivalTime: strp("16:30"), BookingReference: strp(""),
+		PlannedGuestCount: intp(4), EstimatedArrivalTime: strp("16:30"),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if upd.PlannedGuestCount != 4 || upd.RemainingCount != 2 || upd.BookingReference != nil ||
+	if upd.PlannedGuestCount != 4 || upd.RemainingCount != 2 ||
 		upd.EstimatedArrivalTime == nil || *upd.EstimatedArrivalTime != "16:30" {
 		t.Fatalf("patched summary %+v", upd)
 	}
@@ -194,7 +193,7 @@ func TestIntegrationTokenFieldScope(t *testing.T) {
 	var audits []entities.AuditLog
 	e.db.Where("action = ?", "registration.updated").Order("id").Find(&audits)
 	if len(audits) != 2 || *audits[0].ChangedFieldsJSON != `["guest.email","guest.phone"]` ||
-		*audits[1].ChangedFieldsJSON != `["estimated_arrival_time","booking_reference","planned_guest_count"]` {
+		*audits[1].ChangedFieldsJSON != `["estimated_arrival_time","planned_guest_count"]` {
 		for _, a := range audits {
 			t.Logf("audit %s %v", a.Action, *a.ChangedFieldsJSON)
 		}

@@ -67,7 +67,7 @@ Track CSV source, checksum, imported timestamp, row index, outcome, linked recor
 ### Public
 - `GET /api/v1/facilities/{code}/public` — public name, localized labels, capacity, current terms metadata; never secrets.
 - `GET /api/v1/invitations/current` — host's invitation token in `Authorization: Bearer`; returns facility code, the host-set stay dates and the expiry only; `Cache-Control: no-store` (2026-11-15).
-- `POST /api/v1/guest-registrations` — facility code, dates, planned count, optional booking fields, guests array, consent version/booleans; returns public registration ID, count/completeness, one-time edit token or separate secure token delivery. Require `Idempotency-Key` and, since 2026-11-15, the invitation token as `Authorization: Bearer` (facility and dates must equal the invitation's).
+- `POST /api/v1/guest-registrations` — facility code, dates, planned count, guests array (booking fields are host data since 2026-11-22: the reference comes from the invitation), consent version/booleans; returns public registration ID, count/completeness, one-time edit token or separate secure token delivery. Require `Idempotency-Key` and, since 2026-11-15, the invitation token as `Authorization: Bearer` (facility and dates must equal the invitation's).
 - `GET /api/v1/guest-registrations/manage` — token in Authorization header; return **minimal** registration summary, count, masked data; `Cache-Control: no-store`.
 - `PATCH /api/v1/guest-registrations/manage` — safe field corrections after authorization, version/precondition support.
 - `POST /api/v1/guest-registrations/manage/guests` — append one or more companions transactionally, return updated count.
@@ -94,14 +94,12 @@ Define standard error envelope `{code,message,details,request_id}`. Suggested HT
   "check_out_date": "2026-12-03",
   "estimated_arrival_time": "16:00",
   "planned_guest_count": 3,
-  "booking_source": "airbnb",
-  "booking_reference": null,
   "terms_version": "2026-10-01",
   "privacy_version": "2026-10-01",
   "terms_accepted": true,
   "privacy_accepted": true,
   "guests": [
-    {"is_representative": true, "full_name": "Example Representative", "address": "...", "has_japan_address": true},
+    {"is_representative": true, "full_name": "Example Representative", "address": "...", "phone": "...", "email": "...", "has_japan_address": true},
     {"is_representative": false, "full_name": "Example Companion", "address": "...", "has_japan_address": true}
   ]
 }
@@ -277,6 +275,13 @@ Implementation decisions that refine or deviate from this contract, recorded dur
   - **Admin.** Issue returns the raw token once (shown once in a dialog with a copy button and the Airbnb-message hint), list derives `active`/`used`/`expired`/`revoked` (scoped, 50 per page, newest first, never tokens or hashes), revoke uses a confirmation dialog. Audit actions `invitation.created`, `invitation.revoked` (actor admin, `changed_fields_json = {"invitation_public_id": …}`, never the token, note or booking code). Issuing for another facility → 403, revoking another facility's invitation → 404.
   - **Public links removed.** The home page "ご予約済みの方へ" strip (`GuestStrip`) is deleted and the footer no longer links registration or the survey; the guide says the link comes in an Airbnb message. The survey page stays reachable by URL; the host sends it after checkout.
   - **E2E** issues invitations through the admin API as the emulator owner from `global-setup.ts` (`e2e/fixtures/invitations.ts`, which `seedRegistration` uses).
+
+- **Registration form fields (owner decision, 2026-11-22).**
+  - **Planned count** is chosen with one button per allowed count (Mantine `SegmentedControl`, `1..min(max_guests, 20)`; `[1]|[2]` for saku-no-ie), so the wizard cannot send an out-of-range value. The guest manage form keeps its number input.
+  - **Booking source and reference are host data.** They are gone from the wizard, the guest manage form and the guest manage view. `POST /guest-registrations` no longer declares them (sending one is 422 as an unknown property), the create copies the invitation's `booking_reference` to the registration (`booking_source` stays null), and `PATCH /guest-registrations/manage` answers 403 `field_not_editable` for either. The host sets or corrects both in the admin console (invitation, admin PATCH).
+  - **Required fields.** The representative's `phone` and `email` are required at create (422 `body.guests[i].phone`/`.email`); they stay optional for companions. `name_kana` stays optional for every guest.
+  - The consent checkboxes no longer show the document version ("（版: …）"); `terms_version`/`privacy_version` are still sent and checked by the server.
+- **`randomUUID` fallback (2026-11-22).** `crypto.randomUUID` exists only in secure contexts, so a phone opening the dev server over plain http on the LAN could not create the Idempotency-Key. `@/lib/uuid` uses it when present and otherwise builds a v4 UUID from `crypto.getRandomValues`. For the same reason `navigator.clipboard` is missing there, so the copy buttons (invitation, reissued edit link, completion page) use `@/hooks/use-copy-text` instead of Mantine `CopyButton`: `navigator.clipboard.writeText` in a secure context, else `execCommand('copy')` on a temporary textarea attached next to the button (inside a modal's focus trap). E2E simulates the insecure context (`e2e/fixtures/insecure-clipboard.ts`).
 
 ### Open items before production
 1. **VERIFY items of §11:** lodging-license ledger fields and passport inspection/copy rules, retention basis, the checkout-day edit window (currently 23:59:59 local), step-up identity for edits, whether the representative's email is mandatory, the remaining placeholder content (home, guide, FAQ) and translations. Also the §3.6 audit-evidence deviation above. Terms and rates are the owner's texts (https://app.chaso-pa.com/sakunoie-terms, https://app.chaso-pa.com/sakunoie-pricing; terms `2026-10-01`), but the en/zh-CN/ko terms translations should be reviewed. **Privacy policy:** the `2026-11-12` draft needs legal review, the 【要記入】 items (operator name/representative, contact email/phone, hosting provider, retention periods, passport-copy handling, security details, fees) and the 【要法務確認】 items (3-year ledger basis, no-stay retention, entrustment, APPI Art. 28); bump `privacy_version` when the final text is published.

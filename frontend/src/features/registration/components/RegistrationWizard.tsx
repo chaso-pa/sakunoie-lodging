@@ -219,9 +219,7 @@ function WizardForm({
         checkInDate: t('registration.stay.checkIn'),
         checkOutDate: t('registration.stay.checkOut'),
         estimatedArrivalTime: t('registration.stay.arrival'),
-        plannedGuestCount: t('registration.stay.plannedCount'),
-        bookingSource: t('registration.stay.bookingSource'),
-        bookingReference: t('registration.stay.bookingReference')
+        plannedGuestCount: t('registration.stay.plannedCount')
       };
       return stayLabels[second] ?? second;
     }
@@ -230,8 +228,8 @@ function WizardForm({
       return `${t('registration.companions.cardTitle', { index: Number(second) + 1 })}: ${guestLabel(third)}`;
     }
     if (head === 'companions') return t('registration.steps.companions');
-    if (head === 'termsAccepted') return t('registration.review.termsLabel', { version: facility.terms_version });
-    return t('registration.review.privacyLabel', { version: facility.privacy_version });
+    if (head === 'termsAccepted') return t('registration.review.termsLabel');
+    return t('registration.review.privacyLabel');
   };
 
   const showErrors = (errors: Record<string, string>) => {

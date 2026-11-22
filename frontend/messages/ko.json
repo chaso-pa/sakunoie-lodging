@@ -111,12 +111,7 @@
       "checkOut": "체크아웃 날짜",
       "arrival": "도착 예정 시간",
       "plannedCount": "숙박 인원(예정)",
-      "plannedCountHelp": "대표자를 포함한 인원입니다.",
-      "bookingSource": "예약 경로",
-      "bookingSourceNone": "선택해 주세요",
-      "bookingSourceAirbnb": "Airbnb",
-      "bookingSourceOther": "기타",
-      "bookingReference": "예약 번호"
+      "plannedCountHelp": "대표자를 포함한 인원입니다."
     },
     "representative": {
       "description": "숙박자를 대표하는 분의 정보를 입력해 주세요."
@@ -140,8 +135,8 @@
       "passportEntered": "여권 번호: 입력 완료",
       "edit": "수정",
       "consentTitle": "동의 사항",
-      "termsLabel": "이용약관(버전: {version})에 동의합니다",
-      "privacyLabel": "개인정보 처리방침(버전: {version})에 동의합니다",
+      "termsLabel": "이용약관에 동의합니다",
+      "privacyLabel": "개인정보 처리방침에 동의합니다",
       "termsLink": "이용약관 읽기",
       "privacyLink": "개인정보 처리방침 읽기"
     },
@@ -188,8 +183,6 @@
     "facility": "숙소",
     "dates": "숙박 날짜",
     "arrival": "도착 예정 시간",
-    "bookingSource": "예약 경로",
-    "bookingReference": "예약 번호",
     "plannedCount": "숙박 인원(예정)",
     "expiresAt": "편집 기한: {date}",
     "guestsTitle": "숙박자",

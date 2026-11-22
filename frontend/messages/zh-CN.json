@@ -111,12 +111,7 @@
       "checkOut": "退房日期",
       "arrival": "预计到达时间",
       "plannedCount": "入住人数（预计）",
-      "plannedCountHelp": "包括代表人在内的人数。",
-      "bookingSource": "预订渠道",
-      "bookingSourceNone": "请选择",
-      "bookingSourceAirbnb": "Airbnb",
-      "bookingSourceOther": "其他",
-      "bookingReference": "预订编号"
+      "plannedCountHelp": "包括代表人在内的人数。"
     },
     "representative": {
       "description": "请填写代表全体住客的人员信息。"
@@ -140,8 +135,8 @@
       "passportEntered": "护照号码：已填写",
       "edit": "修改",
       "consentTitle": "同意事项",
-      "termsLabel": "我同意使用条款（版本：{version}）",
-      "privacyLabel": "我同意隐私政策（版本：{version}）",
+      "termsLabel": "我同意使用条款",
+      "privacyLabel": "我同意隐私政策",
       "termsLink": "阅读使用条款",
       "privacyLink": "阅读隐私政策"
     },
@@ -188,8 +183,6 @@
     "facility": "住宿设施",
     "dates": "住宿日期",
     "arrival": "预计到达时间",
-    "bookingSource": "预订渠道",
-    "bookingReference": "预订编号",
     "plannedCount": "入住人数（预计）",
     "expiresAt": "可编辑至：{date}",
     "guestsTitle": "住客",

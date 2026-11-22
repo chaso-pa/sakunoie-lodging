@@ -1,12 +1,13 @@
 'use client';
 
-import { Button, CopyButton, Group, Modal, NativeSelect, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Group, Modal, NativeSelect, Stack, Text, TextInput } from '@mantine/core';
 import { IconCopy } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { InfoBanner } from '@/components/InfoBanner';
 import { paths } from '@/config/paths';
 import type { CreateInvitationResult } from '@/features/admin/types/api';
 import { formatDate, formatInstant } from '@/features/admin/utils/format';
+import { useCopyText } from '@/hooks/use-copy-text';
 
 const LOCALES = [
   { value: 'ja', label: '日本語' },
@@ -30,6 +31,7 @@ export function InvitationCreatedDialog({
 }) {
   const [locale, setLocale] = useState('ja');
   const [origin, setOrigin] = useState('');
+  const { copied, copy } = useCopyText();
   useEffect(() => setOrigin(window.location.origin), []);
   const url = result
     ? paths.registration.wizard.getAbsoluteInviteHref(
@@ -71,13 +73,13 @@ export function InvitationCreatedDialog({
             このリンクで登録できるのは1回だけです。登録後、ゲストは登録完了画面に表示される編集用リンクを使います。
           </Text>
           <Group justify='flex-end'>
-            <CopyButton value={url}>
-              {({ copied, copy }) => (
-                <Button color='forest' onClick={copy} leftSection={<IconCopy size={18} aria-hidden />}>
-                  {copied ? 'コピーしました' : 'リンクをコピー'}
-                </Button>
-              )}
-            </CopyButton>
+            <Button
+              color='forest'
+              onClick={(e) => copy(url, e.currentTarget.parentElement ?? undefined)}
+              leftSection={<IconCopy size={18} aria-hidden />}
+            >
+              {copied ? 'コピーしました' : 'リンクをコピー'}
+            </Button>
             <Button variant='default' onClick={onClose}>
               閉じる
             </Button>

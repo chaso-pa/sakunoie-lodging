@@ -28,14 +28,15 @@ const values: WizardFormValues = {
     checkInDate: '2026-12-01',
     checkOutDate: '2026-12-03',
     estimatedArrivalTime: '',
-    plannedGuestCount: '3',
-    bookingSource: '',
-    bookingReference: ' E2E-1 '
+    plannedGuestCount: '3'
   },
   representative: {
     ...emptyGuest(),
     fullName: ' Test Rep ',
+    nameKana: ' テスト ',
     address: 'Addr',
+    phone: '000-0000',
+    email: 'rep@example.test',
     hasJapanAddress: false,
     nationality: 'Testland',
     passportNumber: 'TESTPP1234'
@@ -44,8 +45,8 @@ const values: WizardFormValues = {
     {
       ...emptyGuest(),
       fullName: 'Test Companion',
+      nameKana: 'テスト',
       address: 'Addr',
-      phone: '000-0000',
       hasJapanAddress: true,
       // Left over from toggling the answer: must not be sent.
       nationality: 'Testland',
@@ -67,8 +68,9 @@ describe('buildCreatePayload', () => {
   it('omits empty optional fields instead of sending null or ""', () => {
     expect(payload).not.toHaveProperty('estimated_arrival_time');
     expect(payload).not.toHaveProperty('booking_source');
-    expect(payload.booking_reference).toBe('E2E-1');
-    expect(payload.guests[0]).not.toHaveProperty('email');
+    expect(payload).not.toHaveProperty('booking_reference');
+    expect(payload.guests[1]).not.toHaveProperty('email');
+    expect(payload.guests[1]).not.toHaveProperty('phone');
     expect(JSON.stringify(payload)).not.toContain('null');
   });
 
@@ -83,6 +85,7 @@ describe('buildCreatePayload', () => {
     expect(payload.privacy_version).toBe('2026-11-02');
     expect(payload.planned_guest_count).toBe(3);
     expect(payload.guests[0].full_name).toBe('Test Rep');
+    expect(payload.guests[0].name_kana).toBe('テスト');
   });
 });
 
@@ -110,10 +113,10 @@ describe('buildPatchRegistrationBody', () => {
 
   it('sends only changed fields, with "" to clear', () => {
     const body = buildPatchRegistrationBody(
-      { ...manageStayValuesFrom(summary), estimatedArrivalTime: '', bookingReference: 'NEW', plannedGuestCount: 4 },
+      { ...manageStayValuesFrom(summary), estimatedArrivalTime: '', plannedGuestCount: 4 },
       summary
     );
-    expect(body).toEqual({ estimated_arrival_time: '', booking_reference: 'NEW', planned_guest_count: 4 });
+    expect(body).toEqual({ estimated_arrival_time: '', planned_guest_count: 4 });
   });
 });
 

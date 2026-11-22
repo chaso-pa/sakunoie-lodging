@@ -55,13 +55,13 @@ type GetManageInput struct{}
 // answered with 403 field_not_editable instead of a generic 422.
 type PatchManageRegistrationBody struct {
 	EstimatedArrivalTime *string `json:"estimated_arrival_time,omitempty" pattern:"^(([01][0-9]|2[0-3]):[0-5][0-9])?$" doc:"HH:MM; empty string clears it"`
-	BookingSource        *string `json:"booking_source,omitempty" maxLength:"50" doc:"Empty string clears it"`
-	BookingReference     *string `json:"booking_reference,omitempty" maxLength:"255" doc:"Empty string clears it"`
 	PlannedGuestCount    *int    `json:"planned_guest_count,omitempty" minimum:"1" maximum:"50" doc:"At least the registered count and at most the current facility max_guests"`
 
-	CheckInDate  *string `json:"check_in_date,omitempty" doc:"Not editable with an edit token (403 field_not_editable); ask the host"`
-	CheckOutDate *string `json:"check_out_date,omitempty" doc:"Not editable with an edit token (403 field_not_editable); ask the host"`
-	FacilityCode *string `json:"facility_code,omitempty" doc:"Not editable with an edit token (403 field_not_editable)"`
+	CheckInDate      *string `json:"check_in_date,omitempty" doc:"Not editable with an edit token (403 field_not_editable); ask the host"`
+	CheckOutDate     *string `json:"check_out_date,omitempty" doc:"Not editable with an edit token (403 field_not_editable); ask the host"`
+	FacilityCode     *string `json:"facility_code,omitempty" doc:"Not editable with an edit token (403 field_not_editable)"`
+	BookingSource    *string `json:"booking_source,omitempty" doc:"Host only (403 field_not_editable)"`
+	BookingReference *string `json:"booking_reference,omitempty" doc:"Host only (403 field_not_editable)"`
 }
 
 type PatchManageRegistrationInput struct {

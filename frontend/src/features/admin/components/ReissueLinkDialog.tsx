@@ -1,11 +1,12 @@
 'use client';
 
-import { Button, CopyButton, Group, Modal, NativeSelect, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Group, Modal, NativeSelect, Stack, Text, TextInput } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { InfoBanner } from '@/components/InfoBanner';
 import { paths } from '@/config/paths';
 import type { ReissueEditLinkResult } from '@/features/admin/types/api';
 import { formatInstant } from '@/features/admin/utils/format';
+import { useCopyText } from '@/hooks/use-copy-text';
 
 const LOCALES = [
   { value: 'ja', label: '日本語' },
@@ -29,6 +30,7 @@ export function ReissueLinkDialog({
 }) {
   const [locale, setLocale] = useState('ja');
   const [origin, setOrigin] = useState('');
+  const { copied, copy } = useCopyText();
   useEffect(() => setOrigin(window.location.origin), []);
   const url = result ? paths.registration.manage.getAbsoluteHref(origin, locale, result.edit_token) : '';
 
@@ -54,13 +56,9 @@ export function ReissueLinkDialog({
           />
           <TextInput label='編集リンク' value={url} readOnly onFocus={(e) => e.currentTarget.select()} />
           <Group justify='flex-end'>
-            <CopyButton value={url}>
-              {({ copied, copy }) => (
-                <Button color='forest' onClick={copy}>
-                  {copied ? 'コピーしました' : 'リンクをコピー'}
-                </Button>
-              )}
-            </CopyButton>
+            <Button color='forest' onClick={(e) => copy(url, e.currentTarget.parentElement ?? undefined)}>
+              {copied ? 'コピーしました' : 'リンクをコピー'}
+            </Button>
             <Button variant='default' onClick={onClose}>
               閉じる
             </Button>

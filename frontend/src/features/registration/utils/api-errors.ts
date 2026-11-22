@@ -66,8 +66,6 @@ const STAY_FIELDS: Record<string, string> = {
   check_out_date: 'stay.checkOutDate',
   estimated_arrival_time: 'stay.estimatedArrivalTime',
   planned_guest_count: 'stay.plannedGuestCount',
-  booking_source: 'stay.bookingSource',
-  booking_reference: 'stay.bookingReference',
   terms_accepted: 'termsAccepted',
   privacy_accepted: 'privacyAccepted'
 };

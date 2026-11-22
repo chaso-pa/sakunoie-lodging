@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Card, Container, CopyButton, Group, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Button, Card, Container, Group, Stack, Text, TextInput, Title } from '@mantine/core';
 import { IconCheck, IconCopy } from '@tabler/icons-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { paths } from '@/config/paths';
 import { RegistrationStatus } from '@/features/registration/components/RegistrationStatus';
 import { useWizardStore } from '@/features/registration/stores/wizard-store';
 import { formatInstant } from '@/features/registration/utils/format';
+import { useCopyText } from '@/hooks/use-copy-text';
 import { Link } from '@/i18n/navigation';
 
 export function CompletionView() {
@@ -17,6 +18,7 @@ export function CompletionView() {
   const result = useWizardStore((s) => s.result);
   const acknowledgeCompletion = useWizardStore((s) => s.acknowledgeCompletion);
   const [origin, setOrigin] = useState<string | null>(null);
+  const { copied, copy } = useCopyText();
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -89,18 +91,14 @@ export function CompletionView() {
               <Text size='sm'>{t('keepSafe')}</Text>
             </InfoBanner>
             <Group gap='sm'>
-              <CopyButton value={manageUrl}>
-                {({ copied, copy }) => (
-                  <Button
-                    variant='outline'
-                    onClick={copy}
-                    disabled={!manageUrl}
-                    leftSection={copied ? <IconCheck size={18} aria-hidden /> : <IconCopy size={18} aria-hidden />}
-                  >
-                    <span aria-live='polite'>{copied ? t('copied') : t('copy')}</span>
-                  </Button>
-                )}
-              </CopyButton>
+              <Button
+                variant='outline'
+                onClick={(e) => copy(manageUrl, e.currentTarget.parentElement ?? undefined)}
+                disabled={!manageUrl}
+                leftSection={copied ? <IconCheck size={18} aria-hidden /> : <IconCopy size={18} aria-hidden />}
+              >
+                <span aria-live='polite'>{copied ? t('copied') : t('copy')}</span>
+              </Button>
               {/* Full navigation: the manage page reads the token from the fragment. */}
               <Button component='a' href={manageUrl || undefined}>
                 {registration.is_complete ? t('openManage') : t('addCompanions')}

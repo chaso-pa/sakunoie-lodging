@@ -268,14 +268,14 @@ func TestIntegrationHTTPCORS(t *testing.T) {
 	assertAllowedOrigin(t, w)
 
 	auth["If-Match"] = w.Header().Get("ETag")
-	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"booking_source": "direct"}, auth)
+	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"estimated_arrival_time": "18:00"}, auth)
 	if w.Code != http.StatusOK || w.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("manage patch: %d %s", w.Code, w.Body.String())
 	}
 	assertAllowedOrigin(t, w)
 
 	// The stale ETag now fails: the 412 envelope is readable cross-origin.
-	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"booking_source": "airbnb"}, auth)
+	w = h.do(http.MethodPatch, "/api/v1/guest-registrations/manage", map[string]any{"estimated_arrival_time": "19:00"}, auth)
 	if w.Code != http.StatusPreconditionFailed || envelope(t, w)["code"] != "precondition_failed" {
 		t.Fatalf("stale patch: %d %s", w.Code, w.Body.String())
 	}

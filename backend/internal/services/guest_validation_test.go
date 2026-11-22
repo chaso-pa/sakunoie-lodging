@@ -44,3 +44,31 @@ func TestGuestEdits(t *testing.T) {
 		t.Fatalf("errs %+v", errs)
 	}
 }
+
+// Owner decision 2026-11-22: phone and email for the representative only;
+// name_kana stays optional.
+func TestValidateGuestRepresentativeContact(t *testing.T) {
+	s := func(v string) *string { return &v }
+	locs := func(g guestFields) []string {
+		var out []string
+		for _, e := range validateGuest("g", &g) {
+			out = append(out, e.Location)
+		}
+		return out
+	}
+	base := guestFields{FullName: "Test Guest", Address: "Test Town", HasJapanAddress: true}
+
+	if got := locs(base); len(got) != 0 {
+		t.Fatalf("companion without kana or contact: %v", got)
+	}
+	rep := base
+	rep.IsRepresentative = true
+	rep.Phone = s(" ")
+	if got := locs(rep); len(got) != 2 || got[0] != "g.phone" || got[1] != "g.email" {
+		t.Fatalf("representative without contact: %v", got)
+	}
+	rep.Phone, rep.Email = s("000-0000-0001"), s("rep@example.test")
+	if got := locs(rep); len(got) != 0 {
+		t.Fatalf("representative with contact: %v", got)
+	}
+}

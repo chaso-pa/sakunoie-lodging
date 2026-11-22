@@ -48,8 +48,6 @@ export const buildCreatePayload = (values: WizardFormValues, facility: FacilityP
     check_out_date: values.stay.checkOutDate,
     ...optional('estimated_arrival_time', values.stay.estimatedArrivalTime),
     planned_guest_count: Number(values.stay.plannedGuestCount),
-    ...optional('booking_source', values.stay.bookingSource),
-    ...optional('booking_reference', values.stay.bookingReference),
     terms_version: facility.terms_version,
     privacy_version: facility.privacy_version,
     terms_accepted: values.termsAccepted as true,
@@ -60,15 +58,11 @@ export const buildCreatePayload = (values: WizardFormValues, facility: FacilityP
 
 export type PatchRegistrationBody = {
   estimated_arrival_time?: string;
-  booking_source?: string;
-  booking_reference?: string;
   planned_guest_count?: number;
 };
 
 export const manageStayValuesFrom = (summary: ManageSummary): ManageStayFormValues => ({
   estimatedArrivalTime: summary.estimated_arrival_time ?? '',
-  bookingSource: summary.booking_source ?? '',
-  bookingReference: summary.booking_reference ?? '',
   plannedGuestCount: summary.planned_guest_count
 });
 
@@ -80,10 +74,6 @@ export const buildPatchRegistrationBody = (
   const body: PatchRegistrationBody = {};
   const arrival = values.estimatedArrivalTime.trim();
   if (arrival !== (summary.estimated_arrival_time ?? '')) body.estimated_arrival_time = arrival;
-  const source = values.bookingSource.trim();
-  if (source !== (summary.booking_source ?? '')) body.booking_source = source;
-  const reference = values.bookingReference.trim();
-  if (reference !== (summary.booking_reference ?? '')) body.booking_reference = reference;
   const planned = Number(values.plannedGuestCount);
   if (planned !== summary.planned_guest_count) body.planned_guest_count = planned;
   return body;
