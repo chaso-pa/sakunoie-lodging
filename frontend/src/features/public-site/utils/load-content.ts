@@ -1,0 +1,171 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import matter from 'gray-matter';
+import { cache } from 'react';
+import { z } from 'zod';
+import { featureIconNames } from '@/features/public-site/types/icons';
+import { type Locale, routing } from '@/i18n/routing';
+
+/**
+ * Server-only reader for `content/{locale}/{page}.md` (front matter + Markdown body). The files are
+ * shipped with the standalone build through `outputFileTracingIncludes` in `next.config.ts`.
+ */
+
+export const pageSlugs = ['home', 'facilities', 'guide', 'faq', 'rates', 'terms', 'privacy'] as const;
+export type PageSlug = (typeof pageSlugs)[number];
+
+// Quoted in the files; js-yaml would otherwise turn an unquoted date into a Date.
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+const baseSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().min(1),
+  version: isoDate,
+  effectiveDate: isoDate,
+  placeholder: z.boolean(),
+  todo: z.string().optional()
+});
+
+const text = z.string().min(1);
+const icon = z.enum(featureIconNames);
+const iconItem = z.object({ icon, text });
+/** How long it takes and how: "徒歩約5分" with a walk icon. */
+const travelItem = z.object({ mode: z.enum(['walk', 'car', 'train']), text });
+
+export const frontMatterSchemas = {
+  /**
+   * Home landing page, top to bottom: hero, stay type, highlights, spaces, nearby, access. The price,
+   * check-in/out and booking card come from `facilities.md` (one source for those facts).
+   */
+  home: baseSchema.extend({
+    lead: text,
+    /** "What kind of stay": an appeal, with 2–3 chips (private room, shared in part, guests). */
+    stay: z.object({ eyebrow: text, title: text, body: text, chips: z.array(iconItem).min(2).max(3) }),
+    /** Confirmed facts only. `photo` is a facility photo id that is not a hero slide. */
+    highlights: z.object({
+      title: text,
+      items: z.array(z.object({ icon, title: text, body: text, photo: text.optional() })).length(3)
+    }),
+    /** Photo preview of what is private and what is shared (facility photo ids, not the hero slides). */
+    spaces: z.object({
+      title: text,
+      body: text,
+      private: z.object({ photo: text, label: text }),
+      shared: z
+        .array(z.object({ photo: text, label: text }))
+        .min(1)
+        .max(3)
+    }),
+    airbnb: z.object({ title: text, body: text }),
+    /** Nearby spots, owner-confirmed. The first is featured. `localName` is the Japanese name for maps. */
+    around: z.object({
+      title: text,
+      intro: text,
+      items: z
+        .array(
+          z.object({
+            icon,
+            name: text,
+            localName: text.optional(),
+            description: text,
+            travel: travelItem,
+            /** Optional background photo (featured card only): a local `/images/…jpg` path and its alt text. */
+            image: z.object({ src: z.string().regex(/^\/images\/[\w/-]+\.jpg$/), alt: text }).optional()
+          })
+        )
+        .min(2)
+        .max(6)
+    }),
+    /** Route from Tokyo (steps joined by legs), other nearby stations, and the address note. */
+    access: z.object({
+      title: text,
+      body: text,
+      route: z
+        .object({
+          steps: z.array(z.object({ name: text, note: text.optional() })).min(2),
+          legs: z.array(z.object({ travel: z.array(travelItem).min(1) }))
+        })
+        .refine((r) => r.legs.length === r.steps.length - 1, 'route needs one leg between each pair of steps'),
+      alternatives: z.array(z.object({ from: text, travel: z.array(travelItem).min(1) }))
+    })
+  }),
+  facilities: baseSchema.extend({
+    /** The decision-making facts right under the gallery (guests, check-in/out). Shown once only. */
+    keyFacts: z
+      .array(
+        z.union([
+          z.object({ icon, label: text, value: text }),
+          /** Several labelled values in one tile, e.g. check-in "IN 15:00〜" and check-out "OUT 〜10:00". */
+          z.object({ icon, label: text, lines: z.array(z.object({ tag: text, value: text })).min(2) })
+        ])
+      )
+      .min(1)
+      .max(4),
+    spaces: z.object({
+      title: text,
+      intro: text,
+      /** What only the guest uses. `photo` is a facility photo id; `items` must not repeat the key facts. */
+      private: z.object({ title: text, body: text, photo: text, items: z.array(iconItem).min(1) }),
+      /** What the guest shares (in part) with the host. `photos` are facility photo ids (1–3). */
+      shared: z.object({
+        title: text,
+        body: text,
+        photos: z.array(text).min(1).max(3),
+        items: z.array(iconItem).min(1)
+      }),
+      offLimits: text
+    }),
+    /** The grid itself comes from the facility JSON `amenities`; `note` flags what is still unconfirmed. */
+    amenities: z.object({ title: text, note: text.optional(), notePlaceholder: z.boolean() }),
+    rules: z.object({ title: text, items: z.array(z.object({ icon, title: text, body: text.optional() })).min(1) }),
+    access: z.object({ title: text, body: text, placeholder: z.boolean() }),
+    /** Summary of `rates.md` (same numbers; a test compares them) for the booking card. */
+    booking: z.object({ priceLabel: text, price: text, priceDetail: text, note: text })
+  }),
+  guide: baseSchema,
+  faq: baseSchema.extend({
+    categories: z
+      .array(
+        z.object({
+          title: z.string().min(1),
+          items: z.array(z.object({ q: z.string().min(1), a: z.string().min(1) })).min(1)
+        })
+      )
+      .min(1)
+  }),
+  rates: baseSchema.extend({
+    disclaimer: z.string().min(1),
+    rates: z.array(z.object({ label: z.string().min(1), price: z.string().min(1), note: z.string().optional() })).min(1)
+  }),
+  terms: baseSchema,
+  privacy: baseSchema
+} satisfies Record<PageSlug, z.ZodType>;
+
+export type PageFrontMatter<S extends PageSlug> = z.infer<(typeof frontMatterSchemas)[S]>;
+export type PageContent<S extends PageSlug> = { meta: PageFrontMatter<S>; body: string; locale: Locale };
+
+export const contentDir = () => path.join(process.cwd(), 'content');
+
+export const parsePage = <S extends PageSlug>(slug: S, raw: string): { meta: PageFrontMatter<S>; body: string } => {
+  const { data, content } = matter(raw);
+  const result = frontMatterSchemas[slug].safeParse(data);
+  if (!result.success) {
+    throw new Error(`content: invalid front matter in ${slug}.md: ${z.prettifyError(result.error)}`);
+  }
+  return { meta: result.data as PageFrontMatter<S>, body: content.trim() };
+};
+
+const readPage = async <S extends PageSlug>(locale: Locale, slug: S): Promise<PageContent<S>> => {
+  const file = path.join(contentDir(), locale, `${slug}.md`);
+  try {
+    return { ...parsePage(slug, await readFile(file, 'utf8')), locale };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT' || locale === routing.defaultLocale) throw error;
+    // Missing translation: fall back to Japanese and say so in the logs (the content test fails too).
+    console.warn(`content: ${locale}/${slug}.md is missing; falling back to ${routing.defaultLocale}`);
+    return readPage(routing.defaultLocale, slug);
+  }
+};
+
+/** Loads one page, memoized per request. */
+export const loadPage = cache(readPage) as <S extends PageSlug>(locale: Locale, slug: S) => Promise<PageContent<S>>;

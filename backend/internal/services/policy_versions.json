@@ -1,0 +1,5 @@
+{
+  "_todo": "terms_version: the owner's terms (宿泊約款, effective 2026-10-01). privacy_version: 2026-11-12 is a draft pending legal review (要差し替え). Keep both in sync with frontend/content terms/privacy front matter.",
+  "terms_version": "2026-10-01",
+  "privacy_version": "2026-11-12"
+}

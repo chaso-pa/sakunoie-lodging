@@ -1,0 +1,188 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  // Without an explicit width, max-height would shrink the width through aspect-ratio.
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 78svh;
+  min-height: mantine.rem(420px);
+  background: var(--sakunoie-surface-muted);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    aspect-ratio: 16 / 9;
+    max-height: mantine.rem(640px);
+  }
+}
+
+// Break only between phrases (after commas / at spaces), balanced; a phrase too long for a very narrow
+// screen still wraps instead of overflowing.
+.title {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  // Decorative only: clicks and swipes go through to the photos and controls.
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(23, 26, 24, 0.1) 0%, rgba(23, 26, 24, 0.45) 45%, rgba(23, 26, 24, 0.82) 100%);
+}
+
+.content {
+  position: absolute;
+  inset: auto 0 0 0;
+  pointer-events: none;
+
+  a,
+  button {
+    pointer-events: auto;
+  }
+
+  padding-bottom: mantine.rem(32px);
+  color: #fff;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    padding-bottom: mantine.rem(56px);
+  }
+}
+
+.badge {
+  position: absolute;
+  top: mantine.rem(12px);
+  right: mantine.rem(12px);
+}
+
+.slides {
+  position: absolute;
+  inset: 0;
+}
+
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  // Horizontal swipes are handled in JS; vertical page scrolling stays native.
+  touch-action: pan-y;
+}
+
+.track {
+  display: flex;
+  height: 100%;
+  transition: transform 650ms cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  &[data-dragging] {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  user-select: none;
+}
+
+// Prev/next arrows: wider screens only (touch screens swipe); vertically centred on the photo.
+.arrow {
+  position: absolute;
+  z-index: 1;
+  // Centred without transform: Mantine's :active press effect replaces `transform`, which would make the arrow jump.
+  top: calc(50% - #{mantine.rem(22px)});
+  display: none;
+  opacity: 0.88;
+  box-shadow: 0 2px 8px rgba(23, 26, 24, 0.18);
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+
+  &[data-side='prev'] {
+    left: mantine.rem(16px);
+  }
+
+  &[data-side='next'] {
+    right: mantine.rem(16px);
+  }
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    display: inline-flex;
+  }
+}
+
+// Top-right on mobile (the stacked CTAs fill the bottom); bottom-right on desktop.
+.controls {
+  position: absolute;
+  z-index: 1;
+  top: mantine.rem(8px);
+  right: mantine.rem(8px);
+  display: flex;
+  align-items: center;
+  gap: mantine.rem(2px);
+  padding: 0 mantine.rem(4px);
+  border-radius: var(--mantine-radius-xl);
+  background: rgba(23, 26, 24, 0.35);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    top: auto;
+    right: mantine.rem(24px);
+    bottom: mantine.rem(24px);
+  }
+}
+
+// 44px hit area around an 8px dot.
+.dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: mantine.rem(28px);
+  height: mantine.rem(44px);
+
+  span {
+    display: block;
+    width: mantine.rem(8px);
+    height: mantine.rem(8px);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    transition:
+      width 200ms ease,
+      background-color 200ms ease;
+  }
+
+  &[data-active] span {
+    width: mantine.rem(22px);
+    border-radius: mantine.rem(4px);
+    background: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -6px;
+    border-radius: var(--mantine-radius-sm);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    span {
+      transition: none;
+    }
+  }
+}
+
+.playPause {
+  color: #fff;
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -4px;
+  }
+}

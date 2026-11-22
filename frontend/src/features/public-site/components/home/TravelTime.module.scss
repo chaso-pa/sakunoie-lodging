@@ -1,0 +1,17 @@
+.time {
+  display: inline-flex;
+  align-items: center;
+  gap: mantine.rem(6px);
+  padding: mantine.rem(3px) mantine.rem(10px) mantine.rem(3px) mantine.rem(8px);
+  font-size: mantine.rem(13px);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--sakunoie-forest);
+  background: var(--mantine-color-forest-0);
+  border-radius: 999px;
+
+  svg {
+    flex-shrink: 0;
+  }
+}

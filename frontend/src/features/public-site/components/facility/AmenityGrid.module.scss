@@ -1,0 +1,26 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: mantine.rem(8px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  @media (min-width: 22.5em) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: mantine.rem(12px);
+  }
+
+  > li {
+    display: flex;
+    min-width: 0;
+
+    > * {
+      flex: 1;
+    }
+  }
+}

@@ -1,0 +1,39 @@
+.mosaic {
+  display: none;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: mantine.rem(12px);
+  }
+}
+
+.mosaicSide {
+  display: grid;
+  gap: mantine.rem(12px);
+}
+
+.carousel {
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    display: none;
+  }
+}
+
+.track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: mantine.rem(12px);
+  scrollbar-width: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--sakunoie-forest);
+    outline-offset: 2px;
+  }
+}
+
+.slide {
+  flex: 0 0 100%;
+  margin: 0;
+  scroll-snap-align: center;
+}

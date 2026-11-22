@@ -5,9 +5,12 @@ This project follows the [Bulletproof React](https://github.com/alan2207/bulletp
 ## Stack
 
 - **Framework**: Next.js (App Router)
-- **UI**: Mantine v8
+- **UI**: Mantine v9
 - **Styling**: SCSS Modules + PostCSS
-- **Database ORM**: Prisma
+- **Data access**: no database or ORM in the frontend. All data goes through the Go API (`backend/`); the DB schema and migrations live in `backend/prisma/`.
+- **i18n**: next-intl (pinned), locales `ja`/`en`/`zh-CN`/`ko`, routes under `src/app/[locale]/`, messages in `messages/*.json`. Use `Link`/`useRouter` from `@/i18n/navigation`, not `next/link`.
+- **Data fetching**: TanStack Query + the shared axios instance in `@/lib/api-client`; forms with `@mantine/form` + Zod.
+- **Tests**: Vitest (`npm test`, `src/**/*.test.ts`) and Playwright E2E (`e2e/*.spec.ts`, stack via `scripts/e2e-stack.sh`; see README).
 - **Linter/Formatter**: Biome
 - **Language**: TypeScript (strict)
 

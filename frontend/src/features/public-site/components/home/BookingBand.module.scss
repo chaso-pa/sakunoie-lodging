@@ -1,0 +1,63 @@
+.band {
+  padding-block: mantine.rem(48px);
+  color: var(--mantine-color-text);
+  // Same warm canvas as the other alternating sections (white / canvas).
+  background: var(--sakunoie-canvas);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    padding-block: mantine.rem(80px);
+  }
+}
+
+.grid {
+  display: grid;
+  gap: mantine.rem(32px);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    grid-template-columns: minmax(0, 1fr) minmax(mantine.rem(340px), mantine.rem(420px));
+    gap: mantine.rem(64px);
+    align-items: center;
+  }
+}
+
+.reviews {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(20px);
+  min-width: 0;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    align-items: flex-start;
+  }
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(8px);
+}
+
+.title {
+  margin: 0;
+  font-size: mantine.rem(24px);
+  font-weight: 700;
+  line-height: 1.35;
+  text-wrap: balance;
+  word-break: auto-phrase;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    font-size: mantine.rem(32px);
+  }
+}
+
+.body {
+  margin: 0;
+  max-width: 34em;
+  line-height: 1.75;
+  color: var(--mantine-color-dimmed);
+}
+
+.booking {
+  min-width: 0;
+  color: var(--mantine-color-text);
+}

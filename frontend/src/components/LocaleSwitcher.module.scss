@@ -1,0 +1,80 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: mantine.rem(8px);
+  min-height: mantine.rem(44px);
+  min-width: mantine.rem(44px);
+  padding: 0 mantine.rem(10px) 0 mantine.rem(12px);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: var(--mantine-radius-xl);
+  background: var(--sakunoie-surface);
+  color: var(--mantine-color-text);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+
+  &:hover,
+  &[data-expanded] {
+    border-color: var(--sakunoie-forest);
+    background: var(--sakunoie-surface-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sakunoie-forest);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.triggerLabel {
+  white-space: nowrap;
+}
+
+.chevron {
+  color: var(--mantine-color-dimmed);
+  transition: transform 150ms ease;
+
+  .trigger[data-expanded] & {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.flag {
+  display: block;
+  flex-shrink: 0;
+  width: mantine.rem(22px);
+  height: mantine.rem(15px);
+  border-radius: mantine.rem(3px);
+  // A hairline keeps white flag areas (Japan, Korea) visible on a white panel.
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 12%);
+}
+
+.dropdown {
+  padding: mantine.rem(6px);
+  border-color: var(--sakunoie-border);
+}
+
+.item {
+  min-height: mantine.rem(44px);
+  padding: 0 mantine.rem(12px);
+  border-radius: var(--mantine-radius-sm);
+  font-size: var(--mantine-font-size-sm);
+
+  &[data-active] {
+    background: var(--sakunoie-surface-muted);
+    font-weight: 600;
+  }
+}
+
+.check {
+  color: var(--sakunoie-forest);
+}

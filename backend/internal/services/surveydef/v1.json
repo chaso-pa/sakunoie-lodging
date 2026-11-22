@@ -1,0 +1,36 @@
+{
+  "_todo": "要差し替え: Google Forms の既存10問。These are placeholder questions; keep the codes q01..q10 stable and bump the version when questions change. frontend/content/surveys/v1.json holds the labels and must match codes, types, options and required flags.",
+  "version": "v1",
+  "questions": [
+    { "code": "q01", "type": "rating_1_5", "required": true },
+    { "code": "q02", "type": "rating_1_5" },
+    { "code": "q03", "type": "rating_1_5" },
+    { "code": "q04", "type": "rating_1_5" },
+    {
+      "code": "q05",
+      "type": "single_choice",
+      "options": ["sightseeing", "business", "visiting_family_friends", "event", "other"]
+    },
+    {
+      "code": "q06",
+      "type": "single_choice",
+      "options": ["airbnb", "web_search", "social_media", "recommendation", "other"]
+    },
+    {
+      "code": "q07",
+      "type": "single_choice",
+      "options": ["solo", "couple", "family", "friends", "other"]
+    },
+    {
+      "code": "q08",
+      "type": "multi_choice",
+      "options": ["room_comfort", "quiet", "host_interaction", "shared_spaces", "location", "local_area"]
+    },
+    {
+      "code": "q09",
+      "type": "single_choice",
+      "options": ["yes", "maybe", "no"]
+    },
+    { "code": "q10", "type": "text", "maxLength": 1000 }
+  ]
+}

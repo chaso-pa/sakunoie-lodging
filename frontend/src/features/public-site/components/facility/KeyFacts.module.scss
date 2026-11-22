@@ -1,0 +1,143 @@
+/* Mobile: tiles side by side (2 columns; an odd last fact spans both). ≥ sm: every fact in one row. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  background: var(--sakunoie-border);
+  border: 1px solid var(--sakunoie-border);
+  border-radius: mantine.rem(16px);
+
+  /* Two facts: the second (usually IN/OUT, two lines) gets the wider column on phones. */
+  &[data-count='2'] {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    &,
+    &[data-count='2'] {
+      grid-template-columns: none;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(6px);
+  min-width: 0;
+  padding: mantine.rem(14px) mantine.rem(16px);
+  background: var(--sakunoie-surface);
+
+  /* ≥ sm: a horizontal tile — large icon on the left, label and values beside it. */
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: mantine.rem(24px);
+    row-gap: mantine.rem(2px);
+    padding: mantine.rem(20px) mantine.rem(24px) mantine.rem(20px) mantine.rem(88px);
+    min-height: mantine.rem(96px);
+    align-content: center;
+  }
+}
+
+@include mantine.smaller-than(mantine.$mantine-breakpoint-sm) {
+  .item:last-child:nth-child(odd) {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: start;
+    column-gap: mantine.rem(28px);
+    row-gap: mantine.rem(6px);
+    grid-column: 1 / -1;
+
+    .label {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: mantine.rem(8px);
+  font-size: mantine.rem(13px);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--mantine-color-dimmed);
+  word-break: auto-phrase;
+  text-wrap: balance;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    flex-basis: 100%;
+    font-size: mantine.rem(14px);
+  }
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: mantine.rem(32px);
+  height: mantine.rem(32px);
+  border-radius: 50%;
+  color: var(--sakunoie-forest);
+  background: var(--mantine-color-forest-0);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    position: absolute;
+    top: 50%;
+    left: mantine.rem(24px);
+    width: mantine.rem(48px);
+    height: mantine.rem(48px);
+    transform: translateY(-50%);
+
+    svg {
+      width: mantine.rem(24px);
+      height: mantine.rem(24px);
+    }
+  }
+}
+
+.value {
+  margin: 0;
+  font-size: mantine.rem(16px);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--mantine-color-text);
+  overflow-wrap: anywhere;
+  word-break: auto-phrase;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    font-size: mantine.rem(20px);
+    line-height: 1.35;
+  }
+}
+
+/* One labelled value per line on phones; side by side from sm. */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: mantine.rem(8px);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.tag {
+  flex: 0 0 auto;
+  min-width: mantine.rem(30px);
+  font-size: mantine.rem(11px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--sakunoie-forest);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    min-width: 0;
+    font-size: mantine.rem(12px);
+  }
+}

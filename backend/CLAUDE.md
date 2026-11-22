@@ -6,19 +6,28 @@ Go web API template using **Gin** as the HTTP router and **Huma v2** as the API 
 Huma wraps Gin via `humagin` adapter, providing automatic OpenAPI generation, input validation, and typed error responses.
 
 ```
-gin-template/
+backend/
+├── api/openapi.yaml         # Committed OpenAPI 3.1 spec (drift-tested)
 ├── cmd/
-│   └── server/
-│       └── main.go          # Server entry point: Gin setup + Huma API init
+│   ├── server/main.go       # Server entry point: config → DB → Gin + Huma
+│   ├── openapi/             # Spec exporter
+│   └── admin-grant/         # Owner grant CLI (guarded targets)
 ├── internal/
+│   ├── config/              # Env loading and startup refusals
+│   ├── database/            # GORM open; forces loc=UTC / time_zone +00:00
+│   ├── entities/            # GORM table structs (explicit TableName)
 │   ├── handlers/            # Huma handler functions (typed request/response)
 │   ├── middlewares/         # Gin middlewares
 │   ├── models/              # Input/Output structs for Huma endpoints
 │   ├── routes/              # Route registration (SetupHumaRoutes, SetupStaticRoutes)
 │   ├── services/            # Business logic (called by handlers)
+│   ├── testutil/            # Compose-only DB helpers for integration tests
 │   └── utils/               # Shared utilities
 ├── prisma/
-│   └── schema.prisma        # Database schema
+│   ├── schema.prisma        # Database schema (Prisma 7, no client)
+│   ├── migrations/
+│   └── seed.sql
+├── scripts/                 # assert-safe-db.sh, db-reset-test.sh, db-deploy-dev.sh
 ├── go.mod
 └── package.json             # Node deps for Prisma tooling
 ```
@@ -133,6 +142,9 @@ return nil, huma.NewError(http.StatusUnprocessableEntity, "validation failed",
 | Business logic | `internal/services/<resource>_service.go` |
 | DB access | `internal/services/<resource>_service.go` (or separate `repository`) |
 | Shared utilities | `internal/utils/` |
+| GORM table structs | `internal/entities/<table>.go` |
+| Env config and startup checks | `internal/config/` |
+| DB connection (UTC enforcement) | `internal/database/` |
 
 Group files by resource (e.g., `user_handlers.go`, `user_routes.go`, `user.go`).
 
@@ -156,18 +168,26 @@ Group files by resource (e.g., `user_handlers.go`, `user_routes.go`, `user.go`).
 
 ## Database Migration
 
-**マイグレーション管理は必ずPrismaを使用すること。** 生のSQLファイルや他のマイグレーションツールは使用しない。
+**マイグレーション管理は必ずPrismaを使用すること。** Go からの DB アクセスは GORM（CRUD のみ、AutoMigrate 禁止）。Prisma Client は使わないため `generator` ブロックはなく、`prisma generate` は不要。
+
+### DB とルール
+
+- `.env` の `DATABASE_URL` は共有サーバー上の `lodging-master-dev`。`npm run db:migrate` などの Prisma コマンドはこの DB に対して実行される。共有サーバー上のほかの DB には触れない。
+- `migrate dev` はシャドウ DB を一時的に作って消す（`SHADOW_DATABASE_URL` は使わない。接続ユーザーに CREATE/DROP 権限が必要）。
+- テスト用の compose MariaDB（`compose.test.yaml`, `127.0.0.1:33306`）は Go の統合テストと E2E 用。
+- DB を触るスクリプトは `scripts/assert-safe-db.sh` を source する。パスワードを argv に載せない（`--defaults-extra-file`）。
 
 ### ワークフロー
 
-1. `prisma/schema.prisma` を編集してスキーマを変更する
-2. `npx prisma migrate dev --name <migration_name>` でマイグレーションを生成・適用する
-3. `npx prisma generate` でGoクライアントを再生成する
+1. `prisma/schema.prisma` を編集する（モデルは PascalCase、`@@map`/`@map` で snake_case）
+2. `npm run db:migrate -- --name <name>` でマイグレーションを作成し、`lodging-master-dev` に適用する（対話シェルで実行）
+3. 初期データが必要なら `npm run db:seed`
 
 ### マイグレーションルール
 
 - スキーマ変更は **必ず** `prisma/schema.prisma` を通じて行う — DBを直接変更しない
-- マイグレーションファイル (`prisma/migrations/`) は自動生成されるため手動編集しない
+- マイグレーションファイル (`prisma/migrations/`) は自動生成されるため手動編集しない。**例外**: Prisma で表現できない CHECK 制約は `migrate dev --create-only` で作った空マイグレーションに手で書く（`*_add_check_constraints`、ルート `CLAUDE.md` §13）
+- JSON カラムは `String @db.LongText` ＋ CHECK マイグレーションの `json_valid()`（MariaDB の `JSON` の実体。Prisma の `Json` 型は MariaDB で偽のドリフトを出す）
 - 本番環境では `npx prisma migrate deploy` を使用する（`migrate dev` は開発専用）
 
 ## Commands
@@ -179,11 +199,12 @@ go run cmd/server/main.go
 
 ### Database Operations
 ```bash
-npx prisma migrate dev --name <name>  # マイグレーション生成・適用（開発用）
-npx prisma migrate deploy             # マイグレーション適用（本番用）
-npx prisma generate                   # Goクライアント再生成
-npx prisma studio                     # Prisma Studio（DB GUI）
-npx prisma migrate status             # マイグレーション適用状況確認
+docker compose -f compose.test.yaml up -d --wait  # テスト用 MariaDB（127.0.0.1:33306, tmpfs）
+bash scripts/db-reset-test.sh lodging_test        # compose DB を作り直して migrate deploy + seed
+npm run db:migrate -- --name <name>               # マイグレーション作成＋適用（.env の lodging-master-dev）
+npm run db:deploy:dev                             # 共有 lodging-master-dev に migrate deploy + seed
+npm run db:migrate:status                         # 適用状況確認（.env の URL）
+docker compose -f compose.test.yaml down -v       # 後片付け
 ```
 
 ### Testing

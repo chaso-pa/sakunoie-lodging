@@ -1,0 +1,109 @@
+/* Public sections: 40–56px mobile, 64–96px desktop (DESIGN §3). */
+.band {
+  padding-block: mantine.rem(48px);
+  scroll-margin-top: mantine.rem(24px);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    padding-block: mantine.rem(80px);
+  }
+
+  &[data-compact] {
+    padding-block: mantine.rem(40px);
+
+    @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+      padding-block: mantine.rem(56px);
+    }
+  }
+
+  &[data-tone='canvas'] {
+    background: var(--sakunoie-canvas);
+  }
+
+  &[data-tone='surface'] {
+    background: var(--sakunoie-surface);
+    border-block: 1px solid var(--sakunoie-border);
+  }
+
+  &[data-tone='muted'] {
+    background: var(--sakunoie-surface-muted);
+  }
+
+  &[data-tone='forest'] {
+    color: #fff;
+    background: var(--sakunoie-forest-deep);
+  }
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: mantine.rem(8px) mantine.rem(24px);
+  margin-bottom: mantine.rem(24px);
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    margin-bottom: mantine.rem(36px);
+  }
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: mantine.rem(8px);
+  min-width: 0;
+  max-width: mantine.rem(720px);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: mantine.rem(13px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--mantine-color-anchor);
+
+  [data-tone='forest'] & {
+    color: var(--mantine-color-terracotta-2);
+  }
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: mantine.rem(8px) mantine.rem(12px);
+}
+
+.title {
+  margin: 0;
+  font-size: mantine.rem(24px);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+  word-break: auto-phrase;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-md) {
+    font-size: mantine.rem(32px);
+  }
+}
+
+.intro {
+  margin: 0;
+  max-width: 40em;
+  line-height: 1.75;
+  color: var(--mantine-color-dimmed);
+  text-wrap: pretty;
+
+  [data-tone='forest'] & {
+    color: rgb(255 255 255 / 0.82);
+  }
+}
+
+.aside {
+  display: none;
+
+  @include mantine.larger-than(mantine.$mantine-breakpoint-sm) {
+    display: block;
+  }
+}
