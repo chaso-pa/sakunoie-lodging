@@ -36,8 +36,8 @@ mysql --defaults-extra-file="$cnf" -e "CREATE DATABASE IF NOT EXISTS \`${SAFE_DB
 
 # 2-3. No shadow database is used by deploy or db execute.
 export DATABASE_URL
-env -u SHADOW_DATABASE_URL npx --no-install prisma migrate deploy
-env -u SHADOW_DATABASE_URL npx --no-install prisma db execute --file prisma/seed.sql
+npx --no-install prisma migrate deploy
+npx --no-install prisma db execute --file prisma/seed.sql
 
 # 4. Read-only check: no new Prisma shadow database appeared.
 after="$(shadow_dbs)"

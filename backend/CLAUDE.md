@@ -170,24 +170,18 @@ Group files by resource (e.g., `user_handlers.go`, `user_routes.go`, `user.go`).
 
 **マイグレーション管理は必ずPrismaを使用すること。** Go からの DB アクセスは GORM（CRUD のみ、AutoMigrate 禁止）。Prisma Client は使わないため `generator` ブロックはなく、`prisma generate` は不要。
 
-### 安全ルール（共有 DB サーバー）
+### DB とルール
 
-- `.env` の `DATABASE_URL` は共有サーバー上の `lodging-master-dev`。ここで許可されるのは `migrate deploy` / `migrate status` / seed（`npm run db:deploy:dev`）のみ。
-- `migrate dev` / `migrate diff` / `migrate reset` / `db push` は **compose の MariaDB（`compose.test.yaml`, `127.0.0.1:33306`）に対してのみ** 実行する。`prisma.config.ts` が argv を見て、URL が compose でなければ拒否する。
-- DB を触るスクリプトは必ず `scripts/assert-safe-db.sh` を source する。パスワードを argv に載せない（`--defaults-extra-file`）。
+- `.env` の `DATABASE_URL` は共有サーバー上の `lodging-master-dev`。`npm run db:migrate` などの Prisma コマンドはこの DB に対して実行される。共有サーバー上のほかの DB には触れない。
+- `migrate dev` はシャドウ DB を一時的に作って消す（`SHADOW_DATABASE_URL` は使わない。接続ユーザーに CREATE/DROP 権限が必要）。
+- テスト用の compose MariaDB（`compose.test.yaml`, `127.0.0.1:33306`）は Go の統合テストと E2E 用。
+- DB を触るスクリプトは `scripts/assert-safe-db.sh` を source する。パスワードを argv に載せない（`--defaults-extra-file`）。
 
 ### ワークフロー
 
-1. `docker compose -f compose.test.yaml up -d --wait`
-2. `prisma/schema.prisma` を編集する（モデルは PascalCase、`@@map`/`@map` で snake_case）
-3. compose の URL をインラインで指定して `migrate dev` を実行する（非対話シェルでは pty が必要）:
-   ```bash
-   DATABASE_URL=mysql://root:test@127.0.0.1:33306/lodging_migrate \
-   SHADOW_DATABASE_URL=mysql://root:test@127.0.0.1:33306/lodging_shadow \
-   bash -c '(sleep 8; printf "y\n"; sleep 15) | script -qec "npx prisma migrate dev --name <name>" /dev/null'
-   ```
-4. 同じ URL で `npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` が 0 になることを確認する
-5. 共有 dev DB へは `npm run db:deploy:dev`
+1. `prisma/schema.prisma` を編集する（モデルは PascalCase、`@@map`/`@map` で snake_case）
+2. `npm run db:migrate -- --name <name>` でマイグレーションを作成し、`lodging-master-dev` に適用する（対話シェルで実行）
+3. 初期データが必要なら `npm run db:seed`
 
 ### マイグレーションルール
 
@@ -207,8 +201,9 @@ go run cmd/server/main.go
 ```bash
 docker compose -f compose.test.yaml up -d --wait  # テスト用 MariaDB（127.0.0.1:33306, tmpfs）
 bash scripts/db-reset-test.sh lodging_test        # compose DB を作り直して migrate deploy + seed
+npm run db:migrate -- --name <name>               # マイグレーション作成＋適用（.env の lodging-master-dev）
 npm run db:deploy:dev                             # 共有 lodging-master-dev に migrate deploy + seed
-npx prisma migrate status                         # 適用状況確認（.env の URL）
+npm run db:migrate:status                         # 適用状況確認（.env の URL）
 docker compose -f compose.test.yaml down -v       # 後片付け
 ```
 

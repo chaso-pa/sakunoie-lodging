@@ -23,12 +23,10 @@ go build ./...
 | Server | Databases | Allowed |
 |---|---|---|
 | Shared dev server `192.168.3.100:23306` (many unrelated projects; user `dev` has global privileges) | **only `lodging-master-dev`** | `npm run db:deploy:dev` (`CREATE DATABASE IF NOT EXISTS` + `prisma migrate deploy` + seed), `npx prisma migrate status`, the dev server, `cmd/admin-grant` |
-| Compose MariaDB `127.0.0.1:33306` (`compose.test.yaml`, tmpfs, root password `test`) | `lodging_test`, `lodging_e2e`, `lodging_migrate`, `lodging_shadow` | everything, including `migrate dev`/`diff`/`reset`, drops and truncates |
+| Compose MariaDB `127.0.0.1:33306` (`compose.test.yaml`, tmpfs, root password `test`) | `lodging_test`, `lodging_e2e`, `lodging_migrate` | everything, including `migrate dev`/`diff`/`reset`, drops and truncates |
 
 These rules are enforced by guards:
 
-- `prisma.config.ts` refuses `migrate dev|diff|reset` and `db push` unless `DATABASE_URL` and
-  `SHADOW_DATABASE_URL` both point at the compose DB.
 - `scripts/assert-safe-db.sh`, which every DB script sources, allows destructive operations only on
   compose and additive ones only on compose or exactly `lodging-master-dev`.
 - `internal/testutil` panics unless `TEST_DATABASE_URL` is compose `lodging_test`/`lodging_e2e`.
@@ -56,8 +54,7 @@ throwaway compose URLs.
 |---|---|---|
 | `APP_ENV` | yes, no default | `development`, `test` or `production`. Anything else makes the server refuse to start. `/docs`, `/openapi.*` and `/schemas/*` are served only outside production. |
 | `GORM_DATABASE_URL` | yes | go-sql-driver DSN. `loc` and `time_zone` are forced to UTC in code (see below). |
-| `DATABASE_URL` | Prisma | Prisma URL. In `.env` it is the shared `lodging-master-dev` (deploy, status and seed only). |
-| `SHADOW_DATABASE_URL` | Prisma, optional | compose `lodging_shadow`, set inline for `migrate dev`/`diff` only |
+| `DATABASE_URL` | Prisma | Prisma URL. In `.env` it is the shared `lodging-master-dev` (`npm run db:migrate`, deploy, status, seed). |
 | `TEST_DATABASE_URL` | integration tests | compose `lodging_test` (or `lodging_e2e`). Without it, the integration tests skip. |
 | `PORT` | no (8080) | listen port |
 | `BIND_ADDR` | no (`127.0.0.1` in production, every interface otherwise) | listen IP (an IP literal: `127.0.0.1`, `::1`, `0.0.0.0`). Production listens on loopback, so only cloudflared on the same host can reach Go (see [Cloudflare Tunnel deployment](#cloudflare-tunnel-deployment)). |
@@ -207,16 +204,16 @@ docker compose -f compose.test.yaml down -v
 
 `TEST_DB_PORT` changes the host port. The compose file and every guard read it.
 
-### Authoring a migration (compose only)
+### Authoring a migration
+
+Edit `prisma/schema.prisma`, then in an interactive shell:
 
 ```bash
-docker compose -f compose.test.yaml up -d --wait
-export DATABASE_URL=mysql://root:test@127.0.0.1:33306/lodging_migrate
-export SHADOW_DATABASE_URL=mysql://root:test@127.0.0.1:33306/lodging_shadow
-# migrate dev needs a TTY; in a non-interactive shell wrap it with `script`:
-bash -c '(sleep 8; printf "y\n"; sleep 15) | script -qec "npx prisma migrate dev --name <name>" /dev/null'
-npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+npm run db:migrate -- --name <name>   # creates the migration and applies it to .env's lodging-master-dev
 ```
+
+Prisma creates a temporary shadow database on the same server and drops it afterwards (no
+`SHADOW_DATABASE_URL`; the DB user needs CREATE/DROP).
 
 CHECK constraints live in hand-written migrations created with `migrate dev --create-only`
 (`*_add_check_constraints`, `*_add_invitation_check_constraints`), because Prisma cannot express

@@ -19,7 +19,6 @@ jobs:
     env:
       # Compose DB (backend/compose.test.yaml); fixed throwaway credentials.
       DATABASE_URL: mysql://root:test@127.0.0.1:33306/lodging_migrate
-      SHADOW_DATABASE_URL: mysql://root:test@127.0.0.1:33306/lodging_shadow
       TEST_DATABASE_URL: root:test@tcp(127.0.0.1:33306)/lodging_test?parseTime=True
       APP_ENV: test
       # TestIntegrationAdminAuthEmulator needs the Auth Emulator; without it the test skips.
